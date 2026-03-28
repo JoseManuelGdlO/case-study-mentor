@@ -46,7 +46,7 @@ const App = () => (
             <Route path="new-exam" element={<NewExam />} />
             <Route path="stats" element={<Statistics />} />
             <Route path="subscription" element={<Subscription />} />
-            <Route path="profile" element={<Dashboard />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
 
           {/* Exam views (full screen, no sidebar) */}
