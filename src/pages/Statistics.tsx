@@ -1,12 +1,57 @@
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { mockStats } from '@/data/mockData';
-import { BarChart3, Target, TrendingUp, BookOpen } from 'lucide-react';
+import { BarChart3, Target, TrendingUp, BookOpen, Lock, Crown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { useUser } from '@/contexts/UserContext';
 
 const Statistics = () => {
+  const navigate = useNavigate();
+  const { isFreeUser } = useUser();
   const strong = [...mockStats.byCategory].sort((a, b) => b.percent - a.percent).slice(0, 2);
   const weak = [...mockStats.byCategory].sort((a, b) => a.percent - b.percent).slice(0, 2);
+
+  if (isFreeUser) {
+    return (
+      <div className="max-w-7xl mx-auto animate-fade-in">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">Estadísticas</h1>
+          <p className="text-muted-foreground">Tu rendimiento general en la plataforma</p>
+        </div>
+        <div className="relative">
+          {/* Blurred preview */}
+          <div className="filter blur-md pointer-events-none select-none opacity-50">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {[1, 2, 3, 4].map(i => (
+                <Card key={i} className="border-0 shadow-md">
+                  <CardContent className="p-5 h-20" />
+                </Card>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="border-0 shadow-md h-72" />
+              <Card className="border-0 shadow-md h-72" />
+            </div>
+          </div>
+          {/* Overlay */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <Lock className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground">Estadísticas Premium</h2>
+            <p className="text-muted-foreground text-center max-w-sm">
+              Suscríbete para ver tus estadísticas completas, progreso semanal y áreas de mejora.
+            </p>
+            <Button className="gradient-primary border-0 font-semibold gap-2 h-12 px-8" onClick={() => navigate('/dashboard/subscription')}>
+              <Crown className="w-5 h-5" /> Suscribirme
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
@@ -15,7 +60,6 @@ const Statistics = () => {
         <p className="text-muted-foreground">Tu rendimiento general en la plataforma</p>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Exámenes totales', value: mockStats.totalExams, icon: BookOpen, color: 'text-primary' },
@@ -37,12 +81,9 @@ const Statistics = () => {
         ))}
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-0 shadow-md">
-          <CardHeader>
-            <CardTitle>Progreso semanal</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Progreso semanal</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={mockStats.weeklyProgress}>
@@ -57,9 +98,7 @@ const Statistics = () => {
         </Card>
 
         <Card className="border-0 shadow-md">
-          <CardHeader>
-            <CardTitle>Rendimiento por especialidad</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Rendimiento por especialidad</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={mockStats.byCategory}>
@@ -74,7 +113,6 @@ const Statistics = () => {
         </Card>
       </div>
 
-      {/* Strengths & Weaknesses */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-0 shadow-md border-l-4 border-l-success">
           <CardHeader><CardTitle className="text-success">💪 Áreas fuertes</CardTitle></CardHeader>

@@ -12,13 +12,16 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, FileText, BarChart3, User, GraduationCap, LogOut, Plus } from 'lucide-react';
+import { LayoutDashboard, FileText, BarChart3, User, GraduationCap, LogOut, Plus, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useUser } from '@/contexts/UserContext';
 
 const navItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Mis Exámenes', url: '/dashboard/exams', icon: FileText },
   { title: 'Estadísticas', url: '/dashboard/stats', icon: BarChart3 },
+  { title: 'Suscripción', url: '/dashboard/subscription', icon: Crown, highlight: true },
   { title: 'Perfil', url: '/dashboard/profile', icon: User },
 ];
 
@@ -26,6 +29,7 @@ function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const navigate = useNavigate();
+  const { isFreeUser } = useUser();
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -58,11 +62,18 @@ function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === '/dashboard'}
-                      className="hover:bg-sidebar-accent/50 text-sidebar-foreground"
+                      className={`hover:bg-sidebar-accent/50 text-sidebar-foreground ${item.highlight && isFreeUser ? 'text-warning' : ''}`}
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                     >
                       <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      {!collapsed && (
+                        <span className="flex items-center gap-2">
+                          {item.title}
+                          {item.highlight && isFreeUser && (
+                            <Badge className="bg-warning/20 text-warning border-warning/30 text-[10px] px-1.5 py-0">PRO</Badge>
+                          )}
+                        </span>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
