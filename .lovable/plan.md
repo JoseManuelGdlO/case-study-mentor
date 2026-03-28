@@ -1,83 +1,51 @@
 
-# ENARM Prep — Plataforma de Preparación para el ENARM
 
-## Visión General
-Plataforma web para que médicos recién egresados se preparen para el examen ENARM, con dos modos de práctica (simulación y estudio) y un backoffice para editores de contenido.
+# Sistema de Suscripciones — Free vs Premium
 
-## Estilo Visual
-- **Vibrante y juvenil**: Gradientes modernos (púrpura/azul/teal), bordes redondeados, iconografía friendly
-- Tipografía limpia y legible, cards con sombras suaves
-- Dark/light mode ready, interfaz amigable para sesiones de estudio largas
+## Resumen
+Agregar un sistema de usuario free/premium con restricciones, página de suscripción con planes (Mensual $200, Semestral $1,000, Anual $2,100), y pasarela de pago mock (PayPal + Stripe).
 
 ---
 
-## Pantallas a Construir
+## Cambios
 
-### 🔐 1. Login / Registro
-- Pantalla de bienvenida con branding de la plataforma
-- Formulario de email/contraseña + botón "Continuar con Google"
-- Opción de registro con campos básicos (nombre, email, contraseña)
+### 1. Contexto de usuario (`src/contexts/UserContext.tsx`)
+- Crear un React Context que almacene el estado del usuario: `{ plan: 'free' | 'monthly' | 'semester' | 'annual' }`
+- Helper `isFreeUser` derivado del plan
+- Por defecto el usuario será `free`
+- Wrappear la app con este provider
 
-### 🏠 2. Dashboard del Estudiante
-- **Saludo personalizado** con nombre del usuario
-- **Exámenes en curso**: Cards mostrando exámenes iniciados (progreso %, modo, fecha)
-- **Botón destacado "Nuevo Examen"**
-- **Estadísticas rápidas**: Total de preguntas contestadas, % de aciertos general, racha de días estudiando
-- **Historial de exámenes terminados** con calificación y fecha
+### 2. Página de Suscripción (`src/pages/Subscription.tsx`)
+- 3 cards con los planes: Mensual ($200 MXN/mes), Semestral ($1,000 MXN), Anual ($2,100 MXN)
+- Resaltar el plan anual como "Mejor valor"
+- Mostrar ahorro en semestral y anual
+- Botones de PayPal y Stripe (mock — al hacer click simula la suscripción actualizando el contexto)
+- Agregar ruta `/dashboard/subscription`
 
-### 📝 3. Crear Nuevo Examen
-Formulario paso a paso:
-1. **Idioma**: Español o Inglés
-2. **Modo**: Simulación o Estudio (con descripción de cada uno)
-3. **Categorías**: Selección múltiple de especialidades (Medicina Interna, Cirugía, Pediatría, Ginecología y Obstetricia)
-4. **Subcategorías**: Se despliegan según la especialidad elegida (Cardiología, Dermatología, etc.)
-5. **Número de preguntas**: Selector (10, 20, 50, 100, personalizado)
-6. **Resumen y botón "Comenzar Examen"**
+### 3. Dashboard — Indicadores free (`src/pages/Dashboard.tsx`)
+- Banner superior para usuarios free: "Estás en la versión gratuita — Suscríbete para acceso completo"
+- Botón "Suscribirme" que navega a `/dashboard/subscription`
+- Si es free, ocultar o bloquear la sección de estadísticas rápidas (mostrar candado con CTA)
 
-### 📋 4. Pantalla de Examen — Modo Simulación
-- Barra superior con: timer, número de pregunta actual / total, botón "Terminar examen"
-- **Caso clínico** a la izquierda (texto + imágenes si aplica)
-- **Pregunta + 4 opciones (A-D)** a la derecha
-- Navegación entre preguntas (anterior/siguiente)
-- Al finalizar: pantalla de **resultados** con calificación, desglose por categoría, y revisión pregunta por pregunta
+### 4. NewExam — Límite de 10 preguntas (`src/pages/NewExam.tsx`)
+- Si `isFreeUser`: mostrar solo la opción de 10 preguntas en el paso de cantidad
+- Las demás opciones (20, 50, 100) aparecen con candado y tooltip "Disponible con suscripción"
+- Badge informativo: "Plan gratuito: máximo 10 preguntas por examen"
 
-### 📚 5. Pantalla de Examen — Modo Estudio
-- Mismo layout que simulación PERO:
-- Al seleccionar una respuesta, **inmediatamente** marca correcta (verde) e incorrecta (rojo)
-- Se despliega la **explicación** de la respuesta correcta
-- Sección "En Resumen" y "Bibliografía"
-- Se resalta el texto relevante del caso clínico
-- Botón "Siguiente pregunta"
+### 5. Estadísticas — Bloqueo para free (`src/pages/Statistics.tsx`)
+- Si `isFreeUser`: mostrar overlay/blur con mensaje "Suscríbete para ver tus estadísticas completas" y botón de suscripción
 
-### 📊 6. Estadísticas del Estudiante
-- Gráfica de rendimiento a lo largo del tiempo
-- Desglose de aciertos por especialidad y subcategoría
-- Áreas fuertes vs áreas débiles
-- Total de exámenes y preguntas contestadas
+### 6. Sidebar — Enlace de suscripción (`src/components/StudentLayout.tsx`)
+- Agregar item "Suscripción" con icono de corona/estrella en el sidebar
+- Para usuarios free, resaltarlo visualmente (badge "PRO" o color diferente)
 
-### 🔧 7. Backoffice — Panel de Editores
-- Sidebar con navegación: "Casos Clínicos", "Biblioteca"
-- **Lista de casos clínicos** con filtros (especialidad, área, idioma, estado)
-- Vista de tabla con acciones (editar, ver, eliminar)
-
-### ➕ 8. Backoffice — Crear/Editar Caso Clínico
-Formulario completo:
-1. **Clasificación**: Especialidad → Área/Subespecialidad → Tema → Idioma
-2. **Texto del caso clínico** (editor de texto) + opción de adjuntar imagen
-3. **Preguntas** (mínimo 1, botón "Agregar otra pregunta"):
-   - Texto de la pregunta + imagen opcional
-   - 4 opciones (A-D) cada una con: texto, imagen opcional, marcar como correcta, explicación
-   - "En Resumen" y "Bibliografía"
-   - Nivel de dificultad (Baja, Media, Alta)
+### 7. Navegación (`src/App.tsx`)
+- Agregar ruta `subscription` dentro del layout de estudiante
 
 ---
 
-## Navegación
-- **Estudiante**: Sidebar o navbar con Dashboard, Mis Exámenes, Estadísticas, Perfil
-- **Editor/Admin**: Navbar separada con acceso al backoffice de editores
-- Toda la data será mockeada con ejemplos médicos realistas
+## Detalles técnicos
+- Precios en MXN: Mensual $200, Semestral $1,000, Anual $2,100
+- Todo mock/frontend — el "pago" simplemente cambia el estado del contexto
+- El contexto se reseteará al recargar (sin persistencia por ahora)
 
-## Notas
-- Todo frontend con datos de ejemplo (sin backend aún)
-- Preparado para integrar autenticación con Google y Supabase en la siguiente fase
-- Diseño responsive (desktop-first pero funcional en móvil)
