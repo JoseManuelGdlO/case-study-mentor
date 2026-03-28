@@ -7,11 +7,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { categories } from '@/data/mockData';
 import type { ExamMode, ExamLanguage } from '@/types';
-import { ArrowLeft, ArrowRight, Globe, BookOpen, Timer, CheckCircle2, Lock, Crown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Globe, BookOpen, Timer, CheckCircle2, Lock, Crown, Info, Filter } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Input } from '@/components/ui/input';
 
-const questionCounts = [10, 20, 50, 100];
+const ENARM_QUESTION_COUNT = 450;
+const quickCounts = [10, 50, 100, 200];
+
+type QuestionFilter = 'all' | 'unanswered' | 'answered';
 
 const NewExam = () => {
   const navigate = useNavigate();
@@ -22,6 +26,7 @@ const NewExam = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
   const [questionCount, setQuestionCount] = useState(10);
+  const [questionFilter, setQuestionFilter] = useState<QuestionFilter>('all');
 
   const toggleCategory = (id: string) => {
     setSelectedCategories(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
