@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { mockExams, mockStats } from '@/data/mockData';
 import { BookOpen, Target, Flame, TrendingUp, Plus, Clock, ArrowRight, Play, Lock, Crown } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
+import MotivationalBanner from '@/components/MotivationalBanner';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -16,6 +17,9 @@ const Dashboard = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
+      {/* Motivational Banner */}
+      <MotivationalBanner />
+
       {/* Free Banner */}
       {isFreeUser && (
         <Card className="border-2 border-warning/30 bg-warning/5 shadow-md">
