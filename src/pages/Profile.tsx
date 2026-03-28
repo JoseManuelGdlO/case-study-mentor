@@ -10,7 +10,7 @@ import { User, Mail, GraduationCap, Calendar, Save, Shield } from 'lucide-react'
 import { toast } from 'sonner';
 
 const Profile = () => {
-  const { isFreeUser, subscription } = useUser();
+  const { isFreeUser, plan } = useUser();
   const [name, setName] = useState('Dr. Carlos Mendoza');
   const [email, setEmail] = useState('carlos.mendoza@email.com');
   const [university, setUniversity] = useState('Universidad Nacional Autónoma de México');
@@ -39,7 +39,7 @@ const Profile = () => {
             <p className="text-muted-foreground text-sm">{email}</p>
             <div className="flex items-center gap-2 mt-2">
               <Badge className={isFreeUser ? 'bg-muted text-muted-foreground' : 'gradient-primary text-primary-foreground border-0'}>
-                {isFreeUser ? 'Plan Gratuito' : `Plan ${subscription?.plan === 'monthly' ? 'Mensual' : subscription?.plan === 'semester' ? 'Semestral' : 'Anual'}`}
+                {isFreeUser ? 'Plan Gratuito' : `Plan ${plan === 'monthly' ? 'Mensual' : plan === 'semester' ? 'Semestral' : 'Anual'}`}
               </Badge>
             </div>
           </div>
