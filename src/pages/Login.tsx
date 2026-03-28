@@ -153,6 +153,15 @@ const Login = () => {
                   {isRegister ? 'Inicia sesión' : 'Regístrate gratis'}
                 </button>
               </p>
+
+              <div className="mt-4 pt-4 border-t border-border">
+                <button
+                  onClick={() => navigate('/backoffice')}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Acceso Editores / Backoffice →
+                </button>
+              </div>
             </CardContent>
           </Card>
         </div>
