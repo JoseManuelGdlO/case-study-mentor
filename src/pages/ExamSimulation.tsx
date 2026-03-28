@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { mockCases } from '@/data/mockData';
 import { Clock, ChevronLeft, ChevronRight, Flag, AlertTriangle } from 'lucide-react';
+import LabResultsDialog from '@/components/LabResultsDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 const allQuestions = mockCases.flatMap((c) =>
-  c.questions.map((q, qIdx) => ({ ...q, caseText: c.text, caseImageUrl: c.imageUrl, specialty: c.specialty, caseId: c.id, caseQuestionIndex: qIdx, caseQuestionTotal: c.questions.length }))
+  c.questions.map((q, qIdx) => ({ ...q, caseText: c.text, caseImageUrl: c.imageUrl, specialty: c.specialty, caseId: c.id, caseQuestionIndex: qIdx, caseQuestionTotal: c.questions.length, labResults: c.labResults || [] }))
 );
 
 const ExamSimulation = () => {
@@ -91,7 +92,10 @@ const ExamSimulation = () => {
         {/* Case */}
         <Card className="border-0 shadow-md h-fit">
           <CardContent className="p-6">
-            <Badge className="mb-3 gradient-primary text-primary-foreground border-0">{question.specialty}</Badge>
+            <div className="flex items-center gap-2 mb-3">
+              <Badge className="gradient-primary text-primary-foreground border-0">{question.specialty}</Badge>
+              <LabResultsDialog labs={question.labResults} />
+            </div>
             <div className="prose prose-sm max-w-none text-foreground">
               <p className="leading-relaxed">{question.caseText}</p>
             </div>

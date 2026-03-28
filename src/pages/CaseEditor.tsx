@@ -10,7 +10,14 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { categories } from '@/data/mockData';
-import { ArrowLeft, Plus, Trash2, ImagePlus, Save, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ImagePlus, Save, CheckCircle2, FlaskConical } from 'lucide-react';
+
+interface LabForm {
+  name: string;
+  value: string;
+  unit: string;
+  normalRange: string;
+}
 
 interface QuestionForm {
   text: string;
@@ -20,6 +27,8 @@ interface QuestionForm {
   bibliography: string;
   difficulty: string;
 }
+
+const emptyLab = (): LabForm => ({ name: '', value: '', unit: '', normalRange: '' });
 
 const emptyQuestion = (): QuestionForm => ({
   text: '',
@@ -43,6 +52,7 @@ const CaseEditor = () => {
   const [language, setLanguage] = useState('es');
   const [caseText, setCaseText] = useState('');
   const [questions, setQuestions] = useState<QuestionForm[]>([emptyQuestion()]);
+  const [labs, setLabs] = useState<LabForm[]>([]);
 
   const selectedCategory = categories.find((c) => c.name === specialty);
 
@@ -121,7 +131,45 @@ const CaseEditor = () => {
         </CardContent>
       </Card>
 
-      {/* Questions */}
+      {/* Lab Results */}
+      <Card className="border-0 shadow-md">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <FlaskConical className="w-5 h-5 text-primary" /> Laboratorios
+          </CardTitle>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setLabs([...labs, emptyLab()])}>
+            <Plus className="w-4 h-4" /> Agregar
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {labs.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">No se han agregado laboratorios. Agrega resultados de laboratorio para este caso clínico.</p>
+          )}
+          {labs.map((lab, li) => (
+            <div key={li} className="grid grid-cols-[1fr_0.6fr_0.5fr_1fr_auto] gap-2 items-end">
+              <div className="space-y-1">
+                {li === 0 && <Label className="text-xs">Estudio</Label>}
+                <Input placeholder="Ej: Hemoglobina" value={lab.name} onChange={(e) => { const u = [...labs]; u[li].name = e.target.value; setLabs(u); }} />
+              </div>
+              <div className="space-y-1">
+                {li === 0 && <Label className="text-xs">Valor</Label>}
+                <Input placeholder="12.5" value={lab.value} onChange={(e) => { const u = [...labs]; u[li].value = e.target.value; setLabs(u); }} />
+              </div>
+              <div className="space-y-1">
+                {li === 0 && <Label className="text-xs">Unidad</Label>}
+                <Input placeholder="g/dL" value={lab.unit} onChange={(e) => { const u = [...labs]; u[li].unit = e.target.value; setLabs(u); }} />
+              </div>
+              <div className="space-y-1">
+                {li === 0 && <Label className="text-xs">Rango normal</Label>}
+                <Input placeholder="12 - 16" value={lab.normalRange} onChange={(e) => { const u = [...labs]; u[li].normalRange = e.target.value; setLabs(u); }} />
+              </div>
+              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setLabs(labs.filter((_, i) => i !== li))}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
       {questions.map((q, qi) => (
         <Card key={qi} className="border-0 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between">
