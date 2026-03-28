@@ -20,7 +20,7 @@ const Dashboard = () => {
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
       {/* Motivational Banner */}
       <MotivationalBanner />
-      <CountdownTimer />
+      <div data-tour="countdown"><CountdownTimer /></div>
 
       {/* Free Banner */}
       {isFreeUser && (
