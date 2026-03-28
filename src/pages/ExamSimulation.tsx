@@ -104,7 +104,6 @@ const ExamSimulation = () => {
           </Card>
           <LabResultsAccordion labs={question.labResults} />
         </div>
-        </Card>
 
         {/* Question + Options */}
         <div className="space-y-4">
