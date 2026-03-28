@@ -1,51 +1,79 @@
 
 
-# Sistema de Suscripciones — Free vs Premium
+# Backoffice Completo — Panel de Administración ENARM Prep
 
 ## Resumen
-Agregar un sistema de usuario free/premium con restricciones, página de suscripción con planes (Mensual $200, Semestral $1,000, Anual $2,100), y pasarela de pago mock (PayPal + Stripe).
+Expandir el backoffice actual (que solo tiene casos clínicos) para incluir: Dashboard con estadísticas del sistema, gestión de usuarios, gestión de suscripciones/precios, y catálogo de especialidades/categorías.
 
 ---
 
-## Cambios
+## Nuevas páginas
 
-### 1. Contexto de usuario (`src/contexts/UserContext.tsx`)
-- Crear un React Context que almacene el estado del usuario: `{ plan: 'free' | 'monthly' | 'semester' | 'annual' }`
-- Helper `isFreeUser` derivado del plan
-- Por defecto el usuario será `free`
-- Wrappear la app con este provider
+### 1. Dashboard del Backoffice (`src/pages/backoffice/BackofficeDashboard.tsx`)
+- Cards con métricas: total usuarios, usuarios activos, suscripciones activas (por tipo), total de casos publicados, total de preguntas, ingresos estimados
+- Gráfica de nuevos usuarios por semana
+- Gráfica de exámenes realizados por semana
+- Top 5 especialidades más estudiadas
+- Todo con datos mock
 
-### 2. Página de Suscripción (`src/pages/Subscription.tsx`)
-- 3 cards con los planes: Mensual ($200 MXN/mes), Semestral ($1,000 MXN), Anual ($2,100 MXN)
-- Resaltar el plan anual como "Mejor valor"
-- Mostrar ahorro en semestral y anual
-- Botones de PayPal y Stripe (mock — al hacer click simula la suscripción actualizando el contexto)
-- Agregar ruta `/dashboard/subscription`
+### 2. Gestión de Usuarios (`src/pages/backoffice/UserManagement.tsx`)
+- Tabla con usuarios del sistema (estudiantes): nombre, email, plan (free/mensual/semestral/anual), fecha de registro, último acceso, estado (activo/suspendido)
+- Filtros por plan y estado
+- Búsqueda por nombre/email
+- Acciones: ver detalle, suspender/activar, cambiar plan manualmente
+- Sección separada o tab para **usuarios administrativos** (editores): nombre, email, rol (admin/editor), fecha de creación
+- Botón para invitar nuevo editor
 
-### 3. Dashboard — Indicadores free (`src/pages/Dashboard.tsx`)
-- Banner superior para usuarios free: "Estás en la versión gratuita — Suscríbete para acceso completo"
-- Botón "Suscribirme" que navega a `/dashboard/subscription`
-- Si es free, ocultar o bloquear la sección de estadísticas rápidas (mostrar candado con CTA)
+### 3. Configuración de Precios (`src/pages/backoffice/PricingConfig.tsx`)
+- 3 cards editables (Mensual, Semestral, Anual) con campos para precio, nombre del plan, y descripción
+- Inputs editables con botón de guardar (mock, actualiza estado local)
+- Preview de cómo se verían los planes para el usuario
 
-### 4. NewExam — Límite de 10 preguntas (`src/pages/NewExam.tsx`)
-- Si `isFreeUser`: mostrar solo la opción de 10 preguntas en el paso de cantidad
-- Las demás opciones (20, 50, 100) aparecen con candado y tooltip "Disponible con suscripción"
-- Badge informativo: "Plan gratuito: máximo 10 preguntas por examen"
+### 4. Gestión de Especialidades (`src/pages/backoffice/SpecialtyManagement.tsx`)
+- Lista de especialidades (categorías) existentes con sus subcategorías
+- Agregar/editar/eliminar especialidad
+- Agregar/editar/eliminar subcategoría dentro de cada especialidad
+- Layout tipo acordeón: cada especialidad se expande para mostrar subcategorías
+- Contador de casos clínicos asociados a cada especialidad/subcategoría
 
-### 5. Estadísticas — Bloqueo para free (`src/pages/Statistics.tsx`)
-- Si `isFreeUser`: mostrar overlay/blur con mensaje "Suscríbete para ver tus estadísticas completas" y botón de suscripción
+### 5. Estadísticas del Sistema (`src/pages/backoffice/SystemStats.tsx`)
+- Métricas detalladas: precisión promedio de todos los usuarios, distribución de dificultad en preguntas, tasa de abandono de exámenes
+- Gráficas: rendimiento por especialidad, distribución de planes, tendencia de registros
+- Tabla de preguntas más falladas
 
-### 6. Sidebar — Enlace de suscripción (`src/components/StudentLayout.tsx`)
-- Agregar item "Suscripción" con icono de corona/estrella en el sidebar
-- Para usuarios free, resaltarlo visualmente (badge "PRO" o color diferente)
+---
 
-### 7. Navegación (`src/App.tsx`)
-- Agregar ruta `subscription` dentro del layout de estudiante
+## Cambios a archivos existentes
+
+### Sidebar (`src/components/BackofficeLayout.tsx`)
+- Actualizar navegación con nuevos items:
+  - Dashboard (icono LayoutDashboard) → `/backoffice`
+  - Casos Clínicos (FileText) → `/backoffice/cases`
+  - Especialidades (FolderTree) → `/backoffice/specialties`
+  - Usuarios (Users) → `/backoffice/users`
+  - Precios (CreditCard) → `/backoffice/pricing`
+  - Estadísticas (BarChart3) → `/backoffice/stats`
+- Cambiar el botón "Nuevo Caso" por uno contextual o mantenerlo como acceso rápido
+
+### Rutas (`src/App.tsx`)
+- Agregar las nuevas rutas dentro del grupo `/backoffice`:
+  - `/backoffice` → BackofficeDashboard
+  - `/backoffice/cases` → CaseList (mover de index)
+  - `/backoffice/specialties` → SpecialtyManagement
+  - `/backoffice/users` → UserManagement
+  - `/backoffice/pricing` → PricingConfig
+  - `/backoffice/stats` → SystemStats
+
+### Mock Data (`src/data/mockData.ts`)
+- Agregar datos mock de usuarios del sistema (8-10 usuarios con diferentes planes)
+- Agregar datos mock de usuarios administrativos (3-4 editores)
+- Agregar métricas mock del sistema
 
 ---
 
 ## Detalles técnicos
-- Precios en MXN: Mensual $200, Semestral $1,000, Anual $2,100
-- Todo mock/frontend — el "pago" simplemente cambia el estado del contexto
-- El contexto se reseteará al recargar (sin persistencia por ahora)
+- Todas las páginas son frontend puro con datos mock
+- Mismos componentes UI (shadcn) y estilo visual del backoffice actual
+- Las acciones (guardar precios, suspender usuario, etc.) actualizan estado local con toast de confirmación
+- Gráficas con Recharts (ya disponible en el proyecto)
 
