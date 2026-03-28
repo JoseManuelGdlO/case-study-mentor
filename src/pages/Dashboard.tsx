@@ -17,6 +17,9 @@ const Dashboard = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
+      {/* Motivational Banner */}
+      <MotivationalBanner />
+
       {/* Free Banner */}
       {isFreeUser && (
         <Card className="border-2 border-warning/30 bg-warning/5 shadow-md">
