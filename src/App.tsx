@@ -25,6 +25,7 @@ import SpecialtyManagement from "./pages/backoffice/SpecialtyManagement";
 import SystemStats from "./pages/backoffice/SystemStats";
 import PhrasesManagement from "./pages/backoffice/PhrasesManagement";
 import ExamDatesManagement from "./pages/backoffice/ExamDatesManagement";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/onboarding" element={<Onboarding />} />
 
           {/* Student area */}
           <Route path="/dashboard" element={<StudentLayout />}>

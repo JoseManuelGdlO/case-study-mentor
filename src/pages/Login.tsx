@@ -13,7 +13,16 @@ const Login = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/dashboard');
+    if (isRegister) {
+      navigate('/onboarding');
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    // Mock: first-time Google user goes to onboarding
+    navigate('/onboarding');
   };
 
   return (
@@ -83,7 +92,7 @@ const Login = () => {
               <Button
                 variant="outline"
                 className="w-full mb-6 h-12 text-base font-medium gap-3"
-                onClick={() => navigate('/dashboard')}
+                onClick={handleGoogleLogin}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
@@ -140,7 +149,7 @@ const Login = () => {
                   </div>
                 </div>
                 <Button type="submit" className="w-full h-12 text-base font-semibold gradient-primary border-0">
-                  {isRegister ? 'Crear cuenta' : 'Iniciar sesión'}
+                  {isRegister ? 'Crear cuenta y continuar' : 'Iniciar sesión'}
                 </Button>
               </form>
 
