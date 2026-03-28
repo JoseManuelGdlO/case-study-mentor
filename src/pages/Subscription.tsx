@@ -144,6 +144,5 @@ const Subscription = () => {
   );
 };
 
-import { useState } from 'react';
 
 export default Subscription;
