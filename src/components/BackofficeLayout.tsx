@@ -12,12 +12,16 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { FileText, Library, GraduationCap, LogOut, Plus } from 'lucide-react';
+import { LayoutDashboard, FileText, FolderTree, Users, CreditCard, BarChart3, GraduationCap, LogOut, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
-  { title: 'Casos Clínicos', url: '/backoffice', icon: FileText },
-  { title: 'Biblioteca', url: '/backoffice/library', icon: Library },
+  { title: 'Dashboard', url: '/backoffice', icon: LayoutDashboard },
+  { title: 'Casos Clínicos', url: '/backoffice/cases', icon: FileText },
+  { title: 'Especialidades', url: '/backoffice/specialties', icon: FolderTree },
+  { title: 'Usuarios', url: '/backoffice/users', icon: Users },
+  { title: 'Precios', url: '/backoffice/pricing', icon: CreditCard },
+  { title: 'Estadísticas', url: '/backoffice/stats', icon: BarChart3 },
 ];
 
 function BackofficeSidebar() {
@@ -54,7 +58,7 @@ function BackofficeSidebar() {
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end={item.url === '/backoffice'} className="hover:bg-sidebar-accent/50 text-sidebar-foreground" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    <NavLink to={item.url} end className="hover:bg-sidebar-accent/50 text-sidebar-foreground" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>

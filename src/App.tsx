@@ -17,6 +17,11 @@ import CaseList from "./pages/CaseList";
 import CaseEditor from "./pages/CaseEditor";
 import StudentLayout from "./components/StudentLayout";
 import BackofficeLayout from "./components/BackofficeLayout";
+import BackofficeDashboard from "./pages/backoffice/BackofficeDashboard";
+import UserManagement from "./pages/backoffice/UserManagement";
+import PricingConfig from "./pages/backoffice/PricingConfig";
+import SpecialtyManagement from "./pages/backoffice/SpecialtyManagement";
+import SystemStats from "./pages/backoffice/SystemStats";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,10 +54,14 @@ const App = () => (
 
           {/* Backoffice */}
           <Route path="/backoffice" element={<BackofficeLayout />}>
-            <Route index element={<CaseList />} />
+            <Route index element={<BackofficeDashboard />} />
+            <Route path="cases" element={<CaseList />} />
             <Route path="cases/new" element={<CaseEditor />} />
             <Route path="cases/:caseId" element={<CaseEditor />} />
-            <Route path="library" element={<CaseList />} />
+            <Route path="specialties" element={<SpecialtyManagement />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="pricing" element={<PricingConfig />} />
+            <Route path="stats" element={<SystemStats />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
