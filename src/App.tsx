@@ -23,6 +23,7 @@ import PricingConfig from "./pages/backoffice/PricingConfig";
 import SpecialtyManagement from "./pages/backoffice/SpecialtyManagement";
 import SystemStats from "./pages/backoffice/SystemStats";
 import PhrasesManagement from "./pages/backoffice/PhrasesManagement";
+import ExamDatesManagement from "./pages/backoffice/ExamDatesManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +65,7 @@ const App = () => (
             <Route path="pricing" element={<PricingConfig />} />
             <Route path="stats" element={<SystemStats />} />
             <Route path="phrases" element={<PhrasesManagement />} />
+            <Route path="exam-dates" element={<ExamDatesManagement />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

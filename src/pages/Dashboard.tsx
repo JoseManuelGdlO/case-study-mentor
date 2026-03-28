@@ -7,6 +7,7 @@ import { mockExams, mockStats } from '@/data/mockData';
 import { BookOpen, Target, Flame, TrendingUp, Plus, Clock, ArrowRight, Play, Lock, Crown } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import MotivationalBanner from '@/components/MotivationalBanner';
+import CountdownTimer from '@/components/CountdownTimer';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const Dashboard = () => {
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
       {/* Motivational Banner */}
       <MotivationalBanner />
+      <CountdownTimer />
 
       {/* Free Banner */}
       {isFreeUser && (
