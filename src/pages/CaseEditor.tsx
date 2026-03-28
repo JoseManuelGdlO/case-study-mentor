@@ -10,7 +10,14 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { categories } from '@/data/mockData';
-import { ArrowLeft, Plus, Trash2, ImagePlus, Save, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ImagePlus, Save, CheckCircle2, FlaskConical } from 'lucide-react';
+
+interface LabForm {
+  name: string;
+  value: string;
+  unit: string;
+  normalRange: string;
+}
 
 interface QuestionForm {
   text: string;
@@ -20,6 +27,8 @@ interface QuestionForm {
   bibliography: string;
   difficulty: string;
 }
+
+const emptyLab = (): LabForm => ({ name: '', value: '', unit: '', normalRange: '' });
 
 const emptyQuestion = (): QuestionForm => ({
   text: '',
