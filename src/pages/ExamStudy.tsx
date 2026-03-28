@@ -74,15 +74,13 @@ const ExamStudy = () => {
         <div className="space-y-4">
           <Card className="border-0 shadow-md h-fit">
             <CardContent className="p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <Badge variant="outline">{question.specialty}</Badge>
-                <LabResultsDialog labs={question.labResults} />
-              </div>
+              <Badge variant="outline" className="mb-3">{question.specialty}</Badge>
               <div className="prose prose-sm max-w-none text-foreground">
                 <p className="leading-relaxed">{question.caseText}</p>
               </div>
             </CardContent>
           </Card>
+          <LabResultsAccordion labs={question.labResults} />
 
           {revealed && (
             <div className="space-y-3 animate-fade-in">
