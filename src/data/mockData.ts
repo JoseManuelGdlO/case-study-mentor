@@ -74,6 +74,13 @@ export const mockCases: ClinicalCase[] = [
         difficulty: 'medium',
       },
     ],
+    labResults: [
+      { id: 'lab-1-1', name: 'Troponina I', value: '15.2', unit: 'ng/mL', normalRange: '0 - 0.04' },
+      { id: 'lab-1-2', name: 'CK-MB', value: '85', unit: 'U/L', normalRange: '0 - 25' },
+      { id: 'lab-1-3', name: 'BNP', value: '450', unit: 'pg/mL', normalRange: '0 - 100' },
+      { id: 'lab-1-4', name: 'Glucosa', value: '180', unit: 'mg/dL', normalRange: '70 - 110' },
+      { id: 'lab-1-5', name: 'Creatinina', value: '1.1', unit: 'mg/dL', normalRange: '0.7 - 1.3' },
+    ],
     status: 'published',
     createdAt: '2024-01-15',
     updatedAt: '2024-01-20',

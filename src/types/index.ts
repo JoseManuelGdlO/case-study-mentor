@@ -35,6 +35,14 @@ export interface Question {
   difficulty: Difficulty;
 }
 
+export interface LabResult {
+  id: string;
+  name: string;
+  value: string;
+  unit: string;
+  normalRange: string;
+}
+
 export interface ClinicalCase {
   id: string;
   specialty: string;
@@ -43,6 +51,7 @@ export interface ClinicalCase {
   language: ExamLanguage;
   text: string;
   imageUrl?: string;
+  labResults?: LabResult[];
   questions: Question[];
   status: CaseStatus;
   createdAt: string;
