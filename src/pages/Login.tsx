@@ -149,7 +149,7 @@ const Login = () => {
                   </div>
                 </div>
                 <Button type="submit" className="w-full h-12 text-base font-semibold gradient-primary border-0">
-                  {isRegister ? 'Crear cuenta' : 'Iniciar sesión'}
+                  {isRegister ? 'Crear cuenta y continuar' : 'Iniciar sesión'}
                 </Button>
               </form>
 
