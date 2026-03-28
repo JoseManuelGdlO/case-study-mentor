@@ -52,6 +52,7 @@ const CaseEditor = () => {
   const [language, setLanguage] = useState('es');
   const [caseText, setCaseText] = useState('');
   const [questions, setQuestions] = useState<QuestionForm[]>([emptyQuestion()]);
+  const [labs, setLabs] = useState<LabForm[]>([]);
 
   const selectedCategory = categories.find((c) => c.name === specialty);
 
