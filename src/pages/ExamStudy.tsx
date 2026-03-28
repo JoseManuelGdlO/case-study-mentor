@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { mockCases } from '@/data/mockData';
 import { ChevronRight, ChevronLeft, CheckCircle2, XCircle, BookOpen, FileText, ArrowLeft } from 'lucide-react';
-import LabResultsDialog from '@/components/LabResultsDialog';
+import LabResultsAccordion from '@/components/LabResultsAccordion';
 
 const allQuestions = mockCases.flatMap((c) =>
   c.questions.map((q, qIdx) => ({ ...q, caseText: c.text, caseImageUrl: c.imageUrl, specialty: c.specialty, caseId: c.id, caseQuestionIndex: qIdx, caseQuestionTotal: c.questions.length, labResults: c.labResults || [] }))

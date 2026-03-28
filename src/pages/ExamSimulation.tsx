@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { mockCases } from '@/data/mockData';
 import { Clock, ChevronLeft, ChevronRight, Flag, AlertTriangle } from 'lucide-react';
-import LabResultsDialog from '@/components/LabResultsDialog';
+import LabResultsAccordion from '@/components/LabResultsAccordion';
 import {
   AlertDialog,
   AlertDialogAction,
