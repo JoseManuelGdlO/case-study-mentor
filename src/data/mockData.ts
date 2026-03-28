@@ -108,6 +108,12 @@ export const mockCases: ClinicalCase[] = [
         difficulty: 'low',
       },
     ],
+    labResults: [
+      { id: 'lab-2-1', name: 'Gasometría pH', value: '7.25', unit: '', normalRange: '7.35 - 7.45' },
+      { id: 'lab-2-2', name: 'pCO2', value: '55', unit: 'mmHg', normalRange: '35 - 45' },
+      { id: 'lab-2-3', name: 'pO2', value: '45', unit: 'mmHg', normalRange: '80 - 100' },
+      { id: 'lab-2-4', name: 'Hemoglobina', value: '14.5', unit: 'g/dL', normalRange: '14 - 20 (neonato)' },
+    ],
     status: 'published',
     createdAt: '2024-02-01',
     updatedAt: '2024-02-05',
