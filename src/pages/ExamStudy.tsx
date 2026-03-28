@@ -7,8 +7,16 @@ import { Progress } from '@/components/ui/progress';
 import { mockCases } from '@/data/mockData';
 import { ChevronRight, CheckCircle2, XCircle, BookOpen, FileText, ArrowLeft } from 'lucide-react';
 
-const allQuestions = mockCases.flatMap((c) =>
-  c.questions.map((q) => ({ ...q, caseText: c.text, caseImageUrl: c.imageUrl, specialty: c.specialty }))
+const examItems = mockCases.flatMap((c) =>
+  c.questions.map((q, qIdx) => ({
+    ...q,
+    caseId: c.id,
+    caseText: c.text,
+    caseImageUrl: c.imageUrl,
+    specialty: c.specialty,
+    questionInCase: qIdx + 1,
+    totalInCase: c.questions.length,
+  }))
 );
 
 const ExamStudy = () => {
@@ -17,9 +25,12 @@ const ExamStudy = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
 
-  const question = allQuestions[currentIndex];
-  const total = allQuestions.length;
+  const question = examItems[currentIndex];
+  const total = examItems.length;
   const progress = Math.round(((currentIndex + 1) / total) * 100);
+
+  const caseIds = [...new Set(examItems.map((q) => q.caseId))];
+  const caseNumber = caseIds.indexOf(question.caseId) + 1;
 
   const handleSelect = (optionId: string) => {
     if (revealed) return;
@@ -51,7 +62,8 @@ const ExamStudy = () => {
             <BookOpen className="w-3 h-3" /> Modo Estudio
           </Badge>
           <span className="text-sm text-muted-foreground">
-            Pregunta <strong className="text-foreground">{currentIndex + 1}</strong> de <strong className="text-foreground">{total}</strong>
+            Caso <strong className="text-foreground">{caseNumber}</strong> · Pregunta <strong className="text-foreground">{question.questionInCase}</strong> de <strong className="text-foreground">{question.totalInCase}</strong>
+            <span className="ml-2 opacity-60">({currentIndex + 1}/{total} total)</span>
           </span>
         </div>
         <Progress value={progress} className="w-32 h-2" />
@@ -62,7 +74,10 @@ const ExamStudy = () => {
         {/* Case */}
         <Card className="border-0 shadow-md h-fit">
           <CardContent className="p-6">
-            <Badge variant="outline" className="mb-3">{question.specialty}</Badge>
+            <div className="flex items-center gap-2 mb-3">
+              <Badge className="gradient-primary text-primary-foreground border-0">{question.specialty}</Badge>
+              <Badge variant="outline">Caso {caseNumber}</Badge>
+            </div>
             <div className="prose prose-sm max-w-none text-foreground">
               <p className="leading-relaxed">{question.caseText}</p>
             </div>
