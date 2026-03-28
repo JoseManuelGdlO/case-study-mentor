@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { mockCases } from '@/data/mockData';
-import { ChevronRight, CheckCircle2, XCircle, BookOpen, FileText } from 'lucide-react';
+import { ChevronRight, CheckCircle2, XCircle, BookOpen, FileText, ArrowLeft } from 'lucide-react';
 
 const allQuestions = mockCases.flatMap((c) =>
   c.questions.map((q) => ({ ...q, caseText: c.text, caseImageUrl: c.imageUrl, specialty: c.specialty }))
