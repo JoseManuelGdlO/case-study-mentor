@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { UserProvider } from "@/contexts/UserContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NewExam from "./pages/NewExam";
@@ -11,6 +12,7 @@ import ExamSimulation from "./pages/ExamSimulation";
 import ExamStudy from "./pages/ExamStudy";
 import Results from "./pages/Results";
 import Statistics from "./pages/Statistics";
+import Subscription from "./pages/Subscription";
 import CaseList from "./pages/CaseList";
 import CaseEditor from "./pages/CaseEditor";
 import StudentLayout from "./components/StudentLayout";
@@ -21,6 +23,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <UserProvider>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -35,6 +38,7 @@ const App = () => (
             <Route path="exams" element={<ExamList />} />
             <Route path="new-exam" element={<NewExam />} />
             <Route path="stats" element={<Statistics />} />
+            <Route path="subscription" element={<Subscription />} />
             <Route path="profile" element={<Dashboard />} />
           </Route>
 
@@ -55,6 +59,7 @@ const App = () => (
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
+    </UserProvider>
   </QueryClientProvider>
 );
 
