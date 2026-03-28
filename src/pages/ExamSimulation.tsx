@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 const allQuestions = mockCases.flatMap((c) =>
-  c.questions.map((q) => ({ ...q, caseText: c.text, caseImageUrl: c.imageUrl, specialty: c.specialty }))
+  c.questions.map((q, qIdx) => ({ ...q, caseText: c.text, caseImageUrl: c.imageUrl, specialty: c.specialty, caseId: c.id, caseQuestionIndex: qIdx, caseQuestionTotal: c.questions.length }))
 );
 
 const ExamSimulation = () => {
@@ -56,6 +56,9 @@ const ExamSimulation = () => {
           <span className="text-sm text-muted-foreground">
             Pregunta <strong className="text-foreground">{currentIndex + 1}</strong> de <strong className="text-foreground">{total}</strong>
           </span>
+          <Badge variant="secondary" className="text-xs">
+            Caso: pregunta {question.caseQuestionIndex + 1} de {question.caseQuestionTotal}
+          </Badge>
         </div>
         <div className="flex items-center gap-3">
           <Progress value={progress} className="w-32 h-2" />
