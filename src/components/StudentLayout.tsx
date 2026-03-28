@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
+import OnboardingTour from '@/components/OnboardingTour';
 import {
   Sidebar,
   SidebarContent,
@@ -42,7 +44,7 @@ function AppSidebar() {
         </div>
 
         {!collapsed && (
-          <div className="px-4 mb-2">
+          <div className="px-4 mb-2" data-tour="new-exam">
             <Button
               className="w-full gradient-primary border-0 font-semibold gap-2"
               onClick={() => navigate('/dashboard/new-exam')}
@@ -58,12 +60,13 @@ function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
                       end={item.url === '/dashboard'}
                       className={`hover:bg-sidebar-accent/50 text-sidebar-foreground ${item.highlight && isFreeUser ? 'text-warning' : ''}`}
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      data-tour={item.url === '/dashboard' ? 'dashboard' : item.url === '/dashboard/exams' ? 'exams' : item.url === '/dashboard/stats' ? 'stats' : item.url === '/dashboard/subscription' ? 'subscription' : undefined}
                     >
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && (
@@ -99,25 +102,42 @@ function AppSidebar() {
   );
 }
 
-const StudentLayout = () => (
-  <SidebarProvider>
-    <div className="min-h-screen flex w-full">
-      <AppSidebar />
-      <div className="flex-1 flex flex-col">
-        <header className="h-14 flex items-center border-b border-border px-4 bg-background">
-          <SidebarTrigger className="mr-4" />
-          <div className="ml-auto flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-xs font-bold text-primary-foreground">
-              JP
+const StudentLayout = () => {
+  const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => {
+    if (!localStorage.getItem('onboarding-completed')) {
+      const t = setTimeout(() => setShowTour(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
+  const completeTour = () => {
+    setShowTour(false);
+    localStorage.setItem('onboarding-completed', 'true');
+  };
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col">
+          <header className="h-14 flex items-center border-b border-border px-4 bg-background">
+            <SidebarTrigger className="mr-4" />
+            <div className="ml-auto flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-xs font-bold text-primary-foreground">
+                JP
+              </div>
             </div>
-          </div>
-        </header>
-        <main className="flex-1 overflow-auto p-6">
-          <Outlet />
-        </main>
+          </header>
+          <main className="flex-1 overflow-auto p-6">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
-  </SidebarProvider>
-);
+      {showTour && <OnboardingTour onComplete={completeTour} />}
+    </SidebarProvider>
+  );
+};
 
 export default StudentLayout;
