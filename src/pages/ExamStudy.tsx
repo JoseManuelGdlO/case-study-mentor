@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { mockCases } from '@/data/mockData';
-import { ChevronRight, CheckCircle2, XCircle, BookOpen, FileText } from 'lucide-react';
+import { ChevronRight, CheckCircle2, XCircle, BookOpen, FileText, ArrowLeft } from 'lucide-react';
 
 const allQuestions = mockCases.flatMap((c) =>
   c.questions.map((q) => ({ ...q, caseText: c.text, caseImageUrl: c.imageUrl, specialty: c.specialty }))
@@ -44,6 +44,9 @@ const ExamStudy = () => {
       {/* Top Bar */}
       <div className="border-b border-border bg-card px-6 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="rounded-full">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
           <Badge className="gradient-primary text-primary-foreground border-0 gap-1">
             <BookOpen className="w-3 h-3" /> Modo Estudio
           </Badge>

@@ -47,6 +47,9 @@ const ExamSimulation = () => {
       {/* Top Bar */}
       <div className="border-b border-border bg-card px-6 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="rounded-full">
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
           <Badge variant="outline" className="text-base font-mono gap-2">
             <Clock className="w-4 h-4" /> {formatTime(seconds)}
           </Badge>
