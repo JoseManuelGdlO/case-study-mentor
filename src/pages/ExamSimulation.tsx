@@ -18,17 +18,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-// Build flat list preserving case context
-const examItems = mockCases.flatMap((c) =>
-  c.questions.map((q, qIdx) => ({
-    ...q,
-    caseId: c.id,
-    caseText: c.text,
-    caseImageUrl: c.imageUrl,
-    specialty: c.specialty,
-    questionInCase: qIdx + 1,
-    totalInCase: c.questions.length,
-  }))
+const allQuestions = mockCases.flatMap((c) =>
+  c.questions.map((q) => ({ ...q, caseText: c.text, caseImageUrl: c.imageUrl, specialty: c.specialty }))
 );
 
 const ExamSimulation = () => {
@@ -42,13 +33,9 @@ const ExamSimulation = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const question = examItems[currentIndex];
-  const total = examItems.length;
+  const question = allQuestions[currentIndex];
+  const total = allQuestions.length;
   const progress = Math.round(((currentIndex + 1) / total) * 100);
-
-  // Compute case number
-  const caseIds = [...new Set(examItems.map((q) => q.caseId))];
-  const caseNumber = caseIds.indexOf(question.caseId) + 1;
   const formatTime = (s: number) => `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   const selectAnswer = (optionId: string) => {
@@ -67,8 +54,7 @@ const ExamSimulation = () => {
             <Clock className="w-4 h-4" /> {formatTime(seconds)}
           </Badge>
           <span className="text-sm text-muted-foreground">
-            Caso <strong className="text-foreground">{caseNumber}</strong> · Pregunta <strong className="text-foreground">{question.questionInCase}</strong> de <strong className="text-foreground">{question.totalInCase}</strong>
-            <span className="ml-2 opacity-60">({currentIndex + 1}/{total} total)</span>
+            Pregunta <strong className="text-foreground">{currentIndex + 1}</strong> de <strong className="text-foreground">{total}</strong>
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -102,10 +88,7 @@ const ExamSimulation = () => {
         {/* Case */}
         <Card className="border-0 shadow-md h-fit">
           <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Badge className="gradient-primary text-primary-foreground border-0">{question.specialty}</Badge>
-              <Badge variant="outline">Caso {caseNumber}</Badge>
-            </div>
+            <Badge className="mb-3 gradient-primary text-primary-foreground border-0">{question.specialty}</Badge>
             <div className="prose prose-sm max-w-none text-foreground">
               <p className="leading-relaxed">{question.caseText}</p>
             </div>
