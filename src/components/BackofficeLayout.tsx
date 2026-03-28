@@ -12,7 +12,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, FileText, FolderTree, Users, CreditCard, BarChart3, Sparkles, GraduationCap, LogOut, Plus } from 'lucide-react';
+import { LayoutDashboard, FileText, FolderTree, Users, CreditCard, BarChart3, Sparkles, CalendarClock, GraduationCap, LogOut, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
@@ -22,6 +22,7 @@ const navItems = [
   { title: 'Usuarios', url: '/backoffice/users', icon: Users },
   { title: 'Precios', url: '/backoffice/pricing', icon: CreditCard },
   { title: 'Frases', url: '/backoffice/phrases', icon: Sparkles },
+  { title: 'Fechas ENARM', url: '/backoffice/exam-dates', icon: CalendarClock },
   { title: 'Estadísticas', url: '/backoffice/stats', icon: BarChart3 },
 ];
 
