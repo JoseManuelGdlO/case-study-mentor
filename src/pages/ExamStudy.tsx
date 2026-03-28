@@ -8,7 +8,7 @@ import { mockCases } from '@/data/mockData';
 import { ChevronRight, CheckCircle2, XCircle, BookOpen, FileText, ArrowLeft } from 'lucide-react';
 
 const allQuestions = mockCases.flatMap((c) =>
-  c.questions.map((q) => ({ ...q, caseText: c.text, caseImageUrl: c.imageUrl, specialty: c.specialty }))
+  c.questions.map((q, qIdx) => ({ ...q, caseText: c.text, caseImageUrl: c.imageUrl, specialty: c.specialty, caseId: c.id, caseQuestionIndex: qIdx, caseQuestionTotal: c.questions.length }))
 );
 
 const ExamStudy = () => {
@@ -53,6 +53,9 @@ const ExamStudy = () => {
           <span className="text-sm text-muted-foreground">
             Pregunta <strong className="text-foreground">{currentIndex + 1}</strong> de <strong className="text-foreground">{total}</strong>
           </span>
+          <Badge variant="secondary" className="text-xs">
+            Caso: pregunta {question.caseQuestionIndex + 1} de {question.caseQuestionTotal}
+          </Badge>
         </div>
         <Progress value={progress} className="w-32 h-2" />
       </div>
