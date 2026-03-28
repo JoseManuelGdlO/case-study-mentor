@@ -217,6 +217,7 @@ const NewExam = () => {
               { label: 'Idioma', value: language === 'es' ? '🇲🇽 Español' : '🇺🇸 English' },
               { label: 'Modo', value: mode === 'study' ? '📚 Estudio' : '🎯 Simulación' },
               { label: 'Especialidades', value: categories.filter(c => selectedCategories.includes(c.id)).map(c => c.name).join(', ') || 'Todas' },
+              { label: 'Filtro', value: questionFilter === 'all' ? '📋 Todas' : questionFilter === 'unanswered' ? '❓ Sin resolver' : '✅ Ya resueltas' },
               { label: 'Preguntas', value: `${questionCount} preguntas` },
             ].map(item => (
               <div key={item.label} className="flex items-center justify-between py-2 border-b border-border last:border-0">
