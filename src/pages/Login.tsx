@@ -13,7 +13,16 @@ const Login = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/dashboard');
+    if (isRegister) {
+      navigate('/onboarding');
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    // Mock: first-time Google user goes to onboarding
+    navigate('/onboarding');
   };
 
   return (
