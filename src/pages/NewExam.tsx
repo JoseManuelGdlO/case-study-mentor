@@ -7,11 +7,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { categories } from '@/data/mockData';
 import type { ExamMode, ExamLanguage } from '@/types';
-import { ArrowLeft, ArrowRight, Globe, BookOpen, Timer, CheckCircle2, Lock, Crown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Globe, BookOpen, Timer, CheckCircle2, Lock, Crown, Info, Filter } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Input } from '@/components/ui/input';
 
-const questionCounts = [10, 20, 50, 100];
+const ENARM_QUESTION_COUNT = 450;
+const quickCounts = [10, 50, 100, 200];
+
+type QuestionFilter = 'all' | 'unanswered' | 'answered';
 
 const NewExam = () => {
   const navigate = useNavigate();
@@ -22,6 +26,7 @@ const NewExam = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
   const [questionCount, setQuestionCount] = useState(10);
+  const [questionFilter, setQuestionFilter] = useState<QuestionFilter>('all');
 
   const toggleCategory = (id: string) => {
     setSelectedCategories(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
@@ -118,9 +123,37 @@ const NewExam = () => {
       ),
     },
     {
+      title: 'Filtro de preguntas', subtitle: '¿Qué preguntas quieres incluir?',
+      content: (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {([
+            { value: 'all' as QuestionFilter, label: 'Todas', icon: '📋', desc: 'Incluir todas las preguntas disponibles' },
+            { value: 'unanswered' as QuestionFilter, label: 'Sin resolver', icon: '❓', desc: 'Solo preguntas que no has contestado' },
+            { value: 'answered' as QuestionFilter, label: 'Ya resueltas', icon: '✅', desc: 'Solo preguntas que ya contestaste' },
+          ]).map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setQuestionFilter(opt.value)}
+              className={`p-5 rounded-xl border-2 text-left transition-all ${questionFilter === opt.value ? 'border-primary bg-accent shadow-md' : 'border-border hover:border-primary/50'}`}
+            >
+              <span className="text-3xl block mb-2">{opt.icon}</span>
+              <h3 className="font-bold text-foreground mb-1">{opt.label}</h3>
+              <p className="text-sm text-muted-foreground">{opt.desc}</p>
+            </button>
+          ))}
+        </div>
+      ),
+    },
+    {
       title: 'Número de preguntas', subtitle: '¿Cuántas preguntas quieres contestar?',
       content: (
         <div className="space-y-4">
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/30">
+            <Info className="w-4 h-4 text-primary flex-shrink-0" />
+            <p className="text-sm text-foreground">
+              <span className="font-semibold">Recomendación:</span> El ENARM consta de <span className="font-bold text-primary">{ENARM_QUESTION_COUNT} preguntas</span>. Te sugerimos practicar con bloques similares.
+            </p>
+          </div>
           {isFreeUser && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
               <Crown className="w-4 h-4 text-warning flex-shrink-0" />
@@ -130,15 +163,15 @@ const NewExam = () => {
               </p>
             </div>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {questionCounts.map(count => {
+          <div className="flex flex-wrap gap-3">
+            {quickCounts.map(count => {
               const locked = isFreeUser && count > 10;
               return (
                 <Tooltip key={count}>
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => !locked && setQuestionCount(count)}
-                      className={`p-6 rounded-xl border-2 text-center transition-all relative ${
+                      className={`px-5 py-3 rounded-xl border-2 text-center transition-all relative ${
                         locked
                           ? 'border-border opacity-50 cursor-not-allowed'
                           : questionCount === count
@@ -146,17 +179,31 @@ const NewExam = () => {
                           : 'border-border hover:border-primary/50'
                       }`}
                     >
-                      {locked && <Lock className="w-4 h-4 text-muted-foreground absolute top-2 right-2" />}
-                      <span className="text-3xl font-bold text-foreground block">{count}</span>
-                      <span className="text-sm text-muted-foreground">preguntas</span>
+                      {locked && <Lock className="w-3 h-3 text-muted-foreground absolute top-1 right-1" />}
+                      <span className="text-lg font-bold text-foreground">{count}</span>
                     </button>
                   </TooltipTrigger>
-                  {locked && (
-                    <TooltipContent>Disponible con suscripción</TooltipContent>
-                  )}
+                  {locked && <TooltipContent>Disponible con suscripción</TooltipContent>}
                 </Tooltip>
               );
             })}
+          </div>
+          <div className="flex items-center gap-3">
+            <Label htmlFor="customCount" className="text-sm font-medium text-muted-foreground whitespace-nowrap">Personalizado:</Label>
+            <Input
+              id="customCount"
+              type="number"
+              min={1}
+              max={isFreeUser ? 10 : ENARM_QUESTION_COUNT}
+              value={questionCount}
+              onChange={(e) => {
+                const val = parseInt(e.target.value) || 1;
+                const max = isFreeUser ? 10 : ENARM_QUESTION_COUNT;
+                setQuestionCount(Math.min(Math.max(1, val), max));
+              }}
+              className="w-28"
+            />
+            <span className="text-sm text-muted-foreground">de {isFreeUser ? 10 : ENARM_QUESTION_COUNT} máx.</span>
           </div>
         </div>
       ),
@@ -170,6 +217,7 @@ const NewExam = () => {
               { label: 'Idioma', value: language === 'es' ? '🇲🇽 Español' : '🇺🇸 English' },
               { label: 'Modo', value: mode === 'study' ? '📚 Estudio' : '🎯 Simulación' },
               { label: 'Especialidades', value: categories.filter(c => selectedCategories.includes(c.id)).map(c => c.name).join(', ') || 'Todas' },
+              { label: 'Filtro', value: questionFilter === 'all' ? '📋 Todas' : questionFilter === 'unanswered' ? '❓ Sin resolver' : '✅ Ya resueltas' },
               { label: 'Preguntas', value: `${questionCount} preguntas` },
             ].map(item => (
               <div key={item.label} className="flex items-center justify-between py-2 border-b border-border last:border-0">
