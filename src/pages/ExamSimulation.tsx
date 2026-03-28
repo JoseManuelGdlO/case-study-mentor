@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { mockCases } from '@/data/mockData';
 import { Clock, ChevronLeft, ChevronRight, Flag, AlertTriangle } from 'lucide-react';
-import LabResultsDialog from '@/components/LabResultsDialog';
+import LabResultsAccordion from '@/components/LabResultsAccordion';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -90,20 +90,20 @@ const ExamSimulation = () => {
       {/* Content */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-6 p-6 max-w-7xl mx-auto w-full">
         {/* Case */}
-        <Card className="border-0 shadow-md h-fit">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Badge className="gradient-primary text-primary-foreground border-0">{question.specialty}</Badge>
-              <LabResultsDialog labs={question.labResults} />
-            </div>
-            <div className="prose prose-sm max-w-none text-foreground">
-              <p className="leading-relaxed">{question.caseText}</p>
-            </div>
-            {question.caseImageUrl && (
-              <img src={question.caseImageUrl} alt="Caso clínico" className="mt-4 rounded-lg max-w-full" />
-            )}
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <Card className="border-0 shadow-md h-fit">
+            <CardContent className="p-6">
+              <Badge className="gradient-primary text-primary-foreground border-0 mb-3">{question.specialty}</Badge>
+              <div className="prose prose-sm max-w-none text-foreground">
+                <p className="leading-relaxed">{question.caseText}</p>
+              </div>
+              {question.caseImageUrl && (
+                <img src={question.caseImageUrl} alt="Caso clínico" className="mt-4 rounded-lg max-w-full" />
+              )}
+            </CardContent>
+          </Card>
+          <LabResultsAccordion labs={question.labResults} />
+        </div>
 
         {/* Question + Options */}
         <div className="space-y-4">

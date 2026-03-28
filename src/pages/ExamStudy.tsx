@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { mockCases } from '@/data/mockData';
 import { ChevronRight, ChevronLeft, CheckCircle2, XCircle, BookOpen, FileText, ArrowLeft } from 'lucide-react';
-import LabResultsDialog from '@/components/LabResultsDialog';
+import LabResultsAccordion from '@/components/LabResultsAccordion';
 
 const allQuestions = mockCases.flatMap((c) =>
   c.questions.map((q, qIdx) => ({ ...q, caseText: c.text, caseImageUrl: c.imageUrl, specialty: c.specialty, caseId: c.id, caseQuestionIndex: qIdx, caseQuestionTotal: c.questions.length, labResults: c.labResults || [] }))
@@ -74,15 +74,13 @@ const ExamStudy = () => {
         <div className="space-y-4">
           <Card className="border-0 shadow-md h-fit">
             <CardContent className="p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <Badge variant="outline">{question.specialty}</Badge>
-                <LabResultsDialog labs={question.labResults} />
-              </div>
+              <Badge variant="outline" className="mb-3">{question.specialty}</Badge>
               <div className="prose prose-sm max-w-none text-foreground">
                 <p className="leading-relaxed">{question.caseText}</p>
               </div>
             </CardContent>
           </Card>
+          <LabResultsAccordion labs={question.labResults} />
 
           {revealed && (
             <div className="space-y-3 animate-fade-in">
