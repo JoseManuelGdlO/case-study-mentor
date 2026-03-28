@@ -4,16 +4,38 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { mockExams, mockStats } from '@/data/mockData';
-import { BookOpen, Target, Flame, TrendingUp, Plus, Clock, ArrowRight, Play } from 'lucide-react';
+import { BookOpen, Target, Flame, TrendingUp, Plus, Clock, ArrowRight, Play, Lock, Crown } from 'lucide-react';
+import { useUser } from '@/contexts/UserContext';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { isFreeUser } = useUser();
   const inProgress = mockExams.filter(e => e.status === 'in_progress');
   const completed = mockExams.filter(e => e.status === 'completed');
   const lastExam = inProgress.length > 0 ? inProgress.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())[0] : null;
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
+      {/* Free Banner */}
+      {isFreeUser && (
+        <Card className="border-2 border-warning/30 bg-warning/5 shadow-md">
+          <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center">
+                <Crown className="w-5 h-5 text-warning" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">Estás en la versión gratuita</p>
+                <p className="text-sm text-muted-foreground">Exámenes limitados a 10 preguntas. Suscríbete para acceso completo.</p>
+              </div>
+            </div>
+            <Button className="gradient-primary border-0 font-semibold gap-2 flex-shrink-0" onClick={() => navigate('/dashboard/subscription')}>
+              <Crown className="w-4 h-4" /> Suscribirme
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Welcome */}
       <div className="flex items-center justify-between">
         <div>
@@ -75,25 +97,36 @@ const Dashboard = () => {
       })()}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Preguntas', value: mockStats.totalQuestions.toLocaleString(), icon: BookOpen, color: 'text-primary' },
-          { label: 'Aciertos', value: `${mockStats.accuracyPercent}%`, icon: Target, color: 'text-success' },
-          { label: 'Racha', value: `${mockStats.studyStreak} días`, icon: Flame, color: 'text-warning' },
-          { label: 'Exámenes', value: mockStats.totalExams.toString(), icon: TrendingUp, color: 'text-secondary' },
-        ].map((stat) => (
-          <Card key={stat.label} className="border-0 shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl bg-muted flex items-center justify-center ${stat.color}`}>
-                <stat.icon className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="relative">
+        {isFreeUser && (
+          <div className="absolute inset-0 z-10 bg-background/60 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center gap-3">
+            <Lock className="w-8 h-8 text-muted-foreground" />
+            <p className="font-semibold text-foreground">Estadísticas bloqueadas</p>
+            <Button size="sm" className="gradient-primary border-0 gap-2" onClick={() => navigate('/dashboard/subscription')}>
+              <Crown className="w-4 h-4" /> Desbloquear
+            </Button>
+          </div>
+        )}
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 ${isFreeUser ? 'pointer-events-none' : ''}`}>
+          {[
+            { label: 'Preguntas', value: mockStats.totalQuestions.toLocaleString(), icon: BookOpen, color: 'text-primary' },
+            { label: 'Aciertos', value: `${mockStats.accuracyPercent}%`, icon: Target, color: 'text-success' },
+            { label: 'Racha', value: `${mockStats.studyStreak} días`, icon: Flame, color: 'text-warning' },
+            { label: 'Exámenes', value: mockStats.totalExams.toString(), icon: TrendingUp, color: 'text-secondary' },
+          ].map((stat) => (
+            <Card key={stat.label} className="border-0 shadow-md hover:shadow-lg transition-shadow">
+              <CardContent className="p-5 flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl bg-muted flex items-center justify-center ${stat.color}`}>
+                  <stat.icon className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* Other In-Progress Exams */}

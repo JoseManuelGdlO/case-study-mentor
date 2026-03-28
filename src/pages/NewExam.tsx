@@ -7,18 +7,21 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { categories } from '@/data/mockData';
 import type { ExamMode, ExamLanguage } from '@/types';
-import { ArrowLeft, ArrowRight, Globe, BookOpen, Timer, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Globe, BookOpen, Timer, CheckCircle2, Lock, Crown } from 'lucide-react';
+import { useUser } from '@/contexts/UserContext';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const questionCounts = [10, 20, 50, 100];
 
 const NewExam = () => {
   const navigate = useNavigate();
+  const { isFreeUser } = useUser();
   const [step, setStep] = useState(0);
   const [language, setLanguage] = useState<ExamLanguage>('es');
   const [mode, setMode] = useState<ExamMode>('study');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
-  const [questionCount, setQuestionCount] = useState(20);
+  const [questionCount, setQuestionCount] = useState(10);
 
   const toggleCategory = (id: string) => {
     setSelectedCategories(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
@@ -117,17 +120,44 @@ const NewExam = () => {
     {
       title: 'Número de preguntas', subtitle: '¿Cuántas preguntas quieres contestar?',
       content: (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {questionCounts.map(count => (
-            <button
-              key={count}
-              onClick={() => setQuestionCount(count)}
-              className={`p-6 rounded-xl border-2 text-center transition-all ${questionCount === count ? 'border-primary bg-accent shadow-md' : 'border-border hover:border-primary/50'}`}
-            >
-              <span className="text-3xl font-bold text-foreground block">{count}</span>
-              <span className="text-sm text-muted-foreground">preguntas</span>
-            </button>
-          ))}
+        <div className="space-y-4">
+          {isFreeUser && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
+              <Crown className="w-4 h-4 text-warning flex-shrink-0" />
+              <p className="text-sm text-foreground">
+                <span className="font-semibold">Plan gratuito:</span> máximo 10 preguntas por examen.{' '}
+                <button onClick={() => navigate('/dashboard/subscription')} className="text-primary font-semibold underline">Suscríbete</button> para más.
+              </p>
+            </div>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {questionCounts.map(count => {
+              const locked = isFreeUser && count > 10;
+              return (
+                <Tooltip key={count}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => !locked && setQuestionCount(count)}
+                      className={`p-6 rounded-xl border-2 text-center transition-all relative ${
+                        locked
+                          ? 'border-border opacity-50 cursor-not-allowed'
+                          : questionCount === count
+                          ? 'border-primary bg-accent shadow-md'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      {locked && <Lock className="w-4 h-4 text-muted-foreground absolute top-2 right-2" />}
+                      <span className="text-3xl font-bold text-foreground block">{count}</span>
+                      <span className="text-sm text-muted-foreground">preguntas</span>
+                    </button>
+                  </TooltipTrigger>
+                  {locked && (
+                    <TooltipContent>Disponible con suscripción</TooltipContent>
+                  )}
+                </Tooltip>
+              );
+            })}
+          </div>
         </div>
       ),
     },
