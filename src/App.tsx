@@ -13,6 +13,7 @@ import ExamStudy from "./pages/ExamStudy";
 import Results from "./pages/Results";
 import Statistics from "./pages/Statistics";
 import Subscription from "./pages/Subscription";
+import Profile from "./pages/Profile";
 import CaseList from "./pages/CaseList";
 import CaseEditor from "./pages/CaseEditor";
 import StudentLayout from "./components/StudentLayout";
@@ -46,7 +47,7 @@ const App = () => (
             <Route path="new-exam" element={<NewExam />} />
             <Route path="stats" element={<Statistics />} />
             <Route path="subscription" element={<Subscription />} />
-            <Route path="profile" element={<Dashboard />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
 
           {/* Exam views (full screen, no sidebar) */}
