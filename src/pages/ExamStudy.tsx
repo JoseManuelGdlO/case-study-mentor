@@ -69,15 +69,38 @@ const ExamStudy = () => {
 
       {/* Content */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-6 p-6 max-w-7xl mx-auto w-full">
-        {/* Case */}
-        <Card className="border-0 shadow-md h-fit">
-          <CardContent className="p-6">
-            <Badge variant="outline" className="mb-3">{question.specialty}</Badge>
-            <div className="prose prose-sm max-w-none text-foreground">
-              <p className="leading-relaxed">{question.caseText}</p>
+        {/* Case + Feedback */}
+        <div className="space-y-4">
+          <Card className="border-0 shadow-md h-fit">
+            <CardContent className="p-6">
+              <Badge variant="outline" className="mb-3">{question.specialty}</Badge>
+              <div className="prose prose-sm max-w-none text-foreground">
+                <p className="leading-relaxed">{question.caseText}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {revealed && (
+            <div className="space-y-3 animate-fade-in">
+              <Card className="border-0 shadow-md border-l-4 border-l-primary">
+                <CardContent className="p-5">
+                  <h3 className="font-bold text-foreground flex items-center gap-2 mb-2">
+                    <FileText className="w-4 h-4 text-primary" /> En Resumen
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{question.summary}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-md border-l-4 border-l-secondary">
+                <CardContent className="p-5">
+                  <h3 className="font-bold text-foreground flex items-center gap-2 mb-2">
+                    <BookOpen className="w-4 h-4 text-secondary" /> Bibliografía
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{question.bibliography}</p>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </div>
 
         {/* Question */}
         <div className="space-y-4">
@@ -134,34 +157,16 @@ const ExamStudy = () => {
             </CardContent>
           </Card>
 
-          {/* Feedback */}
+          {/* Navigation */}
           {revealed && (
-            <div className="space-y-3 animate-fade-in">
-              <Card className="border-0 shadow-md border-l-4 border-l-primary">
-                <CardContent className="p-5">
-                  <h3 className="font-bold text-foreground flex items-center gap-2 mb-2">
-                    <FileText className="w-4 h-4 text-primary" /> En Resumen
-                  </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{question.summary}</p>
-                </CardContent>
-              </Card>
-              <Card className="border-0 shadow-md border-l-4 border-l-secondary">
-                <CardContent className="p-5">
-                  <h3 className="font-bold text-foreground flex items-center gap-2 mb-2">
-                    <BookOpen className="w-4 h-4 text-secondary" /> Bibliografía
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{question.bibliography}</p>
-                </CardContent>
-              </Card>
-              <div className="flex gap-3">
-                <Button variant="outline" disabled={currentIndex === 0} onClick={() => goTo(currentIndex - 1)} className="flex-1 h-12 gap-2">
-                  <ChevronLeft className="w-4 h-4" /> Anterior
-                </Button>
-                <Button onClick={nextQuestion} className="flex-1 gradient-primary border-0 font-semibold h-12 gap-2">
-                  {currentIndex === total - 1 ? 'Finalizar examen' : 'Siguiente pregunta'}
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
+            <div className="flex gap-3 animate-fade-in">
+              <Button variant="outline" disabled={currentIndex === 0} onClick={() => goTo(currentIndex - 1)} className="flex-1 h-12 gap-2">
+                <ChevronLeft className="w-4 h-4" /> Anterior
+              </Button>
+              <Button onClick={nextQuestion} className="flex-1 gradient-primary border-0 font-semibold h-12 gap-2">
+                {currentIndex === total - 1 ? 'Finalizar examen' : 'Siguiente pregunta'}
+                <ChevronRight className="w-4 h-4" />
+              </Button>
             </div>
           )}
         </div>
