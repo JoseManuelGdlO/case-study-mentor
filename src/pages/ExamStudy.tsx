@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { mockCases } from '@/data/mockData';
-import { ChevronRight, CheckCircle2, XCircle, BookOpen, FileText, ArrowLeft } from 'lucide-react';
+import { ChevronRight, ChevronLeft, CheckCircle2, XCircle, BookOpen, FileText, ArrowLeft } from 'lucide-react';
 
 const allQuestions = mockCases.flatMap((c) =>
   c.questions.map((q, qIdx) => ({ ...q, caseText: c.text, caseImageUrl: c.imageUrl, specialty: c.specialty, caseId: c.id, caseQuestionIndex: qIdx, caseQuestionTotal: c.questions.length }))
@@ -14,17 +14,26 @@ const allQuestions = mockCases.flatMap((c) =>
 const ExamStudy = () => {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [revealed, setRevealed] = useState(false);
+  const [answeredQuestions, setAnsweredQuestions] = useState<Record<string, { selectedAnswer: string; revealed: boolean }>>({});
 
   const question = allQuestions[currentIndex];
   const total = allQuestions.length;
   const progress = Math.round(((currentIndex + 1) / total) * 100);
 
+  const currentState = answeredQuestions[question.id];
+  const selectedAnswer = currentState?.selectedAnswer ?? null;
+  const revealed = currentState?.revealed ?? false;
+
   const handleSelect = (optionId: string) => {
     if (revealed) return;
-    setSelectedAnswer(optionId);
-    setRevealed(true);
+    setAnsweredQuestions((prev) => ({
+      ...prev,
+      [question.id]: { selectedAnswer: optionId, revealed: true },
+    }));
+  };
+
+  const goTo = (index: number) => {
+    setCurrentIndex(index);
   };
 
   const nextQuestion = () => {
@@ -33,8 +42,6 @@ const ExamStudy = () => {
       return;
     }
     setCurrentIndex((i) => i + 1);
-    setSelectedAnswer(null);
-    setRevealed(false);
   };
 
   const correctOption = question.options.find((o) => o.isCorrect);
@@ -146,10 +153,15 @@ const ExamStudy = () => {
                   <p className="text-sm text-muted-foreground">{question.bibliography}</p>
                 </CardContent>
               </Card>
-              <Button onClick={nextQuestion} className="w-full gradient-primary border-0 font-semibold h-12 gap-2">
-                {currentIndex === total - 1 ? 'Finalizar examen' : 'Siguiente pregunta'}
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+              <div className="flex gap-3">
+                <Button variant="outline" disabled={currentIndex === 0} onClick={() => goTo(currentIndex - 1)} className="flex-1 h-12 gap-2">
+                  <ChevronLeft className="w-4 h-4" /> Anterior
+                </Button>
+                <Button onClick={nextQuestion} className="flex-1 gradient-primary border-0 font-semibold h-12 gap-2">
+                  {currentIndex === total - 1 ? 'Finalizar examen' : 'Siguiente pregunta'}
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           )}
         </div>
