@@ -1,79 +1,51 @@
 
 
-# Backoffice Completo — Panel de Administración ENARM Prep
+# Onboarding Tour — Guía interactiva para nuevos usuarios
 
 ## Resumen
-Expandir el backoffice actual (que solo tiene casos clínicos) para incluir: Dashboard con estadísticas del sistema, gestión de usuarios, gestión de suscripciones/precios, y catálogo de especialidades/categorías.
+Crear un tour guiado paso a paso que se muestre la primera vez que el usuario entra al Dashboard. Aplica blur/overlay oscuro a todo excepto la sección destacada, con tooltip explicativo y botones Siguiente/Omitir.
 
 ---
 
-## Nuevas páginas
+## Cambios
 
-### 1. Dashboard del Backoffice (`src/pages/backoffice/BackofficeDashboard.tsx`)
-- Cards con métricas: total usuarios, usuarios activos, suscripciones activas (por tipo), total de casos publicados, total de preguntas, ingresos estimados
-- Gráfica de nuevos usuarios por semana
-- Gráfica de exámenes realizados por semana
-- Top 5 especialidades más estudiadas
-- Todo con datos mock
+### 1. Componente `OnboardingTour` (`src/components/OnboardingTour.tsx`)
+- Overlay oscuro semi-transparente que cubre toda la pantalla
+- "Spotlight" (recorte) sobre el elemento destacado usando coordenadas del DOM (`getBoundingClientRect`)
+- Tooltip flotante junto al spotlight con: título, descripción, botón "Siguiente" y "Omitir tour"
+- Indicador de progreso (paso 2 de 6, etc.)
+- Usa `z-index` alto para estar por encima de todo
 
-### 2. Gestión de Usuarios (`src/pages/backoffice/UserManagement.tsx`)
-- Tabla con usuarios del sistema (estudiantes): nombre, email, plan (free/mensual/semestral/anual), fecha de registro, último acceso, estado (activo/suspendido)
-- Filtros por plan y estado
-- Búsqueda por nombre/email
-- Acciones: ver detalle, suspender/activar, cambiar plan manualmente
-- Sección separada o tab para **usuarios administrativos** (editores): nombre, email, rol (admin/editor), fecha de creación
-- Botón para invitar nuevo editor
+### 2. Pasos del tour (5-6 pasos)
+1. **Sidebar "Nuevo Examen"** — "Aquí puedes crear un examen personalizado con las preguntas y especialidades que quieras"
+2. **Dashboard principal** — "Este es tu panel principal donde verás tu progreso y exámenes recientes"
+3. **Countdown ENARM** — "Aquí verás cuánto falta para el próximo ENARM"
+4. **Mis Exámenes** (sidebar) — "Consulta todos tus exámenes creados y continúa donde te quedaste"
+5. **Estadísticas** (sidebar) — "Revisa tu rendimiento por especialidad y tu evolución"
+6. **Suscripción** (sidebar) — "Desbloquea el acceso completo a todos los casos clínicos"
 
-### 3. Configuración de Precios (`src/pages/backoffice/PricingConfig.tsx`)
-- 3 cards editables (Mensual, Semestral, Anual) con campos para precio, nombre del plan, y descripción
-- Inputs editables con botón de guardar (mock, actualiza estado local)
-- Preview de cómo se verían los planes para el usuario
+### 3. Lógica de activación
+- En `StudentLayout.tsx`, verificar `localStorage.getItem('onboarding-completed')`
+- Si no existe, mostrar `<OnboardingTour />` sobre el layout
+- Al terminar o saltar, guardar `localStorage.setItem('onboarding-completed', 'true')`
 
-### 4. Gestión de Especialidades (`src/pages/backoffice/SpecialtyManagement.tsx`)
-- Lista de especialidades (categorías) existentes con sus subcategorías
-- Agregar/editar/eliminar especialidad
-- Agregar/editar/eliminar subcategoría dentro de cada especialidad
-- Layout tipo acordeón: cada especialidad se expande para mostrar subcategorías
-- Contador de casos clínicos asociados a cada especialidad/subcategoría
+### 4. Mecánica del spotlight
+- Cada paso referencia un `data-tour="step-name"` en el elemento objetivo
+- Agregar estos `data-tour` attributes a los elementos del sidebar y dashboard
+- El componente usa `getBoundingClientRect()` + `useEffect` para posicionar el recorte
+- El overlay se logra con un SVG o CSS `clip-path` que recorta el área del elemento destacado
+- Transición suave al cambiar de paso
 
-### 5. Estadísticas del Sistema (`src/pages/backoffice/SystemStats.tsx`)
-- Métricas detalladas: precisión promedio de todos los usuarios, distribución de dificultad en preguntas, tasa de abandono de exámenes
-- Gráficas: rendimiento por especialidad, distribución de planes, tendencia de registros
-- Tabla de preguntas más falladas
-
----
-
-## Cambios a archivos existentes
-
-### Sidebar (`src/components/BackofficeLayout.tsx`)
-- Actualizar navegación con nuevos items:
-  - Dashboard (icono LayoutDashboard) → `/backoffice`
-  - Casos Clínicos (FileText) → `/backoffice/cases`
-  - Especialidades (FolderTree) → `/backoffice/specialties`
-  - Usuarios (Users) → `/backoffice/users`
-  - Precios (CreditCard) → `/backoffice/pricing`
-  - Estadísticas (BarChart3) → `/backoffice/stats`
-- Cambiar el botón "Nuevo Caso" por uno contextual o mantenerlo como acceso rápido
-
-### Rutas (`src/App.tsx`)
-- Agregar las nuevas rutas dentro del grupo `/backoffice`:
-  - `/backoffice` → BackofficeDashboard
-  - `/backoffice/cases` → CaseList (mover de index)
-  - `/backoffice/specialties` → SpecialtyManagement
-  - `/backoffice/users` → UserManagement
-  - `/backoffice/pricing` → PricingConfig
-  - `/backoffice/stats` → SystemStats
-
-### Mock Data (`src/data/mockData.ts`)
-- Agregar datos mock de usuarios del sistema (8-10 usuarios con diferentes planes)
-- Agregar datos mock de usuarios administrativos (3-4 editores)
-- Agregar métricas mock del sistema
+### 5. Archivos a modificar
+- **Crear**: `src/components/OnboardingTour.tsx`
+- **Editar**: `src/components/StudentLayout.tsx` — agregar `data-tour` attrs y montar el componente
+- **Editar**: `src/pages/Dashboard.tsx` — agregar `data-tour` attrs a secciones clave
 
 ---
 
 ## Detalles técnicos
-- Todas las páginas son frontend puro con datos mock
-- Mismos componentes UI (shadcn) y estilo visual del backoffice actual
-- Las acciones (guardar precios, suspender usuario, etc.) actualizan estado local con toast de confirmación
-- Gráficas con Recharts (ya disponible en el proyecto)
+- Spotlight con SVG overlay: un `<rect>` que cubre todo con un `<rect>` recortado (usando mask) para el hueco
+- `ResizeObserver` para recalcular posición si cambia el layout
+- Tooltip posicionado automáticamente (arriba/abajo/izquierda/derecha) según espacio disponible
+- Todo CSS puro + React state, sin librerías externas
 
