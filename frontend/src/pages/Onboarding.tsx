@@ -155,7 +155,7 @@ const Onboarding = () => {
         }),
       });
       await apiJson('/api/profile/onboarding', { method: 'PUT' });
-      toast.success('¡Bienvenido a ENARM Prep!', {
+      toast.success('¡Bienvenido a ENARMX!', {
         description: `Mucho éxito en tu camino hacia ${desiredSpecialty}, ${firstName}`,
       });
       navigate('/dashboard');

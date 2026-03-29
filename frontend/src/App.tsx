@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserProvider } from "@/contexts/UserContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute, BackofficeRoute, AdminRoute } from "@/components/ProtectedRoute";
+import { ApiSlowLoadingOverlay } from "@/components/ApiSlowLoadingOverlay";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NewExam from "./pages/NewExam";
@@ -40,6 +41,7 @@ const App = () => (
     <AuthProvider>
       <UserProvider>
         <TooltipProvider>
+          <ApiSlowLoadingOverlay />
           <Toaster />
           <Sonner />
           <BrowserRouter>

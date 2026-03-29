@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { GraduationCap, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import logoConLetra from '@/assets/logotipoconletra.png';
 
 declare global {
   interface Window {
@@ -106,11 +107,14 @@ const Login = () => {
           ))}
         </div>
         <div className="relative z-10 text-center text-white max-w-md">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm mb-8">
-            <GraduationCap className="w-10 h-10" />
+          <div className="inline-block rounded-2xl bg-white/95 p-6 mb-8 shadow-lg">
+            <img
+              src={logoConLetra}
+              alt="ENARMX — preparación ENARM"
+              className="h-16 sm:h-20 w-auto max-w-[280px] mx-auto object-contain"
+            />
           </div>
-          <h1 className="text-4xl font-bold mb-4">ENARM Prep</h1>
-          <p className="text-xl text-white/80 mb-6">
+          <p className="text-xl text-white/90 mb-6">
             Tu plataforma de preparación para el Examen Nacional de Residencias Médicas
           </p>
         </div>
@@ -119,10 +123,11 @@ const Login = () => {
       <div className="flex-1 flex items-center justify-center p-6 bg-background">
         <div className="w-full max-w-md">
           <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl gradient-primary mb-4">
-              <GraduationCap className="w-7 h-7 text-primary-foreground" />
-            </div>
-            <h1 className="text-2xl font-bold text-gradient">ENARM Prep</h1>
+            <img
+              src={logoConLetra}
+              alt="ENARMX"
+              className="h-12 w-auto max-w-[220px] mx-auto object-contain"
+            />
           </div>
 
           <Card className="border-0 shadow-xl">

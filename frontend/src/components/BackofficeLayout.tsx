@@ -13,7 +13,9 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, FileText, FolderTree, Users, CreditCard, BarChart3, Sparkles, CalendarClock, GraduationCap, LogOut, Plus } from 'lucide-react';
+import { LayoutDashboard, FileText, FolderTree, Users, CreditCard, BarChart3, Sparkles, CalendarClock, LogOut, Plus } from 'lucide-react';
+import logoConLetra from '@/assets/logotipoconletra.png';
+import logoSolo from '@/assets/logotiposolo.png';
 import { Button } from '@/components/ui/button';
 
 const navItems: {
@@ -43,13 +45,16 @@ function BackofficeSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarContent className="bg-sidebar">
-        <div className="p-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-            <GraduationCap className="w-5 h-5 text-primary-foreground" />
-          </div>
-          {!collapsed && (
-            <div>
-              <span className="font-bold text-lg text-sidebar-foreground block leading-tight">ENARM Prep</span>
+        <div className="p-4 flex items-center gap-3 min-h-[3.25rem]">
+          {collapsed ? (
+            <img src={logoSolo} alt="ENARMX" className="h-9 w-9 object-contain flex-shrink-0" />
+          ) : (
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <img
+                src={logoConLetra}
+                alt="ENARMX"
+                className="h-8 w-auto max-w-[160px] object-left object-contain"
+              />
               <span className="text-xs text-sidebar-foreground/60">Backoffice</span>
             </div>
           )}

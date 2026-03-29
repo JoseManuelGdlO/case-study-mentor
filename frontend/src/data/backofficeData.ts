@@ -53,10 +53,10 @@ export const mockSystemUsers: SystemUser[] = [
 ];
 
 export const mockAdminUsers: AdminUser[] = [
-  { id: 'a1', name: 'Dr. Fernando Reyes', email: 'f.reyes@enarmprep.com', role: 'admin', createdAt: '2023-10-01' },
-  { id: 'a2', name: 'Dra. Patricia Vega', email: 'p.vega@enarmprep.com', role: 'editor', createdAt: '2023-11-15' },
-  { id: 'a3', name: 'Dr. Alejandro Ruiz', email: 'a.ruiz@enarmprep.com', role: 'editor', createdAt: '2024-01-10' },
-  { id: 'a4', name: 'Dra. Camila Ortega', email: 'c.ortega@enarmprep.com', role: 'editor', createdAt: '2024-02-20' },
+  { id: 'a1', name: 'Dr. Fernando Reyes', email: 'f.reyes@enarmx.com', role: 'admin', createdAt: '2023-10-01' },
+  { id: 'a2', name: 'Dra. Patricia Vega', email: 'p.vega@enarmx.com', role: 'editor', createdAt: '2023-11-15' },
+  { id: 'a3', name: 'Dr. Alejandro Ruiz', email: 'a.ruiz@enarmx.com', role: 'editor', createdAt: '2024-01-10' },
+  { id: 'a4', name: 'Dra. Camila Ortega', email: 'c.ortega@enarmx.com', role: 'editor', createdAt: '2024-02-20' },
 ];
 
 export const mockPlanConfigs: PlanConfig[] = [

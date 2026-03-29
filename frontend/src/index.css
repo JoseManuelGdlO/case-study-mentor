@@ -42,13 +42,13 @@
 
     --radius: 0.75rem;
 
-    --sidebar-background: 262 40% 12%;
-    --sidebar-foreground: 262 10% 90%;
+    --sidebar-background: 262 28% 97%;
+    --sidebar-foreground: 240 25% 18%;
     --sidebar-primary: 262 83% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 262 30% 20%;
-    --sidebar-accent-foreground: 262 10% 90%;
-    --sidebar-border: 262 20% 22%;
+    --sidebar-accent: 262 32% 92%;
+    --sidebar-accent-foreground: 262 50% 32%;
+    --sidebar-border: 262 18% 90%;
     --sidebar-ring: 262 83% 58%;
 
     --gradient-primary: linear-gradient(135deg, hsl(262, 83%, 58%), hsl(190, 80%, 50%));
