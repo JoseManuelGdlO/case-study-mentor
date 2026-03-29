@@ -1,28 +1,113 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { mockExams, mockStats } from '@/data/mockData';
 import { BookOpen, Target, Flame, TrendingUp, Plus, Clock, ArrowRight, Play, Lock, Crown } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 import MotivationalBanner from '@/components/MotivationalBanner';
 import CountdownTimer from '@/components/CountdownTimer';
+import { apiJson } from '@/lib/api';
+import type {
+  DashboardExamDate,
+  ExamConfig,
+  ExamStatus,
+  MotivationalPhrase,
+  UserStats,
+} from '@/types';
+
+type ListExam = {
+  id: string;
+  config: ExamConfig;
+  status: ExamStatus;
+  score: number | null;
+  startedAt: string;
+  completedAt: string | null;
+  timeSpentSeconds: number;
+  currentQuestionIndex: number;
+};
+
+const emptyStats: UserStats = {
+  totalExams: 0,
+  totalQuestions: 0,
+  correctAnswers: 0,
+  accuracyPercent: 0,
+  studyStreak: 0,
+  byCategory: [],
+  weeklyProgress: [],
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { isFreeUser } = useUser();
-  const inProgress = mockExams.filter(e => e.status === 'in_progress');
-  const completed = mockExams.filter(e => e.status === 'completed');
-  const lastExam = inProgress.length > 0 ? inProgress.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())[0] : null;
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [exams, setExams] = useState<ListExam[]>([]);
+  const [stats, setStats] = useState<UserStats>(emptyStats);
+  const [phrases, setPhrases] = useState<MotivationalPhrase[]>([]);
+  const [activeExamDate, setActiveExamDate] = useState<DashboardExamDate | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [examsSettled, bannerSettled] = await Promise.allSettled([
+        apiJson<{ data: ListExam[] }>('/api/exams?page=1&limit=100'),
+        apiJson<{ data: { phrases: MotivationalPhrase[]; activeExamDate: DashboardExamDate | null } }>(
+          '/api/content/banner'
+        ),
+      ]);
+      if (!cancelled) {
+        if (examsSettled.status === 'fulfilled') setExams(examsSettled.value.data);
+        else setExams([]);
+        if (bannerSettled.status === 'fulfilled') {
+          setPhrases(bannerSettled.value.data.phrases);
+          setActiveExamDate(bannerSettled.value.data.activeExamDate);
+        } else {
+          setPhrases([]);
+          setActiveExamDate(null);
+        }
+      }
+      try {
+        if (!isFreeUser) {
+          const statsJson = await apiJson<{ data: UserStats }>('/api/stats');
+          if (!cancelled) setStats(statsJson.data);
+        } else if (!cancelled) {
+          setStats(emptyStats);
+        }
+      } catch {
+        if (!cancelled) setStats(emptyStats);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isFreeUser]);
+
+  const inProgress = exams.filter((e) => e.status === 'in_progress' || e.status === 'not_started');
+  const completed = exams.filter((e) => e.status === 'completed');
+  const lastExam =
+    inProgress.length > 0
+      ? [...inProgress].sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())[0]
+      : null;
+
+  const greetingName = user?.firstName?.trim();
+  const greeting = greetingName ? `¡Hola, ${greetingName}!` : '¡Hola!';
+
+  if (loading) {
+    return <div className="max-w-7xl mx-auto p-6 text-muted-foreground">Cargando…</div>;
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
-      {/* Motivational Banner */}
-      <MotivationalBanner />
-      <div data-tour="countdown"><CountdownTimer /></div>
+      <MotivationalBanner phrases={phrases} />
+      <div data-tour="countdown">
+        <CountdownTimer activeExamDate={activeExamDate} />
+      </div>
 
-      {/* Free Banner */}
       {isFreeUser && (
         <Card className="border-2 border-warning/30 bg-warning/5 shadow-md">
           <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -42,10 +127,9 @@ const Dashboard = () => {
         </Card>
       )}
 
-      {/* Welcome */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">¡Hola, Dr. Juan! 👋</h1>
+          <h1 className="text-3xl font-bold text-foreground">{greeting} 👋</h1>
           <p className="text-muted-foreground mt-1">Continúa tu preparación para el ENARM</p>
         </div>
         <Button className="gradient-primary border-0 font-semibold gap-2 h-12 px-6" onClick={() => navigate('/dashboard/new-exam')}>
@@ -53,9 +137,8 @@ const Dashboard = () => {
         </Button>
       </div>
 
-      {/* Continue Where You Left Off — Hero Card */}
       {lastExam && (() => {
-        const progress = Math.round((lastExam.currentQuestionIndex / lastExam.config.questionCount) * 100);
+        const progress = Math.round((lastExam.currentQuestionIndex / Math.max(1, lastExam.config.questionCount)) * 100);
         const timeAgo = getTimeAgo(lastExam.startedAt);
         return (
           <Card
@@ -102,7 +185,6 @@ const Dashboard = () => {
         );
       })()}
 
-      {/* Stats Cards */}
       <div className="relative">
         {isFreeUser && (
           <div className="absolute inset-0 z-10 bg-background/60 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center gap-3">
@@ -115,10 +197,10 @@ const Dashboard = () => {
         )}
         <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 ${isFreeUser ? 'pointer-events-none' : ''}`}>
           {[
-            { label: 'Preguntas', value: mockStats.totalQuestions.toLocaleString(), icon: BookOpen, color: 'text-primary' },
-            { label: 'Aciertos', value: `${mockStats.accuracyPercent}%`, icon: Target, color: 'text-success' },
-            { label: 'Racha', value: `${mockStats.studyStreak} días`, icon: Flame, color: 'text-warning' },
-            { label: 'Exámenes', value: mockStats.totalExams.toString(), icon: TrendingUp, color: 'text-secondary' },
+            { label: 'Preguntas', value: stats.totalQuestions.toLocaleString(), icon: BookOpen, color: 'text-primary' },
+            { label: 'Aciertos', value: `${stats.accuracyPercent}%`, icon: Target, color: 'text-success' },
+            { label: 'Racha', value: `${stats.studyStreak} días`, icon: Flame, color: 'text-warning' },
+            { label: 'Exámenes', value: stats.totalExams.toString(), icon: TrendingUp, color: 'text-secondary' },
           ].map((stat) => (
             <Card key={stat.label} className="border-0 shadow-md hover:shadow-lg transition-shadow">
               <CardContent className="p-5 flex items-center gap-4">
@@ -135,13 +217,12 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Other In-Progress Exams */}
       {inProgress.length > 1 && (
         <div>
           <h2 className="text-xl font-bold text-foreground mb-4">Otros exámenes en curso ({inProgress.length - 1})</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {inProgress.filter(e => e.id !== lastExam?.id).map((exam) => {
-              const progress = Math.round((exam.currentQuestionIndex / exam.config.questionCount) * 100);
+            {inProgress.filter((e) => e.id !== lastExam?.id).map((exam) => {
+              const progress = Math.round((exam.currentQuestionIndex / Math.max(1, exam.config.questionCount)) * 100);
               return (
                 <Card key={exam.id} className="border-0 shadow-md hover:shadow-lg transition-all cursor-pointer group" onClick={() => navigate(`/exam/${exam.id}/${exam.config.mode}`)}>
                   <CardContent className="p-5">
@@ -173,29 +254,37 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Completed */}
       <div>
         <h2 className="text-xl font-bold text-foreground mb-4">Historial de exámenes</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {completed.map((exam) => (
-            <Card key={exam.id} className="border-0 shadow-md hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate(`/results/${exam.id}`)}>
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <Badge variant="outline">{exam.config.mode === 'study' ? '📚 Estudio' : '🎯 Simulación'}</Badge>
-                  <span className="text-xs text-muted-foreground">{new Date(exam.startedAt).toLocaleDateString('es-MX')}</span>
-                </div>
-                <h3 className="font-semibold text-foreground mb-1">{exam.config.categories.join(', ')}</h3>
-                <p className="text-sm text-muted-foreground mb-3">{exam.config.questionCount} preguntas</p>
-                <div className="flex items-center gap-2">
-                  <div className={`text-3xl font-bold ${(exam.score ?? 0) >= 70 ? 'text-success' : 'text-destructive'}`}>
-                    {exam.score}%
+        {completed.length === 0 ? (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-2">
+            <p className="text-sm text-muted-foreground">Aún no has completado exámenes.</p>
+            <Button variant="outline" size="sm" className="w-fit" onClick={() => navigate('/dashboard/new-exam')}>
+              <Plus className="w-4 h-4 mr-1" /> Nuevo examen
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {completed.map((exam) => (
+              <Card key={exam.id} className="border-0 shadow-md hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate(`/results/${exam.id}`)}>
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <Badge variant="outline">{exam.config.mode === 'study' ? '📚 Estudio' : '🎯 Simulación'}</Badge>
+                    <span className="text-xs text-muted-foreground">{new Date(exam.startedAt).toLocaleDateString('es-MX')}</span>
                   </div>
-                  <span className="text-sm text-muted-foreground">calificación</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  <h3 className="font-semibold text-foreground mb-1">{exam.config.categories.join(', ')}</h3>
+                  <p className="text-sm text-muted-foreground mb-3">{exam.config.questionCount} preguntas</p>
+                  <div className="flex items-center gap-2">
+                    <div className={`text-3xl font-bold ${(exam.score ?? 0) >= 70 ? 'text-success' : 'text-destructive'}`}>
+                      {exam.score != null ? `${Math.round(exam.score)}%` : '—'}
+                    </div>
+                    <span className="text-sm text-muted-foreground">calificación</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

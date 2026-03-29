@@ -39,9 +39,8 @@ const Statistics = () => {
     };
   }, [isFreeUser]);
 
-  const mockStats = stats;
-  const strong = [...mockStats.byCategory].sort((a, b) => b.percent - a.percent).slice(0, 2);
-  const weak = [...mockStats.byCategory].sort((a, b) => a.percent - b.percent).slice(0, 2);
+  const strong = [...stats.byCategory].sort((a, b) => b.percent - a.percent).slice(0, 2);
+  const weak = [...stats.byCategory].sort((a, b) => a.percent - b.percent).slice(0, 2);
 
   if (isFreeUser) {
     return (
@@ -92,10 +91,10 @@ const Statistics = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Exámenes totales', value: mockStats.totalExams, icon: BookOpen, color: 'text-primary' },
-          { label: 'Preguntas contestadas', value: mockStats.totalQuestions, icon: BarChart3, color: 'text-secondary' },
-          { label: 'Respuestas correctas', value: mockStats.correctAnswers, icon: Target, color: 'text-success' },
-          { label: '% de aciertos', value: `${mockStats.accuracyPercent}%`, icon: TrendingUp, color: 'text-warning' },
+          { label: 'Exámenes totales', value: stats.totalExams, icon: BookOpen, color: 'text-primary' },
+          { label: 'Preguntas contestadas', value: stats.totalQuestions, icon: BarChart3, color: 'text-secondary' },
+          { label: 'Respuestas correctas', value: stats.correctAnswers, icon: Target, color: 'text-success' },
+          { label: '% de aciertos', value: `${stats.accuracyPercent}%`, icon: TrendingUp, color: 'text-warning' },
         ].map((s) => (
           <Card key={s.label} className="border-0 shadow-md">
             <CardContent className="p-5 flex items-center gap-4">
@@ -116,7 +115,7 @@ const Statistics = () => {
           <CardHeader><CardTitle>Progreso semanal</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={mockStats.weeklyProgress}>
+              <LineChart data={stats.weeklyProgress}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="week" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 100]} />
@@ -131,7 +130,7 @@ const Statistics = () => {
           <CardHeader><CardTitle>Rendimiento por especialidad</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={mockStats.byCategory}>
+              <BarChart data={stats.byCategory}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="category" stroke="hsl(var(--muted-foreground))" fontSize={10} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 100]} />

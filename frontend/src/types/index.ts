@@ -111,3 +111,20 @@ export interface UserStats {
   byCategory: { category: string; total: number; correct: number; percent: number }[];
   weeklyProgress: { week: string; score: number }[];
 }
+
+/** Frases motivacionales activas (API `/api/content/banner`). */
+export interface MotivationalPhrase {
+  id: string;
+  text: string;
+  author: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+/** Fecha de examen ENARM u otra (countdown del dashboard). */
+export interface DashboardExamDate {
+  id: string;
+  name: string;
+  date: string;
+  isActive: boolean;
+}

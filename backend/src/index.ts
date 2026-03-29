@@ -19,6 +19,7 @@ import { statsRouter } from './routes/stats.routes.js';
 import { specialtiesRouter } from './routes/specialties.routes.js';
 import { uploadRouter } from './routes/upload.routes.js';
 import { backofficeRouter } from './routes/backoffice.routes.js';
+import { contentRouter } from './routes/content.routes.js';
 
 /** Orígenes permitidos: `CORS_ORIGIN` puede ser uno o varios separados por coma (sin repetir el header completo en la respuesta). */
 function parseCorsOrigins(raw: string): string[] {
@@ -95,6 +96,7 @@ app.use('/api/stats', statsRouter);
 app.use('/api/specialties', specialtiesRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/backoffice', backofficeRouter);
+app.use('/api/content', contentRouter);
 
 const swaggerSpec = swaggerJsdoc({
   definition: {

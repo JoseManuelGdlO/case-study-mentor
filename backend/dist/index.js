@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env.js';
+import { prisma } from './config/database.js';
 import { connectRedis, redis } from './config/redis.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authRouter } from './routes/auth.routes.js';
@@ -18,10 +19,30 @@ import { statsRouter } from './routes/stats.routes.js';
 import { specialtiesRouter } from './routes/specialties.routes.js';
 import { uploadRouter } from './routes/upload.routes.js';
 import { backofficeRouter } from './routes/backoffice.routes.js';
+import { contentRouter } from './routes/content.routes.js';
+/** Orígenes permitidos: `CORS_ORIGIN` puede ser uno o varios separados por coma (sin repetir el header completo en la respuesta). */
+function parseCorsOrigins(raw) {
+    return raw
+        .split(',')
+        .map((o) => o.trim().replace(/\/$/, ''))
+        .filter(Boolean);
+}
+const allowedCorsOrigins = parseCorsOrigins(env.CORS_ORIGIN);
 const app = express();
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
-    origin: env.CORS_ORIGIN,
+    origin(origin, callback) {
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+        const normalized = origin.replace(/\/$/, '');
+        if (allowedCorsOrigins.includes(normalized)) {
+            callback(null, origin);
+            return;
+        }
+        callback(null, false);
+    },
     credentials: true,
 }));
 app.use(express.json({ limit: '2mb' }));
@@ -29,12 +50,35 @@ app.use(cookieParser());
 const uploadDir = path.resolve(process.cwd(), env.UPLOAD_DIR);
 fs.mkdirSync(uploadDir, { recursive: true });
 app.use('/uploads', express.static(uploadDir));
+app.get('/api/health', async (_req, res) => {
+    const checks = { api: 'ok' };
+    try {
+        const pong = await redis.ping();
+        checks.redis = pong === 'PONG' ? 'ok' : 'error';
+    }
+    catch {
+        checks.redis = 'error';
+    }
+    try {
+        await prisma.$queryRaw `SELECT 1`;
+        checks.database = 'ok';
+    }
+    catch {
+        checks.database = 'error';
+    }
+    const allOk = checks.redis === 'ok' && checks.database === 'ok';
+    res.status(allOk ? 200 : 503).json({
+        data: {
+            ok: allOk,
+            env: env.NODE_ENV,
+            checks,
+            uptimeSec: Math.floor(process.uptime()),
+        },
+    });
+});
 const generalLimiter = rateLimit({ windowMs: 60_000, max: 100, standardHeaders: true, legacyHeaders: false });
 const authLimiter = rateLimit({ windowMs: 60_000, max: 5, standardHeaders: true, legacyHeaders: false });
 app.use(generalLimiter);
-app.get('/api/health', (_req, res) => {
-    res.json({ data: { ok: true, env: env.NODE_ENV } });
-});
 app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/cases', casesRouter);
 app.use('/api/exams', examsRouter);
@@ -43,6 +87,7 @@ app.use('/api/stats', statsRouter);
 app.use('/api/specialties', specialtiesRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/backoffice', backofficeRouter);
+app.use('/api/content', contentRouter);
 const swaggerSpec = swaggerJsdoc({
     definition: {
         openapi: '3.0.0',

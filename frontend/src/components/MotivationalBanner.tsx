@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
-import { mockPhrases } from '@/data/phrasesData';
+import type { MotivationalPhrase } from '@/types';
 import { Sparkles } from 'lucide-react';
 
 const ROTATE_INTERVAL = 10000; // 10 seconds
 
-const MotivationalBanner = () => {
-  const activePhrases = mockPhrases.filter((p) => p.isActive);
+type Props = {
+  phrases: MotivationalPhrase[];
+};
+
+const MotivationalBanner = ({ phrases }: Props) => {
+  const activePhrases = phrases.filter((p) => p.isActive);
   const [index, setIndex] = useState(0);
   const [fade, setFade] = useState(true);
 
