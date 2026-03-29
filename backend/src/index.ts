@@ -19,12 +19,33 @@ import { specialtiesRouter } from './routes/specialties.routes.js';
 import { uploadRouter } from './routes/upload.routes.js';
 import { backofficeRouter } from './routes/backoffice.routes.js';
 
+/** Orígenes permitidos: `CORS_ORIGIN` puede ser uno o varios separados por coma (sin repetir el header completo en la respuesta). */
+function parseCorsOrigins(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((o) => o.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+}
+
+const allowedCorsOrigins = parseCorsOrigins(env.CORS_ORIGIN);
+
 const app = express();
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(
   cors({
-    origin: env.CORS_ORIGIN,
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      const normalized = origin.replace(/\/$/, '');
+      if (allowedCorsOrigins.includes(normalized)) {
+        callback(null, origin);
+        return;
+      }
+      callback(null, false);
+    },
     credentials: true,
   })
 );

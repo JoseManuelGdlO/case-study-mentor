@@ -5,7 +5,7 @@
 # Obligatorio en el entorno (p. ej. Easy Panel):
 #   DATABASE_URL  — MySQL remoto, ej. mysql://user:pass@host:3306/enarm_db
 #   REDIS_URL     — Redis remoto, ej. redis://:pass@host:6379  (el backend usa Redis para refresh tokens y caché)
-#   JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, CORS_ORIGIN, etc.
+#   JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, CORS_ORIGIN (coma = varios orígenes), etc.
 #
 # Proxy mismo origen: build del frontend con VITE_API_URL vacío; CORS_ORIGIN = URL pública.
 # Orígenes separados: VITE_API_URL=https://api.tu-dominio.com y CORS_ORIGIN=https://app.tu-dominio.com
