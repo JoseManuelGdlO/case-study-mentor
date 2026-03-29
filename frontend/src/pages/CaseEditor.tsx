@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { categories } from '@/data/mockData';
-import { ArrowLeft, Plus, Trash2, ImagePlus, Save, CheckCircle2, FlaskConical } from 'lucide-react';
+import type { CaseStatus, Category, ClinicalCase } from '@/types';
+import { ArrowLeft, Plus, Trash2, ImagePlus, Save, FlaskConical } from 'lucide-react';
+import { apiFetch, apiJson, getUploadUrl } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface LabForm {
   name: string;
@@ -44,65 +46,323 @@ const emptyQuestion = (): QuestionForm => ({
   difficulty: 'medium',
 });
 
+function mapCaseToForm(c: ClinicalCase): {
+  specialtyId: string;
+  areaId: string;
+  topic: string;
+  language: string;
+  caseText: string;
+  caseImageUrl: string;
+  status: CaseStatus;
+  labs: LabForm[];
+  questions: QuestionForm[];
+} {
+  const sid = c.specialtyId ?? '';
+  const aid = c.areaId ?? '';
+  return {
+    specialtyId: sid,
+    areaId: aid,
+    topic: c.topic,
+    language: c.language,
+    caseText: c.text,
+    caseImageUrl: c.imageUrl ?? '',
+    status: c.status,
+    labs: (c.labResults ?? []).map((l) => ({
+      name: l.name,
+      value: l.value,
+      unit: l.unit,
+      normalRange: l.normalRange,
+    })),
+    questions:
+      c.questions.length > 0
+        ? c.questions.map((q) => ({
+            text: q.text,
+            imageUrl: q.imageUrl ?? '',
+            options: q.options.map((o) => ({
+              label: o.label,
+              text: o.text,
+              isCorrect: Boolean(o.isCorrect),
+              explanation: o.explanation ?? '',
+            })),
+            summary: q.summary,
+            bibliography: q.bibliography,
+            difficulty: q.difficulty,
+          }))
+        : [emptyQuestion()],
+  };
+}
+
+async function uploadImageFile(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await apiFetch('/api/upload/image', { method: 'POST', body: fd });
+  const json = (await res.json()) as { data?: { url: string }; error?: string };
+  if (!res.ok) throw new Error(typeof json.error === 'string' ? json.error : 'Error al subir imagen');
+  if (!json.data?.url) throw new Error('Respuesta inválida del servidor');
+  return json.data.url;
+}
+
 const CaseEditor = () => {
   const navigate = useNavigate();
-  const [specialty, setSpecialty] = useState('');
-  const [area, setArea] = useState('');
+  const { caseId } = useParams<{ caseId: string }>();
+  const isEdit = Boolean(caseId);
+  const caseFileRef = useRef<HTMLInputElement>(null);
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadError, setLoadError] = useState(false);
+  const [caseLoading, setCaseLoading] = useState(isEdit);
+  const [saving, setSaving] = useState(false);
+
+  const [specialtyId, setSpecialtyId] = useState('');
+  const [areaId, setAreaId] = useState('');
   const [topic, setTopic] = useState('');
   const [language, setLanguage] = useState('es');
   const [caseText, setCaseText] = useState('');
+  const [caseImageUrl, setCaseImageUrl] = useState('');
+  const [status, setStatus] = useState<CaseStatus>('draft');
   const [questions, setQuestions] = useState<QuestionForm[]>([emptyQuestion()]);
   const [labs, setLabs] = useState<LabForm[]>([]);
 
-  const selectedCategory = categories.find((c) => c.name === specialty);
+  const selectedCategory = categories.find((c) => c.id === specialtyId);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiJson<{ data: Category[] }>('/api/specialties')
+      .then((r) => {
+        if (!cancelled) setCategories(r.data);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLoadError(true);
+          toast.error('No se pudo cargar el catálogo de especialidades');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!caseId) {
+      setCaseLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setCaseLoading(true);
+    apiJson<{ data: ClinicalCase }>(`/api/cases/${caseId}`)
+      .then((r) => {
+        if (cancelled) return;
+        const m = mapCaseToForm(r.data);
+        if (!m.specialtyId || !m.areaId) {
+          toast.error('El caso no incluye IDs de especialidad/área; edita y vuelve a guardar.');
+        }
+        setSpecialtyId(m.specialtyId);
+        setAreaId(m.areaId);
+        setTopic(m.topic);
+        setLanguage(m.language);
+        setCaseText(m.caseText);
+        setCaseImageUrl(m.caseImageUrl);
+        setStatus(m.status);
+        setLabs(m.labs);
+        setQuestions(m.questions);
+      })
+      .catch((e) => {
+        if (!cancelled) toast.error(e instanceof Error ? e.message : 'Error al cargar el caso');
+      })
+      .finally(() => {
+        if (!cancelled) setCaseLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId]);
 
   const addQuestion = () => setQuestions([...questions, emptyQuestion()]);
   const removeQuestion = (i: number) => setQuestions(questions.filter((_, idx) => idx !== i));
 
-  const updateQuestion = (index: number, field: string, value: any) => {
+  const updateQuestion = (index: number, field: string, value: unknown) => {
     const updated = [...questions];
-    (updated[index] as any)[field] = value;
+    (updated[index] as unknown as Record<string, unknown>)[field] = value;
     setQuestions(updated);
   };
 
-  const updateOption = (qIndex: number, oIndex: number, field: string, value: any) => {
+  const updateOption = (qIndex: number, oIndex: number, field: string, value: unknown) => {
     const updated = [...questions];
     if (field === 'isCorrect' && value) {
       updated[qIndex].options.forEach((o, i) => (o.isCorrect = i === oIndex));
     } else {
-      (updated[qIndex].options[oIndex] as any)[field] = value;
+      (updated[qIndex].options[oIndex] as unknown as Record<string, unknown>)[field] = value;
     }
     setQuestions(updated);
   };
 
+  const onCaseImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const url = await uploadImageFile(file);
+      setCaseImageUrl(url);
+      toast.success('Imagen del caso subida');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al subir');
+    }
+  };
+
+  const buildPayload = useCallback(() => {
+    return {
+      specialtyId,
+      areaId,
+      topic: topic.trim(),
+      language: language as 'es' | 'en',
+      text: caseText.trim(),
+      imageUrl: caseImageUrl.trim() || null,
+      status,
+      labResults: labs.map((l) => ({
+        name: l.name.trim(),
+        value: l.value.trim(),
+        unit: l.unit.trim(),
+        normalRange: l.normalRange.trim(),
+      })),
+      questions: questions.map((q, qi) => ({
+        text: q.text.trim(),
+        imageUrl: q.imageUrl.trim() || null,
+        summary: q.summary.trim(),
+        bibliography: q.bibliography.trim(),
+        difficulty: q.difficulty as 'low' | 'medium' | 'high',
+        orderIndex: qi,
+        options: q.options.map((o) => ({
+          label: o.label,
+          text: o.text.trim(),
+          imageUrl: null as string | null,
+          isCorrect: o.isCorrect,
+          explanation: o.explanation.trim(),
+        })),
+      })),
+    };
+  }, [specialtyId, areaId, topic, language, caseText, caseImageUrl, status, labs, questions]);
+
+  const validate = (): boolean => {
+    if (!specialtyId || !areaId) {
+      toast.error('Selecciona especialidad y área');
+      return false;
+    }
+    if (!topic.trim() || !caseText.trim()) {
+      toast.error('Tema y texto del caso son obligatorios');
+      return false;
+    }
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (!q.text.trim()) {
+        toast.error(`La pregunta ${i + 1} necesita texto`);
+        return false;
+      }
+      if (!q.summary.trim() || !q.bibliography.trim()) {
+        toast.error(`La pregunta ${i + 1} necesita resumen y bibliografía`);
+        return false;
+      }
+      const correct = q.options.filter((o) => o.isCorrect);
+      if (correct.length !== 1) {
+        toast.error(`La pregunta ${i + 1} debe tener exactamente una opción correcta`);
+        return false;
+      }
+      for (const o of q.options) {
+        if (!o.text.trim() || !o.explanation.trim()) {
+          toast.error(`Completa texto y explicación de todas las opciones (pregunta ${i + 1})`);
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
+  const save = async () => {
+    if (!validate()) return;
+    const body = buildPayload();
+    setSaving(true);
+    try {
+      if (isEdit && caseId) {
+        await apiJson(`/api/cases/${caseId}`, {
+          method: 'PUT',
+          body: JSON.stringify(body),
+        });
+        toast.success('Caso actualizado');
+      } else {
+        await apiJson('/api/cases', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        });
+        toast.success('Caso creado');
+      }
+      navigate('/backoffice/cases');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al guardar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (caseLoading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 text-muted-foreground animate-fade-in">Cargando caso…</div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+      <input ref={caseFileRef} type="file" accept="image/*" className="hidden" onChange={onCaseImagePick} />
+
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/backoffice')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/backoffice/cases')}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Nuevo Caso Clínico</h1>
-          <p className="text-muted-foreground">Completa todos los campos para crear un caso</p>
+          <h1 className="text-2xl font-bold text-foreground">{isEdit ? 'Editar Caso Clínico' : 'Nuevo Caso Clínico'}</h1>
+          <p className="text-muted-foreground">
+            {loadError ? 'Sin catálogo de especialidades; revisa la sesión y el API.' : 'Completa los campos y guarda en el servidor'}
+          </p>
         </div>
       </div>
 
-      {/* Classification */}
       <Card className="border-0 shadow-md">
-        <CardHeader><CardTitle>Clasificación</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Clasificación</CardTitle>
+        </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Especialidad</Label>
-            <Select value={specialty} onValueChange={(v) => { setSpecialty(v); setArea(''); }}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+            <Select
+              value={specialtyId}
+              onValueChange={(v) => {
+                setSpecialtyId(v);
+                setAreaId('');
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
             <Label>Área / Subespecialidad</Label>
-            <Select value={area} onValueChange={setArea} disabled={!selectedCategory}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>{selectedCategory?.subcategories.map((s) => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
+            <Select value={areaId} onValueChange={setAreaId} disabled={!selectedCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar" />
+              </SelectTrigger>
+              <SelectContent>
+                {selectedCategory?.subcategories.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
@@ -112,26 +372,60 @@ const CaseEditor = () => {
           <div className="space-y-2">
             <Label>Idioma</Label>
             <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="es">🇲🇽 Español</SelectItem>
                 <SelectItem value="en">🇺🇸 English</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label>Estado</Label>
+            <Select value={status} onValueChange={(v) => setStatus(v as CaseStatus)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">Borrador</SelectItem>
+                <SelectItem value="published">Publicado</SelectItem>
+                <SelectItem value="archived">Archivado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Case Text */}
       <Card className="border-0 shadow-md">
-        <CardHeader><CardTitle>Caso Clínico</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Caso Clínico</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
-          <Textarea placeholder="Escribe el caso clínico aquí..." className="min-h-[150px]" value={caseText} onChange={(e) => setCaseText(e.target.value)} />
-          <Button variant="outline" className="gap-2"><ImagePlus className="w-4 h-4" /> Agregar imagen</Button>
+          <Textarea
+            placeholder="Escribe el caso clínico aquí..."
+            className="min-h-[150px]"
+            value={caseText}
+            onChange={(e) => setCaseText(e.target.value)}
+          />
+          {caseImageUrl ? (
+            <div className="space-y-2">
+              <img
+                src={getUploadUrl(caseImageUrl)}
+                alt="Caso"
+                className="max-h-48 rounded-lg border object-contain"
+              />
+              <Button type="button" variant="outline" size="sm" onClick={() => setCaseImageUrl('')}>
+                Quitar imagen
+              </Button>
+            </div>
+          ) : null}
+          <Button type="button" variant="outline" className="gap-2" onClick={() => caseFileRef.current?.click()}>
+            <ImagePlus className="w-4 h-4" /> Subir imagen del caso
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Lab Results */}
       <Card className="border-0 shadow-md">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -143,25 +437,59 @@ const CaseEditor = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           {labs.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">No se han agregado laboratorios. Agrega resultados de laboratorio para este caso clínico.</p>
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No se han agregado laboratorios. Agrega resultados de laboratorio para este caso clínico.
+            </p>
           )}
           {labs.map((lab, li) => (
             <div key={li} className="grid grid-cols-[1fr_0.6fr_0.5fr_1fr_auto] gap-2 items-end">
               <div className="space-y-1">
                 {li === 0 && <Label className="text-xs">Estudio</Label>}
-                <Input placeholder="Ej: Hemoglobina" value={lab.name} onChange={(e) => { const u = [...labs]; u[li].name = e.target.value; setLabs(u); }} />
+                <Input
+                  placeholder="Ej: Hemoglobina"
+                  value={lab.name}
+                  onChange={(e) => {
+                    const u = [...labs];
+                    u[li].name = e.target.value;
+                    setLabs(u);
+                  }}
+                />
               </div>
               <div className="space-y-1">
                 {li === 0 && <Label className="text-xs">Valor</Label>}
-                <Input placeholder="12.5" value={lab.value} onChange={(e) => { const u = [...labs]; u[li].value = e.target.value; setLabs(u); }} />
+                <Input
+                  placeholder="12.5"
+                  value={lab.value}
+                  onChange={(e) => {
+                    const u = [...labs];
+                    u[li].value = e.target.value;
+                    setLabs(u);
+                  }}
+                />
               </div>
               <div className="space-y-1">
                 {li === 0 && <Label className="text-xs">Unidad</Label>}
-                <Input placeholder="g/dL" value={lab.unit} onChange={(e) => { const u = [...labs]; u[li].unit = e.target.value; setLabs(u); }} />
+                <Input
+                  placeholder="g/dL"
+                  value={lab.unit}
+                  onChange={(e) => {
+                    const u = [...labs];
+                    u[li].unit = e.target.value;
+                    setLabs(u);
+                  }}
+                />
               </div>
               <div className="space-y-1">
                 {li === 0 && <Label className="text-xs">Rango normal</Label>}
-                <Input placeholder="12 - 16" value={lab.normalRange} onChange={(e) => { const u = [...labs]; u[li].normalRange = e.target.value; setLabs(u); }} />
+                <Input
+                  placeholder="12 - 16"
+                  value={lab.normalRange}
+                  onChange={(e) => {
+                    const u = [...labs];
+                    u[li].normalRange = e.target.value;
+                    setLabs(u);
+                  }}
+                />
               </div>
               <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setLabs(labs.filter((_, i) => i !== li))}>
                 <Trash2 className="w-4 h-4" />
@@ -170,6 +498,7 @@ const CaseEditor = () => {
           ))}
         </CardContent>
       </Card>
+
       {questions.map((q, qi) => (
         <Card key={qi} className="border-0 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -177,7 +506,9 @@ const CaseEditor = () => {
               Pregunta {qi + 1}
               <Badge variant="outline" className="ml-2">
                 <Select value={q.difficulty} onValueChange={(v) => updateQuestion(qi, 'difficulty', v)}>
-                  <SelectTrigger className="border-0 h-auto p-0 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="border-0 h-auto p-0 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="low">Baja</SelectItem>
                     <SelectItem value="medium">Media</SelectItem>
@@ -195,7 +526,19 @@ const CaseEditor = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Texto de la pregunta</Label>
-              <Textarea placeholder="¿Cuál es el diagnóstico más probable?" value={q.text} onChange={(e) => updateQuestion(qi, 'text', e.target.value)} />
+              <Textarea
+                placeholder="¿Cuál es el diagnóstico más probable?"
+                value={q.text}
+                onChange={(e) => updateQuestion(qi, 'text', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>URL imagen (opcional)</Label>
+              <Input
+                placeholder="/uploads/… o URL absoluta"
+                value={q.imageUrl}
+                onChange={(e) => updateQuestion(qi, 'imageUrl', e.target.value)}
+              />
             </div>
 
             <Separator />
@@ -203,18 +546,33 @@ const CaseEditor = () => {
             <div className="space-y-3">
               <Label>Opciones de respuesta</Label>
               {q.options.map((opt, oi) => (
-                <div key={oi} className={`p-4 rounded-xl border-2 space-y-3 ${opt.isCorrect ? 'border-success bg-success/5' : 'border-border'}`}>
+                <div
+                  key={oi}
+                  className={`p-4 rounded-xl border-2 space-y-3 ${opt.isCorrect ? 'border-success bg-success/5' : 'border-border'}`}
+                >
                   <div className="flex items-center gap-3">
-                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 ${opt.isCorrect ? 'bg-success text-success-foreground' : 'bg-muted text-muted-foreground'}`}>
+                    <span
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 ${opt.isCorrect ? 'bg-success text-success-foreground' : 'bg-muted text-muted-foreground'}`}
+                    >
                       {opt.label}
                     </span>
-                    <Input placeholder={`Texto de opción ${opt.label}`} className="flex-1" value={opt.text} onChange={(e) => updateOption(qi, oi, 'text', e.target.value)} />
+                    <Input
+                      placeholder={`Texto de opción ${opt.label}`}
+                      className="flex-1"
+                      value={opt.text}
+                      onChange={(e) => updateOption(qi, oi, 'text', e.target.value)}
+                    />
                     <div className="flex items-center gap-2">
                       <Checkbox checked={opt.isCorrect} onCheckedChange={(v) => updateOption(qi, oi, 'isCorrect', v)} />
                       <Label className="text-xs text-muted-foreground whitespace-nowrap">Correcta</Label>
                     </div>
                   </div>
-                  <Textarea placeholder="Explicación de esta opción..." className="text-sm min-h-[60px]" value={opt.explanation} onChange={(e) => updateOption(qi, oi, 'explanation', e.target.value)} />
+                  <Textarea
+                    placeholder="Explicación de esta opción..."
+                    className="text-sm min-h-[60px]"
+                    value={opt.explanation}
+                    onChange={(e) => updateOption(qi, oi, 'explanation', e.target.value)}
+                  />
                 </div>
               ))}
             </div>
@@ -223,11 +581,19 @@ const CaseEditor = () => {
 
             <div className="space-y-2">
               <Label>En Resumen</Label>
-              <Textarea placeholder="Resumen de la explicación..." value={q.summary} onChange={(e) => updateQuestion(qi, 'summary', e.target.value)} />
+              <Textarea
+                placeholder="Resumen de la explicación..."
+                value={q.summary}
+                onChange={(e) => updateQuestion(qi, 'summary', e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label>Bibliografía</Label>
-              <Input placeholder="Fuente bibliográfica..." value={q.bibliography} onChange={(e) => updateQuestion(qi, 'bibliography', e.target.value)} />
+              <Input
+                placeholder="Fuente bibliográfica..."
+                value={q.bibliography}
+                onChange={(e) => updateQuestion(qi, 'bibliography', e.target.value)}
+              />
             </div>
           </CardContent>
         </Card>
@@ -237,11 +603,12 @@ const CaseEditor = () => {
         <Plus className="w-4 h-4" /> Agregar otra pregunta
       </Button>
 
-      {/* Actions */}
       <div className="flex gap-4 justify-end pb-8">
-        <Button variant="outline" onClick={() => navigate('/backoffice')}>Cancelar</Button>
-        <Button className="gradient-primary border-0 font-semibold gap-2 px-8">
-          <Save className="w-4 h-4" /> Guardar caso
+        <Button variant="outline" onClick={() => navigate('/backoffice/cases')} disabled={saving}>
+          Cancelar
+        </Button>
+        <Button className="gradient-primary border-0 font-semibold gap-2 px-8" onClick={save} disabled={saving}>
+          <Save className="w-4 h-4" /> {saving ? 'Guardando…' : 'Guardar caso'}
         </Button>
       </div>
     </div>

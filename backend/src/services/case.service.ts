@@ -9,6 +9,8 @@ type UpdateCase = z.infer<typeof updateCaseSchema>;
 
 function serializeCase(row: {
   id: string;
+  specialtyId: string;
+  areaId: string;
   topic: string;
   language: string;
   text: string;
@@ -32,6 +34,8 @@ function serializeCase(row: {
 }) {
   return {
     id: row.id,
+    specialtyId: row.specialtyId,
+    areaId: row.areaId,
     specialty: row.specialty.name,
     area: row.area.name,
     topic: row.topic,

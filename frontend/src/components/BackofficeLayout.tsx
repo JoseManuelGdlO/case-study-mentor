@@ -16,22 +16,29 @@ import {
 import { LayoutDashboard, FileText, FolderTree, Users, CreditCard, BarChart3, Sparkles, CalendarClock, GraduationCap, LogOut, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const navItems = [
-  { title: 'Dashboard', url: '/backoffice', icon: LayoutDashboard },
+const navItems: {
+  title: string;
+  url: string;
+  icon: typeof LayoutDashboard;
+  adminOnly?: boolean;
+}[] = [
+  { title: 'Dashboard', url: '/backoffice', icon: LayoutDashboard, adminOnly: true },
   { title: 'Casos Clínicos', url: '/backoffice/cases', icon: FileText },
-  { title: 'Especialidades', url: '/backoffice/specialties', icon: FolderTree },
-  { title: 'Usuarios', url: '/backoffice/users', icon: Users },
-  { title: 'Precios', url: '/backoffice/pricing', icon: CreditCard },
-  { title: 'Frases', url: '/backoffice/phrases', icon: Sparkles },
-  { title: 'Fechas ENARM', url: '/backoffice/exam-dates', icon: CalendarClock },
-  { title: 'Estadísticas', url: '/backoffice/stats', icon: BarChart3 },
+  { title: 'Especialidades', url: '/backoffice/specialties', icon: FolderTree, adminOnly: true },
+  { title: 'Usuarios', url: '/backoffice/users', icon: Users, adminOnly: true },
+  { title: 'Precios', url: '/backoffice/pricing', icon: CreditCard, adminOnly: true },
+  { title: 'Frases', url: '/backoffice/phrases', icon: Sparkles, adminOnly: true },
+  { title: 'Fechas ENARM', url: '/backoffice/exam-dates', icon: CalendarClock, adminOnly: true },
+  { title: 'Estadísticas', url: '/backoffice/stats', icon: BarChart3, adminOnly: true },
 ];
 
 function BackofficeSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const isAdmin = user?.roles.includes('admin') ?? false;
+  const visibleNav = navItems.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -59,7 +66,7 @@ function BackofficeSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {visibleNav.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} end className="hover:bg-sidebar-accent/50 text-sidebar-foreground" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">

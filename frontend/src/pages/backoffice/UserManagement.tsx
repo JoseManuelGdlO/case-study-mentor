@@ -1,172 +1,206 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useCallback, useEffect, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, UserPlus, Ban, CheckCircle, Edit } from 'lucide-react';
-import { mockSystemUsers, mockAdminUsers, type SystemUser } from '@/data/backofficeData';
-import { useToast } from '@/hooks/use-toast';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const planLabels: Record<string, string> = { free: 'Gratis', monthly: 'Mensual', semester: 'Semestral', annual: 'Anual' };
-const planColors: Record<string, string> = { free: 'secondary', monthly: 'default', semester: 'default', annual: 'default' };
+function primaryRole(roles: AppRole[]): AppRole {
+  if (roles.includes('admin')) return 'admin';
+  if (roles.includes('editor')) return 'editor';
+  return 'user';
+}
+import { toast } from 'sonner';
+import { apiJson } from '@/lib/api';
+
+type AppRole = 'admin' | 'editor' | 'user';
+
+type BackofficeUserRow = {
+  id: string;
+  name: string;
+  email: string;
+  roles: AppRole[];
+  plan: string;
+  status: string;
+  registeredAt: string;
+  lastAccess: string;
+  examsCompleted: number;
+};
+
+const roleLabel = (r: AppRole) =>
+  r === 'admin' ? 'Administrador' : r === 'editor' ? 'Editor' : 'Estudiante';
 
 const UserManagement = () => {
-  const { toast } = useToast();
-  const [users, setUsers] = useState(mockSystemUsers);
+  const [users, setUsers] = useState<BackofficeUserRow[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [planFilter, setPlanFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchDebounced, setSearchDebounced] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | AppRole>('all');
+  const [loading, setLoading] = useState(true);
+  const limit = 20;
 
-  const filtered = users.filter((u) => {
-    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
-    const matchPlan = planFilter === 'all' || u.plan === planFilter;
-    const matchStatus = statusFilter === 'all' || u.status === statusFilter;
-    return matchSearch && matchPlan && matchStatus;
-  });
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(search.trim()), 350);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  const toggleStatus = (userId: string) => {
-    setUsers((prev) =>
-      prev.map((u) => u.id === userId ? { ...u, status: u.status === 'active' ? 'suspended' as const : 'active' as const } : u)
-    );
-    toast({ title: 'Estado actualizado', description: 'El estado del usuario ha sido modificado.' });
-  };
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const qs = new URLSearchParams();
+      qs.set('page', String(page));
+      qs.set('limit', String(limit));
+      if (searchDebounced) qs.set('search', searchDebounced);
+      if (roleFilter !== 'all') qs.set('role', roleFilter);
+      const json = await apiJson<{
+        data: BackofficeUserRow[];
+        totalPages: number;
+        page: number;
+      }>(`/api/backoffice/users?${qs.toString()}`);
+      setUsers(json.data);
+      setTotalPages(Math.max(1, json.totalPages));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al cargar usuarios');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, searchDebounced, roleFilter]);
 
-  const changePlan = (userId: string, newPlan: SystemUser['plan']) => {
-    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, plan: newPlan } : u));
-    toast({ title: 'Plan actualizado', description: `Plan cambiado a ${planLabels[newPlan]}.` });
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchDebounced, roleFilter]);
+
+  const updateRoles = async (userId: string, roles: AppRole[], previous: AppRole[]) => {
+    if (roles.length === 0) {
+      toast.error('El usuario debe tener al menos un rol');
+      return;
+    }
+    if (roles.length === 1 && primaryRole(previous) === roles[0]) return;
+    try {
+      await apiJson(`/api/backoffice/users/${userId}/role`, {
+        method: 'PUT',
+        body: JSON.stringify({ roles }),
+      });
+      toast.success('Roles actualizados');
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error');
+    }
   };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Gestión de Usuarios</h1>
-        <p className="text-muted-foreground">Administra estudiantes y editores del sistema</p>
+        <p className="text-muted-foreground">Lista de perfiles y asignación de roles (admin / editor / estudiante)</p>
       </div>
 
-      <Tabs defaultValue="students">
-        <TabsList>
-          <TabsTrigger value="students">Estudiantes ({users.length})</TabsTrigger>
-          <TabsTrigger value="admins">Editores ({mockAdminUsers.length})</TabsTrigger>
-        </TabsList>
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nombre o email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as typeof roleFilter)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Rol" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los roles</SelectItem>
+            <SelectItem value="user">Estudiantes</SelectItem>
+            <SelectItem value="editor">Editores</SelectItem>
+            <SelectItem value="admin">Administradores</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-        <TabsContent value="students" className="space-y-4 mt-4">
-          <div className="flex flex-wrap gap-3">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar por nombre o email..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-            </div>
-            <Select value={planFilter} onValueChange={setPlanFilter}>
-              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Plan" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los planes</SelectItem>
-                <SelectItem value="free">Gratis</SelectItem>
-                <SelectItem value="monthly">Mensual</SelectItem>
-                <SelectItem value="semester">Semestral</SelectItem>
-                <SelectItem value="annual">Anual</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Estado" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="active">Activos</SelectItem>
-                <SelectItem value="suspended">Suspendidos</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Registro</TableHead>
-                    <TableHead>Último acceso</TableHead>
-                    <TableHead>Exámenes</TableHead>
-                    <TableHead>Acciones</TableHead>
+      <Card>
+        <CardContent className="p-0">
+          {loading ? (
+            <p className="p-6 text-muted-foreground">Cargando…</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Roles</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Registro</TableHead>
+                  <TableHead>Última actividad</TableHead>
+                  <TableHead>Exámenes</TableHead>
+                  <TableHead>Rol</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">{u.name || '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {u.roles.map((r) => (
+                          <Badge key={r} variant={r === 'admin' ? 'default' : 'secondary'}>
+                            {roleLabel(r)}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm capitalize">{u.plan}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {new Date(u.registeredAt).toLocaleDateString('es-MX')}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {new Date(u.lastAccess).toLocaleDateString('es-MX')}
+                    </TableCell>
+                    <TableCell className="text-center">{u.examsCompleted}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={primaryRole(u.roles)}
+                        onValueChange={(v) => updateRoles(u.id, [v as AppRole], u.roles)}
+                      >
+                        <SelectTrigger className="w-[160px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">Estudiante</SelectItem>
+                          <SelectItem value="editor">Editor</SelectItem>
+                          <SelectItem value="admin">Administrador</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((u) => (
-                    <TableRow key={u.id}>
-                      <TableCell className="font-medium">{u.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                      <TableCell>
-                        <Select value={u.plan} onValueChange={(v) => changePlan(u.id, v as SystemUser['plan'])}>
-                          <SelectTrigger className="w-[120px] h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="free">Gratis</SelectItem>
-                            <SelectItem value="monthly">Mensual</SelectItem>
-                            <SelectItem value="semester">Semestral</SelectItem>
-                            <SelectItem value="annual">Anual</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={u.status === 'active' ? 'default' : 'destructive'} className="text-xs">
-                          {u.status === 'active' ? 'Activo' : 'Suspendido'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{u.registeredAt}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{u.lastAccess}</TableCell>
-                      <TableCell className="text-center">{u.examsCompleted}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => toggleStatus(u.id)} title={u.status === 'active' ? 'Suspender' : 'Activar'}>
-                          {u.status === 'active' ? <Ban className="w-4 h-4 text-destructive" /> : <CheckCircle className="w-4 h-4 text-success" />}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
-        <TabsContent value="admins" className="space-y-4 mt-4">
-          <div className="flex justify-end">
-            <Button className="gradient-primary border-0 gap-2">
-              <UserPlus className="w-4 h-4" /> Invitar Editor
-            </Button>
-          </div>
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Rol</TableHead>
-                    <TableHead>Fecha de creación</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockAdminUsers.map((u) => (
-                    <TableRow key={u.id}>
-                      <TableCell className="font-medium">{u.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                      <TableCell>
-                        <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>{u.role === 'admin' ? 'Administrador' : 'Editor'}</Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{u.createdAt}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="outline" size="icon" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Página {page} de {totalPages}
+          </span>
+          <Button variant="outline" size="icon" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

@@ -45,6 +45,9 @@ export interface LabResult {
 
 export interface ClinicalCase {
   id: string;
+  /** Present when loaded from API (editor) */
+  specialtyId?: string;
+  areaId?: string;
   specialty: string;
   area: string;
   topic: string;

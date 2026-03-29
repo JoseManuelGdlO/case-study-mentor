@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserProvider } from "@/contexts/UserContext";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute, BackofficeRoute } from "@/components/ProtectedRoute";
+import { ProtectedRoute, BackofficeRoute, AdminRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NewExam from "./pages/NewExam";
@@ -102,17 +102,73 @@ const App = () => (
                   </BackofficeRoute>
                 }
               >
-                <Route index element={<BackofficeDashboard />} />
+                <Route
+                  index
+                  element={
+                    <AdminRoute>
+                      <BackofficeDashboard />
+                    </AdminRoute>
+                  }
+                />
                 <Route path="cases" element={<CaseList />} />
                 <Route path="cases/new" element={<CaseEditor />} />
-                <Route path="cases/bulk-upload" element={<BulkUploadCases />} />
+                <Route
+                  path="cases/bulk-upload"
+                  element={
+                    <AdminRoute>
+                      <BulkUploadCases />
+                    </AdminRoute>
+                  }
+                />
                 <Route path="cases/:caseId" element={<CaseEditor />} />
-                <Route path="specialties" element={<SpecialtyManagement />} />
-                <Route path="users" element={<UserManagement />} />
-                <Route path="pricing" element={<PricingConfig />} />
-                <Route path="stats" element={<SystemStats />} />
-                <Route path="phrases" element={<PhrasesManagement />} />
-                <Route path="exam-dates" element={<ExamDatesManagement />} />
+                <Route
+                  path="specialties"
+                  element={
+                    <AdminRoute>
+                      <SpecialtyManagement />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="users"
+                  element={
+                    <AdminRoute>
+                      <UserManagement />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="pricing"
+                  element={
+                    <AdminRoute>
+                      <PricingConfig />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="stats"
+                  element={
+                    <AdminRoute>
+                      <SystemStats />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="phrases"
+                  element={
+                    <AdminRoute>
+                      <PhrasesManagement />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="exam-dates"
+                  element={
+                    <AdminRoute>
+                      <ExamDatesManagement />
+                    </AdminRoute>
+                  }
+                />
               </Route>
 
               <Route path="*" element={<NotFound />} />

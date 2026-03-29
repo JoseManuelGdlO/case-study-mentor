@@ -36,3 +36,28 @@ export function BackofficeRoute({ children }: { children: React.ReactNode }) {
   }
   return <>{children}</>;
 }
+
+export function AdminRoute({
+  children,
+  fallback,
+}: {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}) {
+  const { user, loading } = useAuth();
+  const loc = useLocation();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+        Cargando…
+      </div>
+    );
+  }
+  if (!user) {
+    return <Navigate to="/login" state={{ from: loc }} replace />;
+  }
+  if (!user.roles.includes('admin')) {
+    return <>{fallback ?? <Navigate to="/backoffice/cases" replace />}</>;
+  }
+  return <>{children}</>;
+}
