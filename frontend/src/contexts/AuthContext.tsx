@@ -15,6 +15,7 @@ export type AuthUser = {
   onboardingDone: boolean;
   roles: AppRole[];
   plan?: 'free' | 'monthly' | 'semester' | 'annual';
+  subscriptionExpiresAt?: string | null;
 };
 
 type AuthContextType = {

@@ -12,7 +12,7 @@ import { apiJson } from '@/lib/api';
 
 const Profile = () => {
   const { isFreeUser, plan } = useUser();
-  const { refreshUser } = useAuth();
+  const { refreshUser, user } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [university, setUniversity] = useState('');
@@ -100,6 +100,16 @@ const Profile = () => {
               <Badge className={isFreeUser ? 'bg-muted text-muted-foreground' : 'gradient-primary text-primary-foreground border-0'}>
                 {isFreeUser ? 'Plan Gratuito' : `Plan ${plan === 'monthly' ? 'Mensual' : plan === 'semester' ? 'Semestral' : 'Anual'}`}
               </Badge>
+              {!isFreeUser && user?.subscriptionExpiresAt && (
+                <p className="text-xs text-muted-foreground mt-1 w-full">
+                  Vigente hasta{' '}
+                  {new Date(user.subscriptionExpiresAt).toLocaleDateString('es-MX', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </p>
+              )}
             </div>
           </div>
         </CardContent>

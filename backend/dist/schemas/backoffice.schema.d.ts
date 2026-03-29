@@ -51,12 +51,12 @@ export declare const examDateCreateSchema: z.ZodObject<{
     date: z.ZodString;
     isActive: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
-    name: string;
     date: string;
+    name: string;
     isActive?: boolean | undefined;
 }, {
-    name: string;
     date: string;
+    name: string;
     isActive?: boolean | undefined;
 }>;
 export declare const examDateUpdateSchema: z.ZodObject<{
@@ -64,13 +64,13 @@ export declare const examDateUpdateSchema: z.ZodObject<{
     date: z.ZodOptional<z.ZodString>;
     isActive: z.ZodOptional<z.ZodOptional<z.ZodBoolean>>;
 }, "strip", z.ZodTypeAny, {
+    date?: string | undefined;
     name?: string | undefined;
     isActive?: boolean | undefined;
-    date?: string | undefined;
 }, {
+    date?: string | undefined;
     name?: string | undefined;
     isActive?: boolean | undefined;
-    date?: string | undefined;
 }>;
 export declare const planCreateSchema: z.ZodObject<{
     name: z.ZodString;

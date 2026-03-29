@@ -16,6 +16,7 @@ import {
   userRoleUpdateSchema,
 } from '../schemas/backoffice.schema.js';
 import { prisma } from '../config/database.js';
+import { effectivePlanFromProfile } from '../services/profile.service.js';
 import { paginationParams, totalPages } from '../utils/helpers.js';
 import { cacheService } from '../services/cache.service.js';
 import { invalidateSpecialtyCache } from '../services/specialty.service.js';
@@ -344,7 +345,17 @@ backofficeRouter.get(
           skip,
           take,
           orderBy: { createdAt: 'desc' },
-          include: { roles: true },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            createdAt: true,
+            updatedAt: true,
+            subscriptionTier: true,
+            subscriptionExpiresAt: true,
+            roles: true,
+          },
         }),
       ]);
       const data = profiles.map((p) => ({
@@ -352,7 +363,7 @@ backofficeRouter.get(
         name: `${p.firstName} ${p.lastName}`.trim(),
         email: p.email,
         roles: p.roles.map((r) => r.role),
-        plan: 'free' as const,
+        plan: effectivePlanFromProfile(p).plan,
         status: 'active' as const,
         registeredAt: p.createdAt.toISOString(),
         lastAccess: p.updatedAt.toISOString(),

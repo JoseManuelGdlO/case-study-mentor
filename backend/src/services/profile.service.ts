@@ -1,4 +1,25 @@
+import type { SubscriptionTier } from '@prisma/client';
 import { prisma } from '../config/database.js';
+
+export type ApiUserPlan = 'free' | 'monthly' | 'semester' | 'annual';
+
+export function effectivePlanFromProfile(row: {
+  subscriptionTier: SubscriptionTier;
+  subscriptionExpiresAt: Date | null;
+}): { plan: ApiUserPlan; subscriptionExpiresAt: string | null } {
+  const now = new Date();
+  const tier = row.subscriptionTier;
+  const exp = row.subscriptionExpiresAt;
+  if (
+    tier !== 'free' &&
+    (tier === 'monthly' || tier === 'semester' || tier === 'annual') &&
+    exp &&
+    exp > now
+  ) {
+    return { plan: tier, subscriptionExpiresAt: exp.toISOString() };
+  }
+  return { plan: 'free', subscriptionExpiresAt: null };
+}
 
 export async function getProfile(userId: string) {
   const p = await prisma.profile.findUnique({
@@ -13,6 +34,8 @@ export async function getProfile(userId: string) {
       examDate: true,
       avatarUrl: true,
       onboardingDone: true,
+      subscriptionTier: true,
+      subscriptionExpiresAt: true,
       roles: { select: { role: true } },
     },
   });
@@ -21,6 +44,7 @@ export async function getProfile(userId: string) {
     err.status = 404;
     throw err;
   }
+  const { plan, subscriptionExpiresAt } = effectivePlanFromProfile(p);
   return {
     data: {
       id: p.id,
@@ -33,7 +57,8 @@ export async function getProfile(userId: string) {
       avatarUrl: p.avatarUrl,
       onboardingDone: p.onboardingDone,
       roles: p.roles.map((r) => r.role),
-      plan: 'free' as const,
+      plan,
+      subscriptionExpiresAt,
     },
   };
 }

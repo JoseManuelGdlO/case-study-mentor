@@ -1,4 +1,16 @@
 import { prisma } from '../config/database.js';
+export function effectivePlanFromProfile(row) {
+    const now = new Date();
+    const tier = row.subscriptionTier;
+    const exp = row.subscriptionExpiresAt;
+    if (tier !== 'free' &&
+        (tier === 'monthly' || tier === 'semester' || tier === 'annual') &&
+        exp &&
+        exp > now) {
+        return { plan: tier, subscriptionExpiresAt: exp.toISOString() };
+    }
+    return { plan: 'free', subscriptionExpiresAt: null };
+}
 export async function getProfile(userId) {
     const p = await prisma.profile.findUnique({
         where: { id: userId },
@@ -12,6 +24,8 @@ export async function getProfile(userId) {
             examDate: true,
             avatarUrl: true,
             onboardingDone: true,
+            subscriptionTier: true,
+            subscriptionExpiresAt: true,
             roles: { select: { role: true } },
         },
     });
@@ -20,6 +34,7 @@ export async function getProfile(userId) {
         err.status = 404;
         throw err;
     }
+    const { plan, subscriptionExpiresAt } = effectivePlanFromProfile(p);
     return {
         data: {
             id: p.id,
@@ -32,7 +47,8 @@ export async function getProfile(userId) {
             avatarUrl: p.avatarUrl,
             onboardingDone: p.onboardingDone,
             roles: p.roles.map((r) => r.role),
-            plan: 'free',
+            plan,
+            subscriptionExpiresAt,
         },
     };
 }

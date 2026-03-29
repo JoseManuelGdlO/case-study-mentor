@@ -4,6 +4,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { redis } from '../config/redis.js';
+import { effectivePlanFromProfile } from './profile.service.js';
 import { REFRESH_TTL_SEC, signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
 const BCRYPT_ROUNDS = 12;
 const ACCESS_COOKIE = 'accessToken';
@@ -45,11 +46,14 @@ async function publicUser(userId) {
             examDate: true,
             avatarUrl: true,
             onboardingDone: true,
+            subscriptionTier: true,
+            subscriptionExpiresAt: true,
             roles: { select: { role: true } },
         },
     });
     if (!profile)
         return null;
+    const { plan, subscriptionExpiresAt } = effectivePlanFromProfile(profile);
     return {
         id: profile.id,
         email: profile.email,
@@ -61,6 +65,8 @@ async function publicUser(userId) {
         avatarUrl: profile.avatarUrl,
         onboardingDone: profile.onboardingDone,
         roles: profile.roles.map((r) => r.role),
+        plan,
+        subscriptionExpiresAt,
     };
 }
 export async function register(data, res) {

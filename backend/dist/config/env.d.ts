@@ -9,6 +9,13 @@ declare const envSchema: z.ZodObject<{
     GOOGLE_CLIENT_ID: z.ZodString;
     CORS_ORIGIN: z.ZodString;
     UPLOAD_DIR: z.ZodDefault<z.ZodString>;
+    /** URL pública del frontend (success/cancel de pagos). Si falta, se usa el primer origen de CORS_ORIGIN. */
+    FRONTEND_URL: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    STRIPE_SECRET_KEY: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    STRIPE_WEBHOOK_SECRET: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    PAYPAL_CLIENT_ID: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    PAYPAL_CLIENT_SECRET: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    PAYPAL_WEBHOOK_ID: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
 }, "strip", z.ZodTypeAny, {
     NODE_ENV: "development" | "production" | "test";
     PORT: number;
@@ -19,6 +26,12 @@ declare const envSchema: z.ZodObject<{
     GOOGLE_CLIENT_ID: string;
     CORS_ORIGIN: string;
     UPLOAD_DIR: string;
+    FRONTEND_URL?: string | undefined;
+    STRIPE_SECRET_KEY?: string | undefined;
+    STRIPE_WEBHOOK_SECRET?: string | undefined;
+    PAYPAL_CLIENT_ID?: string | undefined;
+    PAYPAL_CLIENT_SECRET?: string | undefined;
+    PAYPAL_WEBHOOK_ID?: string | undefined;
 }, {
     DATABASE_URL: string;
     REDIS_URL: string;
@@ -29,6 +42,12 @@ declare const envSchema: z.ZodObject<{
     NODE_ENV?: "development" | "production" | "test" | undefined;
     PORT?: number | undefined;
     UPLOAD_DIR?: string | undefined;
+    FRONTEND_URL?: unknown;
+    STRIPE_SECRET_KEY?: unknown;
+    STRIPE_WEBHOOK_SECRET?: unknown;
+    PAYPAL_CLIENT_ID?: unknown;
+    PAYPAL_CLIENT_SECRET?: unknown;
+    PAYPAL_WEBHOOK_ID?: unknown;
 }>;
 export type Env = z.infer<typeof envSchema>;
 export declare const env: {
@@ -41,6 +60,14 @@ export declare const env: {
     GOOGLE_CLIENT_ID: string;
     CORS_ORIGIN: string;
     UPLOAD_DIR: string;
+    FRONTEND_URL?: string | undefined;
+    STRIPE_SECRET_KEY?: string | undefined;
+    STRIPE_WEBHOOK_SECRET?: string | undefined;
+    PAYPAL_CLIENT_ID?: string | undefined;
+    PAYPAL_CLIENT_SECRET?: string | undefined;
+    PAYPAL_WEBHOOK_ID?: string | undefined;
 };
+/** Base URL del frontend para redirects de checkout (sin barra final). */
+export declare function getFrontendBaseUrl(): string;
 export {};
 //# sourceMappingURL=env.d.ts.map

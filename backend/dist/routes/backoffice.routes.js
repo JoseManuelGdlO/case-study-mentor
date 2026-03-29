@@ -4,6 +4,7 @@ import { requireAdmin } from '../middleware/roles.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { areaCreateSchema, backofficeUsersQuerySchema, examDateCreateSchema, examDateUpdateSchema, phraseCreateSchema, phraseUpdateSchema, planCreateSchema, planUpdateSchema, specialtyCreateSchema, specialtyUpdateSchema, userRoleUpdateSchema, } from '../schemas/backoffice.schema.js';
 import { prisma } from '../config/database.js';
+import { effectivePlanFromProfile } from '../services/profile.service.js';
 import { paginationParams, totalPages } from '../utils/helpers.js';
 import { cacheService } from '../services/cache.service.js';
 import { invalidateSpecialtyCache } from '../services/specialty.service.js';
@@ -284,7 +285,17 @@ backofficeRouter.get('/users', validateQuery(backofficeUsersQuerySchema), async 
                 skip,
                 take,
                 orderBy: { createdAt: 'desc' },
-                include: { roles: true },
+                select: {
+                    id: true,
+                    email: true,
+                    firstName: true,
+                    lastName: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    subscriptionTier: true,
+                    subscriptionExpiresAt: true,
+                    roles: true,
+                },
             }),
         ]);
         const data = profiles.map((p) => ({
@@ -292,7 +303,7 @@ backofficeRouter.get('/users', validateQuery(backofficeUsersQuerySchema), async 
             name: `${p.firstName} ${p.lastName}`.trim(),
             email: p.email,
             roles: p.roles.map((r) => r.role),
-            plan: 'free',
+            plan: effectivePlanFromProfile(p).plan,
             status: 'active',
             registeredAt: p.createdAt.toISOString(),
             lastAccess: p.updatedAt.toISOString(),

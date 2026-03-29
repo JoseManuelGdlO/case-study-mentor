@@ -7,25 +7,66 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Profile {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  password        String
-  firstName       String    @map("first_name")
-  lastName        String    @map("last_name")
-  university      String?
-  graduationYear  Int?      @map("graduation_year")
-  examDate        DateTime? @map("exam_date")
-  avatarUrl       String?   @map("avatar_url")
-  onboardingDone  Boolean   @default(false) @map("onboarding_done")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+enum SubscriptionTier {
+  free
+  monthly
+  semester
+  annual
+}
 
-  roles       UserRole[]
-  exams       Exam[]
-  answers     UserAnswer[]
+enum PaymentProvider {
+  stripe
+  paypal
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+  refunded
+}
+
+model Profile {
+  id                    String            @id @default(uuid())
+  email                 String            @unique
+  password              String
+  firstName             String            @map("first_name")
+  lastName              String            @map("last_name")
+  university            String?
+  graduationYear        Int?              @map("graduation_year")
+  examDate              DateTime?         @map("exam_date")
+  avatarUrl             String?           @map("avatar_url")
+  onboardingDone        Boolean           @default(false) @map("onboarding_done")
+  subscriptionTier      SubscriptionTier  @default(free) @map("subscription_tier")
+  subscriptionExpiresAt DateTime?         @map("subscription_expires_at")
+  stripeCustomerId      String?           @map("stripe_customer_id")
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+
+  roles    UserRole[]
+  exams    Exam[]
+  answers  UserAnswer[]
+  payments Payment[]
 
   @@map("profiles")
+}
+
+model Payment {
+  id         String           @id @default(uuid())
+  userId     String           @map("user_id")
+  provider   PaymentProvider
+  externalId String           @map("external_id")
+  amount     Int
+  currency   String           @default("mxn")
+  status     PaymentStatus
+  tier       SubscriptionTier
+  metadata   Json?
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalId])
+  @@map("payments")
 }
 
 enum AppRole {

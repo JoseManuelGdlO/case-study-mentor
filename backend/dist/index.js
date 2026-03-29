@@ -20,6 +20,7 @@ import { specialtiesRouter } from './routes/specialties.routes.js';
 import { uploadRouter } from './routes/upload.routes.js';
 import { backofficeRouter } from './routes/backoffice.routes.js';
 import { contentRouter } from './routes/content.routes.js';
+import { paymentsRouter, paypalWebhookHandler, stripeWebhookHandler, } from './routes/payments.routes.js';
 /** Orígenes permitidos: `CORS_ORIGIN` puede ser uno o varios separados por coma (sin repetir el header completo en la respuesta). */
 function parseCorsOrigins(raw) {
     return raw
@@ -45,8 +46,10 @@ app.use(cors({
     },
     credentials: true,
 }));
+app.post('/api/payments/webhooks/stripe', express.raw({ type: 'application/json' }), stripeWebhookHandler);
 app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
+app.post('/api/payments/webhooks/paypal', paypalWebhookHandler);
 const uploadDir = path.resolve(process.cwd(), env.UPLOAD_DIR);
 fs.mkdirSync(uploadDir, { recursive: true });
 app.use('/uploads', express.static(uploadDir));
@@ -88,6 +91,7 @@ app.use('/api/specialties', specialtiesRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/backoffice', backofficeRouter);
 app.use('/api/content', contentRouter);
+app.use('/api/payments', paymentsRouter);
 const swaggerSpec = swaggerJsdoc({
     definition: {
         openapi: '3.0.0',

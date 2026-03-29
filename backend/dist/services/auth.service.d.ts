@@ -19,6 +19,8 @@ export declare function register(data: {
             avatarUrl: string | null;
             onboardingDone: boolean;
             roles: import("@prisma/client").$Enums.AppRole[];
+            plan: import("./profile.service.js").ApiUserPlan;
+            subscriptionExpiresAt: string | null;
         } | null;
         isNewUser: boolean;
     };
@@ -39,6 +41,8 @@ export declare function login(data: {
             avatarUrl: string | null;
             onboardingDone: boolean;
             roles: import("@prisma/client").$Enums.AppRole[];
+            plan: import("./profile.service.js").ApiUserPlan;
+            subscriptionExpiresAt: string | null;
         } | null;
         isNewUser: boolean;
     };
@@ -56,6 +60,8 @@ export declare function refreshTokens(refreshCookie: string | undefined, res: Re
             avatarUrl: string | null;
             onboardingDone: boolean;
             roles: import("@prisma/client").$Enums.AppRole[];
+            plan: import("./profile.service.js").ApiUserPlan;
+            subscriptionExpiresAt: string | null;
         } | null;
     };
 }>;
@@ -77,6 +83,8 @@ export declare function googleAuth(idToken: string, res: Response): Promise<{
             avatarUrl: string | null;
             onboardingDone: boolean;
             roles: import("@prisma/client").$Enums.AppRole[];
+            plan: import("./profile.service.js").ApiUserPlan;
+            subscriptionExpiresAt: string | null;
         } | null;
         isNewUser: boolean;
     };

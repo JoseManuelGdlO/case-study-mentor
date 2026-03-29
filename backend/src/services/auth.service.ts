@@ -5,6 +5,7 @@ import type { Response } from 'express';
 import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { redis } from '../config/redis.js';
+import { effectivePlanFromProfile } from './profile.service.js';
 import { REFRESH_TTL_SEC, signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
 
 const BCRYPT_ROUNDS = 12;
@@ -52,10 +53,13 @@ async function publicUser(userId: string) {
       examDate: true,
       avatarUrl: true,
       onboardingDone: true,
+      subscriptionTier: true,
+      subscriptionExpiresAt: true,
       roles: { select: { role: true } },
     },
   });
   if (!profile) return null;
+  const { plan, subscriptionExpiresAt } = effectivePlanFromProfile(profile);
   return {
     id: profile.id,
     email: profile.email,
@@ -67,6 +71,8 @@ async function publicUser(userId: string) {
     avatarUrl: profile.avatarUrl,
     onboardingDone: profile.onboardingDone,
     roles: profile.roles.map((r) => r.role),
+    plan,
+    subscriptionExpiresAt,
   };
 }
 

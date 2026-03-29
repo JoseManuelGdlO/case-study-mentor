@@ -1,3 +1,12 @@
+import type { SubscriptionTier } from '@prisma/client';
+export type ApiUserPlan = 'free' | 'monthly' | 'semester' | 'annual';
+export declare function effectivePlanFromProfile(row: {
+    subscriptionTier: SubscriptionTier;
+    subscriptionExpiresAt: Date | null;
+}): {
+    plan: ApiUserPlan;
+    subscriptionExpiresAt: string | null;
+};
 export declare function getProfile(userId: string): Promise<{
     data: {
         id: string;
@@ -10,7 +19,8 @@ export declare function getProfile(userId: string): Promise<{
         avatarUrl: string | null;
         onboardingDone: boolean;
         roles: import("@prisma/client").$Enums.AppRole[];
-        plan: "free";
+        plan: ApiUserPlan;
+        subscriptionExpiresAt: string | null;
     };
 }>;
 export declare function updateProfile(userId: string, body: {
@@ -32,7 +42,8 @@ export declare function updateProfile(userId: string, body: {
         avatarUrl: string | null;
         onboardingDone: boolean;
         roles: import("@prisma/client").$Enums.AppRole[];
-        plan: "free";
+        plan: ApiUserPlan;
+        subscriptionExpiresAt: string | null;
     };
 }>;
 export declare function completeOnboarding(userId: string): Promise<{
@@ -47,7 +58,8 @@ export declare function completeOnboarding(userId: string): Promise<{
         avatarUrl: string | null;
         onboardingDone: boolean;
         roles: import("@prisma/client").$Enums.AppRole[];
-        plan: "free";
+        plan: ApiUserPlan;
+        subscriptionExpiresAt: string | null;
     };
 }>;
 //# sourceMappingURL=profile.service.d.ts.map
