@@ -1,0 +1,258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password        String
+  firstName       String    @map("first_name")
+  lastName        String    @map("last_name")
+  university      String?
+  graduationYear  Int?      @map("graduation_year")
+  examDate        DateTime? @map("exam_date")
+  avatarUrl       String?   @map("avatar_url")
+  onboardingDone  Boolean   @default(false) @map("onboarding_done")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  roles       UserRole[]
+  exams       Exam[]
+  answers     UserAnswer[]
+
+  @@map("profiles")
+}
+
+enum AppRole {
+  admin
+  editor
+  user
+}
+
+model UserRole {
+  id     String  @id @default(uuid())
+  userId String  @map("user_id")
+  role   AppRole
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@map("user_roles")
+}
+
+model Specialty {
+  id   String @id @default(uuid())
+  name String @unique
+
+  areas           Area[]
+  cases           ClinicalCase[]
+  examSpecialties ExamSpecialty[]
+
+  @@map("specialties")
+}
+
+model Area {
+  id          String @id @default(uuid())
+  name        String
+  specialtyId String @map("specialty_id")
+
+  specialty Specialty   @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+  cases     ClinicalCase[]
+  examAreas ExamArea[]
+
+  @@unique([specialtyId, name])
+  @@map("areas")
+}
+
+model ClinicalCase {
+  id          String   @id @default(uuid())
+  specialtyId String   @map("specialty_id")
+  areaId      String   @map("area_id")
+  topic       String
+  language    String   @default("es")
+  text        String   @db.Text
+  imageUrl    String?  @map("image_url")
+  status      String   @default("draft")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  specialty  Specialty    @relation(fields: [specialtyId], references: [id])
+  area       Area         @relation(fields: [areaId], references: [id])
+  questions  Question[]
+  labResults LabResult[]
+  examCases  ExamCase[]
+
+  @@map("clinical_cases")
+}
+
+model LabResult {
+  id          String @id @default(uuid())
+  caseId      String @map("case_id")
+  name        String
+  value       String
+  unit        String
+  normalRange String @map("normal_range")
+
+  clinicalCase ClinicalCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("lab_results")
+}
+
+model Question {
+  id           String   @id @default(uuid())
+  caseId       String   @map("case_id")
+  text         String   @db.Text
+  imageUrl     String?  @map("image_url")
+  summary      String   @db.Text
+  bibliography String   @db.Text
+  difficulty   String   @default("medium")
+  orderIndex   Int      @default(0) @map("order_index")
+
+  clinicalCase ClinicalCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  options       AnswerOption[]
+  userAnswers   UserAnswer[]
+  examQuestions ExamQuestion[]
+
+  @@map("questions")
+}
+
+model AnswerOption {
+  id          String  @id @default(uuid())
+  questionId  String  @map("question_id")
+  label       String
+  text        String  @db.Text
+  imageUrl    String? @map("image_url")
+  isCorrect   Boolean @default(false) @map("is_correct")
+  explanation String  @db.Text
+
+  question    Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userAnswers UserAnswer[]
+
+  @@map("answer_options")
+}
+
+model Exam {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  mode             String
+  language         String    @default("es")
+  questionCount    Int       @map("question_count")
+  questionFilter   String    @default("all") @map("question_filter")
+  status           String    @default("not_started")
+  currentIndex     Int       @default(0) @map("current_question_index")
+  score            Float?
+  startedAt        DateTime? @map("started_at")
+  completedAt      DateTime? @map("completed_at")
+  timeSpentSeconds Int       @default(0) @map("time_spent_seconds")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  user      Profile         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  examCases    ExamCase[]
+  examQuestions ExamQuestion[]
+  answers      UserAnswer[]
+
+  selectedSpecialties ExamSpecialty[]
+  selectedAreas       ExamArea[]
+
+  @@map("exams")
+}
+
+model ExamSpecialty {
+  examId      String @map("exam_id")
+  specialtyId String @map("specialty_id")
+
+  exam      Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  specialty Specialty @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+
+  @@id([examId, specialtyId])
+  @@map("exam_specialties")
+}
+
+model ExamArea {
+  examId String @map("exam_id")
+  areaId String @map("area_id")
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+  area Area @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  @@id([examId, areaId])
+  @@map("exam_areas")
+}
+
+model ExamCase {
+  examId     String @map("exam_id")
+  caseId     String @map("case_id")
+  orderIndex Int    @default(0) @map("order_index")
+
+  exam         Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  clinicalCase ClinicalCase @relation(fields: [caseId], references: [id])
+
+  @@id([examId, caseId])
+  @@map("exam_cases")
+}
+
+model ExamQuestion {
+  examId     String @map("exam_id")
+  questionId String @map("question_id")
+  orderIndex Int    @default(0) @map("order_index")
+
+  exam     Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([examId, questionId])
+  @@map("exam_questions")
+}
+
+model UserAnswer {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  examId           String   @map("exam_id")
+  questionId       String   @map("question_id")
+  selectedOptionId String?  @map("selected_option_id")
+  isCorrect        Boolean? @map("is_correct")
+  answeredAt       DateTime @default(now()) @map("answered_at")
+
+  user     Profile       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam     Exam          @relation(fields: [examId], references: [id], onDelete: Cascade)
+  question Question      @relation(fields: [questionId], references: [id])
+  option   AnswerOption? @relation(fields: [selectedOptionId], references: [id])
+
+  @@unique([examId, questionId])
+  @@map("user_answers")
+}
+
+model MotivationalPhrase {
+  id        String   @id @default(uuid())
+  text      String   @db.Text
+  author    String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("motivational_phrases")
+}
+
+model ExamDate {
+  id       String   @id @default(uuid())
+  name     String
+  date     DateTime
+  isActive Boolean  @default(true) @map("is_active")
+
+  @@map("exam_dates")
+}
+
+model SubscriptionPlan {
+  id          String  @id @default(uuid())
+  name        String
+  price       Float
+  duration    Int
+  features    String  @db.Text
+  isActive    Boolean @default(true) @map("is_active")
+  highlighted Boolean @default(false)
+
+  @@map("subscription_plans")
+}
