@@ -26,10 +26,16 @@ enum PaymentStatus {
   refunded
 }
 
+enum AuthProvider {
+  email
+  google
+}
+
 model Profile {
   id                    String            @id @default(uuid())
   email                 String            @unique
   password              String
+  authProvider          AuthProvider      @default(email) @map("auth_provider")
   firstName             String            @map("first_name")
   lastName              String            @map("last_name")
   university            String?

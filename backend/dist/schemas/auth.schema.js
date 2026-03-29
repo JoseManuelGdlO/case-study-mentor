@@ -12,4 +12,7 @@ export const loginSchema = z.object({
 export const googleAuthSchema = z.object({
     idToken: z.string().min(1),
 });
+export const forgotPasswordSchema = z.object({
+    email: z.string().email(),
+});
 //# sourceMappingURL=auth.schema.js.map

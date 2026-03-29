@@ -16,6 +16,14 @@ declare const envSchema: z.ZodObject<{
     PAYPAL_CLIENT_ID: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
     PAYPAL_CLIENT_SECRET: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
     PAYPAL_WEBHOOK_ID: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    /** SMTP opcional: sin esto, en desarrollo el reset se registra en consola; en producción olvidé contraseña responde 503. */
+    SMTP_HOST: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    SMTP_PORT: z.ZodEffects<z.ZodOptional<z.ZodNumber>, number | undefined, unknown>;
+    SMTP_USER: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    SMTP_PASS: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    SMTP_FROM: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    /** true si usas puerto 465 con SSL */
+    SMTP_SECURE: z.ZodEffects<z.ZodOptional<z.ZodBoolean>, boolean | undefined, unknown>;
 }, "strip", z.ZodTypeAny, {
     NODE_ENV: "development" | "production" | "test";
     PORT: number;
@@ -32,6 +40,12 @@ declare const envSchema: z.ZodObject<{
     PAYPAL_CLIENT_ID?: string | undefined;
     PAYPAL_CLIENT_SECRET?: string | undefined;
     PAYPAL_WEBHOOK_ID?: string | undefined;
+    SMTP_HOST?: string | undefined;
+    SMTP_PORT?: number | undefined;
+    SMTP_USER?: string | undefined;
+    SMTP_PASS?: string | undefined;
+    SMTP_FROM?: string | undefined;
+    SMTP_SECURE?: boolean | undefined;
 }, {
     DATABASE_URL: string;
     REDIS_URL: string;
@@ -48,6 +62,12 @@ declare const envSchema: z.ZodObject<{
     PAYPAL_CLIENT_ID?: unknown;
     PAYPAL_CLIENT_SECRET?: unknown;
     PAYPAL_WEBHOOK_ID?: unknown;
+    SMTP_HOST?: unknown;
+    SMTP_PORT?: unknown;
+    SMTP_USER?: unknown;
+    SMTP_PASS?: unknown;
+    SMTP_FROM?: unknown;
+    SMTP_SECURE?: unknown;
 }>;
 export type Env = z.infer<typeof envSchema>;
 export declare const env: {
@@ -66,6 +86,12 @@ export declare const env: {
     PAYPAL_CLIENT_ID?: string | undefined;
     PAYPAL_CLIENT_SECRET?: string | undefined;
     PAYPAL_WEBHOOK_ID?: string | undefined;
+    SMTP_HOST?: string | undefined;
+    SMTP_PORT?: number | undefined;
+    SMTP_USER?: string | undefined;
+    SMTP_PASS?: string | undefined;
+    SMTP_FROM?: string | undefined;
+    SMTP_SECURE?: boolean | undefined;
 };
 /** Base URL del frontend para redirects de checkout (sin barra final). */
 export declare function getFrontendBaseUrl(): string;

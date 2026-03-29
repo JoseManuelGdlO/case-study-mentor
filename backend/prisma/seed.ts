@@ -12,6 +12,7 @@ async function main() {
       data: {
         email,
         password: hash,
+        authProvider: 'email',
         firstName: 'Admin',
         lastName: 'ENARM',
         roles: { create: [{ role: 'admin' }, { role: 'user' }] },

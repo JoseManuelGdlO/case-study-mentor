@@ -1,14 +1,18 @@
-import { randomUUID } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import bcrypt from 'bcrypt';
 import { OAuth2Client } from 'google-auth-library';
 import type { Response } from 'express';
 import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { redis } from '../config/redis.js';
+import { isSmtpConfigured, sendGoogleAccountNoticeEmail, sendTemporaryPasswordEmail } from './email.service.js';
 import { effectivePlanFromProfile } from './profile.service.js';
 import { REFRESH_TTL_SEC, signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
 
 const BCRYPT_ROUNDS = 12;
+
+const FORGOT_PASSWORD_GENERIC_MESSAGE =
+  'Si ese correo está registrado, recibirás un mensaje con instrucciones en los próximos minutos.';
 const ACCESS_COOKIE = 'accessToken';
 const REFRESH_COOKIE = 'refreshToken';
 
@@ -46,6 +50,7 @@ async function publicUser(userId: string) {
     select: {
       id: true,
       email: true,
+      authProvider: true,
       firstName: true,
       lastName: true,
       university: true,
@@ -63,6 +68,7 @@ async function publicUser(userId: string) {
   return {
     id: profile.id,
     email: profile.email,
+    authProvider: profile.authProvider,
     firstName: profile.firstName,
     lastName: profile.lastName,
     university: profile.university,
@@ -91,6 +97,7 @@ export async function register(
     data: {
       email: data.email,
       password: hash,
+      authProvider: 'email',
       firstName: data.firstName,
       lastName: data.lastName,
       roles: { create: { role: 'user' } },
@@ -152,6 +159,35 @@ export async function refreshTokens(refreshCookie: string | undefined, res: Resp
   return { data: { user: u } };
 }
 
+export async function requestPasswordReset(email: string) {
+  if (env.NODE_ENV === 'production' && !isSmtpConfigured()) {
+    const err = new Error('Servicio de correo no disponible') as Error & { status: number };
+    err.status = 503;
+    throw err;
+  }
+
+  const trimmed = email.trim();
+  const user = await prisma.profile.findUnique({ where: { email: trimmed } });
+
+  if (!user) {
+    return { data: { message: FORGOT_PASSWORD_GENERIC_MESSAGE } };
+  }
+
+  if (user.authProvider === 'google') {
+    await sendGoogleAccountNoticeEmail(user.email);
+    return { data: { message: FORGOT_PASSWORD_GENERIC_MESSAGE } };
+  }
+
+  const plain = randomBytes(18).toString('base64url');
+  const hash = await bcrypt.hash(plain, BCRYPT_ROUNDS);
+  await prisma.profile.update({
+    where: { id: user.id },
+    data: { password: hash },
+  });
+  await sendTemporaryPasswordEmail(user.email, plain);
+  return { data: { message: FORGOT_PASSWORD_GENERIC_MESSAGE } };
+}
+
 export async function logout(refreshCookie: string | undefined, res: Response) {
   if (refreshCookie) {
     try {
@@ -187,6 +223,7 @@ export async function googleAuth(idToken: string, res: Response) {
       data: {
         email,
         password: randomPass,
+        authProvider: 'google',
         firstName: payload.given_name ?? 'Usuario',
         lastName: payload.family_name ?? '',
         roles: { create: { role: 'user' } },

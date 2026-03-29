@@ -1,4 +1,6 @@
+import bcrypt from 'bcrypt';
 import { prisma } from '../config/database.js';
+const BCRYPT_ROUNDS = 12;
 export function effectivePlanFromProfile(row) {
     const now = new Date();
     const tier = row.subscriptionTier;
@@ -17,6 +19,7 @@ export async function getProfile(userId) {
         select: {
             id: true,
             email: true,
+            authProvider: true,
             firstName: true,
             lastName: true,
             university: true,
@@ -39,6 +42,7 @@ export async function getProfile(userId) {
         data: {
             id: p.id,
             email: p.email,
+            authProvider: p.authProvider,
             firstName: p.firstName,
             lastName: p.lastName,
             university: p.university,
@@ -74,5 +78,30 @@ export async function completeOnboarding(userId) {
         data: { onboardingDone: true },
     });
     return getProfile(userId);
+}
+export async function changePassword(userId, body) {
+    const user = await prisma.profile.findUnique({ where: { id: userId } });
+    if (!user) {
+        const err = new Error('Perfil no encontrado');
+        err.status = 404;
+        throw err;
+    }
+    if (user.authProvider === 'google') {
+        const err = new Error('Las cuentas que usan Google no pueden cambiar la contraseña desde aquí');
+        err.status = 403;
+        throw err;
+    }
+    const ok = await bcrypt.compare(body.currentPassword, user.password);
+    if (!ok) {
+        const err = new Error('La contraseña actual no es correcta');
+        err.status = 401;
+        throw err;
+    }
+    const hash = await bcrypt.hash(body.newPassword, BCRYPT_ROUNDS);
+    await prisma.profile.update({
+        where: { id: userId },
+        data: { password: hash },
+    });
+    return { data: { ok: true } };
 }
 //# sourceMappingURL=profile.service.js.map

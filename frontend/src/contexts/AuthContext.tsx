@@ -6,6 +6,7 @@ export type AppRole = 'admin' | 'editor' | 'user';
 export type AuthUser = {
   id: string;
   email: string;
+  authProvider: 'email' | 'google';
   firstName: string;
   lastName: string;
   university: string | null;

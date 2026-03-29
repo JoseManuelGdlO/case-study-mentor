@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
-import { profileUpdateSchema } from '../schemas/profile.schema.js';
+import { changePasswordSchema, profileUpdateSchema } from '../schemas/profile.schema.js';
 import * as profileService from '../services/profile.service.js';
 
 export const profileRouter = Router();
@@ -24,6 +24,25 @@ profileRouter.put(
     try {
       if (!req.user) throw new Error('No user');
       const result = await profileService.updateProfile(req.user.id, req.body);
+      res.json(result);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+profileRouter.post(
+  '/password',
+  authenticate,
+  validateBody(changePasswordSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) throw new Error('No user');
+      const { currentPassword, newPassword } = req.body;
+      const result = await profileService.changePassword(req.user.id, {
+        currentPassword,
+        newPassword,
+      });
       res.json(result);
     } catch (e) {
       next(e);

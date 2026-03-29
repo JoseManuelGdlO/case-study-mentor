@@ -4,9 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Mail, GraduationCap, Save, Shield } from 'lucide-react';
+import { User, Mail, GraduationCap, Save, Shield, Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiJson } from '@/lib/api';
 
@@ -19,6 +28,12 @@ const Profile = () => {
   const [graduationYear, setGraduationYear] = useState('');
   const [specialty, setSpecialty] = useState('');
   const [loading, setLoading] = useState(true);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
+  const [confirmPwOpen, setConfirmPwOpen] = useState(false);
 
   useEffect(() => {
     let c = false;
@@ -68,6 +83,46 @@ const Profile = () => {
       toast.success('Perfil actualizado correctamente');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Error al guardar');
+    }
+  };
+
+  const openPasswordConfirm = () => {
+    if (!currentPassword.trim()) {
+      toast.error('Indica tu contraseña actual');
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error('La nueva contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      toast.error('Las contraseñas nuevas no coinciden');
+      return;
+    }
+    setConfirmPwOpen(true);
+  };
+
+  const submitPasswordChange = async () => {
+    setPwSaving(true);
+    try {
+      await apiJson('/api/profile/password', {
+        method: 'POST',
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          newPasswordConfirm,
+        }),
+      });
+      setConfirmPwOpen(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setNewPasswordConfirm('');
+      await refreshUser();
+      toast.success('Contraseña actualizada correctamente');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo cambiar la contraseña');
+    } finally {
+      setPwSaving(false);
     }
   };
 
@@ -162,16 +217,116 @@ const Profile = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-0 shadow-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Shield className="w-5 h-5 text-primary" /> Seguridad
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">El cambio de contraseña estará disponible próximamente.</p>
-        </CardContent>
-      </Card>
+      {user?.authProvider === 'google' ? (
+        <Card className="border-0 shadow-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Shield className="w-5 h-5 text-primary" /> Seguridad
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Tu cuenta usa Google. La contraseña la gestionas desde tu cuenta de Google; aquí no aplica un
+              cambio de contraseña local.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-0 shadow-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Shield className="w-5 h-5 text-primary" /> Seguridad
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Usa tu contraseña actual y escribe la nueva dos veces. Te pediremos confirmación antes de guardar.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="cur-pw">Contraseña actual</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="cur-pw"
+                  type={showPw ? 'text' : 'password'}
+                  className="pl-10 pr-10"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-pw">Nueva contraseña</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="new-pw"
+                  type={showPw ? 'text' : 'password'}
+                  className="pl-10 pr-10"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  aria-label={showPw ? 'Ocultar contraseñas' : 'Mostrar contraseñas'}
+                >
+                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-pw2">Confirmar nueva contraseña</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="new-pw2"
+                  type={showPw ? 'text' : 'password'}
+                  className="pl-10"
+                  value={newPasswordConfirm}
+                  onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={openPasswordConfirm}
+            >
+              Cambiar contraseña
+            </Button>
+
+            <AlertDialog open={confirmPwOpen} onOpenChange={setConfirmPwOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Confirmar cambio de contraseña?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Vas a actualizar la contraseña de tu cuenta. ¿Estás seguro de que deseas continuar?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={pwSaving}>Cancelar</AlertDialogCancel>
+                  <Button
+                    type="button"
+                    className="gradient-primary border-0"
+                    disabled={pwSaving}
+                    onClick={() => void submitPasswordChange()}
+                  >
+                    {pwSaving ? 'Guardando…' : 'Sí, cambiar contraseña'}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex justify-end pb-8">
         <Button onClick={handleSave} className="gradient-primary border-0 font-semibold gap-2 px-8">

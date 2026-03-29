@@ -7,4 +7,14 @@ export const profileUpdateSchema = z.object({
     examDate: z.string().datetime().nullable().optional(),
     avatarUrl: z.string().nullable().optional(),
 });
+export const changePasswordSchema = z
+    .object({
+    currentPassword: z.string().min(1),
+    newPassword: z.string().min(8),
+    newPasswordConfirm: z.string().min(8),
+})
+    .refine((d) => d.newPassword === d.newPasswordConfirm, {
+    message: 'Las contraseñas nuevas no coinciden',
+    path: ['newPasswordConfirm'],
+});
 //# sourceMappingURL=profile.schema.js.map

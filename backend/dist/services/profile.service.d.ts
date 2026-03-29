@@ -11,6 +11,7 @@ export declare function getProfile(userId: string): Promise<{
     data: {
         id: string;
         email: string;
+        authProvider: import("@prisma/client").$Enums.AuthProvider;
         firstName: string;
         lastName: string;
         university: string | null;
@@ -34,6 +35,7 @@ export declare function updateProfile(userId: string, body: {
     data: {
         id: string;
         email: string;
+        authProvider: import("@prisma/client").$Enums.AuthProvider;
         firstName: string;
         lastName: string;
         university: string | null;
@@ -50,6 +52,7 @@ export declare function completeOnboarding(userId: string): Promise<{
     data: {
         id: string;
         email: string;
+        authProvider: import("@prisma/client").$Enums.AuthProvider;
         firstName: string;
         lastName: string;
         university: string | null;
@@ -60,6 +63,14 @@ export declare function completeOnboarding(userId: string): Promise<{
         roles: import("@prisma/client").$Enums.AppRole[];
         plan: ApiUserPlan;
         subscriptionExpiresAt: string | null;
+    };
+}>;
+export declare function changePassword(userId: string, body: {
+    currentPassword: string;
+    newPassword: string;
+}): Promise<{
+    data: {
+        ok: boolean;
     };
 }>;
 //# sourceMappingURL=profile.service.d.ts.map

@@ -25,6 +25,17 @@ const envSchema = z.object({
   PAYPAL_CLIENT_ID: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   PAYPAL_CLIENT_SECRET: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   PAYPAL_WEBHOOK_ID: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  /** SMTP opcional: sin esto, en desarrollo el reset se registra en consola; en producción olvidé contraseña responde 503. */
+  SMTP_HOST: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  SMTP_PORT: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
+  SMTP_USER: z.preprocess(emptyToUndefined, z.string().optional()),
+  SMTP_PASS: z.preprocess(emptyToUndefined, z.string().optional()),
+  SMTP_FROM: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  /** true si usas puerto 465 con SSL */
+  SMTP_SECURE: z.preprocess(
+    (v) => (v === '' || v === undefined ? undefined : v === true || v === 'true' || v === '1'),
+    z.boolean().optional()
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;

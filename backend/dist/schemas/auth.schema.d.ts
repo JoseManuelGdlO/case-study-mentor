@@ -32,4 +32,11 @@ export declare const googleAuthSchema: z.ZodObject<{
 }, {
     idToken: string;
 }>;
+export declare const forgotPasswordSchema: z.ZodObject<{
+    email: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    email: string;
+}, {
+    email: string;
+}>;
 //# sourceMappingURL=auth.schema.d.ts.map

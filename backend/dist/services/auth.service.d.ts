@@ -11,6 +11,7 @@ export declare function register(data: {
         user: {
             id: string;
             email: string;
+            authProvider: import("@prisma/client").$Enums.AuthProvider;
             firstName: string;
             lastName: string;
             university: string | null;
@@ -33,6 +34,7 @@ export declare function login(data: {
         user: {
             id: string;
             email: string;
+            authProvider: import("@prisma/client").$Enums.AuthProvider;
             firstName: string;
             lastName: string;
             university: string | null;
@@ -52,6 +54,7 @@ export declare function refreshTokens(refreshCookie: string | undefined, res: Re
         user: {
             id: string;
             email: string;
+            authProvider: import("@prisma/client").$Enums.AuthProvider;
             firstName: string;
             lastName: string;
             university: string | null;
@@ -65,6 +68,11 @@ export declare function refreshTokens(refreshCookie: string | undefined, res: Re
         } | null;
     };
 }>;
+export declare function requestPasswordReset(email: string): Promise<{
+    data: {
+        message: string;
+    };
+}>;
 export declare function logout(refreshCookie: string | undefined, res: Response): Promise<{
     data: {
         ok: boolean;
@@ -75,6 +83,7 @@ export declare function googleAuth(idToken: string, res: Response): Promise<{
         user: {
             id: string;
             email: string;
+            authProvider: import("@prisma/client").$Enums.AuthProvider;
             firstName: string;
             lastName: string;
             university: string | null;

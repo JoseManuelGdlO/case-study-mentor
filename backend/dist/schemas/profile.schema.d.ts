@@ -21,4 +21,25 @@ export declare const profileUpdateSchema: z.ZodObject<{
     examDate?: string | null | undefined;
     avatarUrl?: string | null | undefined;
 }>;
+export declare const changePasswordSchema: z.ZodEffects<z.ZodObject<{
+    currentPassword: z.ZodString;
+    newPassword: z.ZodString;
+    newPasswordConfirm: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    currentPassword: string;
+    newPassword: string;
+    newPasswordConfirm: string;
+}, {
+    currentPassword: string;
+    newPassword: string;
+    newPasswordConfirm: string;
+}>, {
+    currentPassword: string;
+    newPassword: string;
+    newPasswordConfirm: string;
+}, {
+    currentPassword: string;
+    newPassword: string;
+    newPasswordConfirm: string;
+}>;
 //# sourceMappingURL=profile.schema.d.ts.map

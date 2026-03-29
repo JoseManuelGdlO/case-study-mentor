@@ -224,6 +224,16 @@ const Login = () => {
                     </button>
                   </div>
                 </div>
+                {!isRegister && (
+                  <div className="text-right -mt-1">
+                    <Link
+                      to="/recuperar-contrasena"
+                      className="text-sm text-primary font-medium hover:underline underline-offset-2"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </Link>
+                  </div>
+                )}
                 <Button type="submit" className="w-full h-12 text-base font-semibold gradient-primary border-0">
                   {isRegister ? 'Crear cuenta y continuar' : 'Iniciar sesión'}
                 </Button>

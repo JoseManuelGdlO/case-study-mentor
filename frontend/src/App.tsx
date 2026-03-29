@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute, BackofficeRoute, AdminRoute } from "@/components/ProtectedRoute";
 import { ApiSlowLoadingOverlay } from "@/components/ApiSlowLoadingOverlay";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import NewExam from "./pages/NewExam";
 import ExamList from "./pages/ExamList";
@@ -48,6 +49,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/recuperar-contrasena" element={<ForgotPassword />} />
               <Route path="/terminos" element={<TermsOfService />} />
               <Route path="/privacidad" element={<PrivacyPolicy />} />
               <Route

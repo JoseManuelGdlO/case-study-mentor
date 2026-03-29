@@ -131,12 +131,12 @@ export declare const backofficeUsersQuerySchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     search?: string | undefined;
     role?: "admin" | "editor" | "user" | undefined;
-    page?: string | undefined;
     limit?: string | undefined;
+    page?: string | undefined;
 }, {
     search?: string | undefined;
     role?: "admin" | "editor" | "user" | undefined;
-    page?: string | undefined;
     limit?: string | undefined;
+    page?: string | undefined;
 }>;
 //# sourceMappingURL=backoffice.schema.d.ts.map

@@ -44,7 +44,7 @@ export declare const createCaseSchema: z.ZodObject<{
         text: string;
         summary: string;
         bibliography: string;
-        difficulty: "low" | "medium" | "high";
+        difficulty: "high" | "low" | "medium";
         imageUrl?: string | null | undefined;
         orderIndex?: number | undefined;
     }, {
@@ -59,7 +59,7 @@ export declare const createCaseSchema: z.ZodObject<{
         summary: string;
         bibliography: string;
         imageUrl?: string | null | undefined;
-        difficulty?: "low" | "medium" | "high" | undefined;
+        difficulty?: "high" | "low" | "medium" | undefined;
         orderIndex?: number | undefined;
     }>, "many">;
     labResults: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodObject<{
@@ -96,7 +96,7 @@ export declare const createCaseSchema: z.ZodObject<{
         text: string;
         summary: string;
         bibliography: string;
-        difficulty: "low" | "medium" | "high";
+        difficulty: "high" | "low" | "medium";
         imageUrl?: string | null | undefined;
         orderIndex?: number | undefined;
     }[];
@@ -124,7 +124,7 @@ export declare const createCaseSchema: z.ZodObject<{
         summary: string;
         bibliography: string;
         imageUrl?: string | null | undefined;
-        difficulty?: "low" | "medium" | "high" | undefined;
+        difficulty?: "high" | "low" | "medium" | undefined;
         orderIndex?: number | undefined;
     }[];
     status?: "draft" | "published" | "archived" | undefined;
@@ -183,7 +183,7 @@ export declare const updateCaseSchema: z.ZodObject<{
         text: string;
         summary: string;
         bibliography: string;
-        difficulty: "low" | "medium" | "high";
+        difficulty: "high" | "low" | "medium";
         imageUrl?: string | null | undefined;
         orderIndex?: number | undefined;
     }, {
@@ -198,7 +198,7 @@ export declare const updateCaseSchema: z.ZodObject<{
         summary: string;
         bibliography: string;
         imageUrl?: string | null | undefined;
-        difficulty?: "low" | "medium" | "high" | undefined;
+        difficulty?: "high" | "low" | "medium" | undefined;
         orderIndex?: number | undefined;
     }>, "many">>;
     labResults: z.ZodOptional<z.ZodArray<z.ZodObject<{
@@ -236,7 +236,7 @@ export declare const updateCaseSchema: z.ZodObject<{
         text: string;
         summary: string;
         bibliography: string;
-        difficulty: "low" | "medium" | "high";
+        difficulty: "high" | "low" | "medium";
         imageUrl?: string | null | undefined;
         orderIndex?: number | undefined;
     }[] | undefined;
@@ -266,7 +266,7 @@ export declare const updateCaseSchema: z.ZodObject<{
         summary: string;
         bibliography: string;
         imageUrl?: string | null | undefined;
-        difficulty?: "low" | "medium" | "high" | undefined;
+        difficulty?: "high" | "low" | "medium" | undefined;
         orderIndex?: number | undefined;
     }[] | undefined;
     labResults?: {
@@ -286,13 +286,13 @@ export declare const listCasesQuerySchema: z.ZodObject<{
     status?: "draft" | "published" | "archived" | undefined;
     specialty?: string | undefined;
     area?: string | undefined;
-    page?: string | undefined;
     limit?: string | undefined;
+    page?: string | undefined;
 }, {
     status?: "draft" | "published" | "archived" | undefined;
     specialty?: string | undefined;
     area?: string | undefined;
-    page?: string | undefined;
     limit?: string | undefined;
+    page?: string | undefined;
 }>;
 //# sourceMappingURL=case.schema.d.ts.map

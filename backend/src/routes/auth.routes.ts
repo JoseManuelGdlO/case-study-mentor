@@ -1,9 +1,25 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { validateBody } from '../middleware/validate.js';
-import { googleAuthSchema, loginSchema, registerSchema } from '../schemas/auth.schema.js';
+import {
+  forgotPasswordSchema,
+  googleAuthSchema,
+  loginSchema,
+  registerSchema,
+} from '../schemas/auth.schema.js';
 import * as authService from '../services/auth.service.js';
 
 export const authRouter = Router();
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler(_req, res) {
+    res.status(429).json({ error: 'Demasiados intentos de recuperación. Prueba de nuevo más tarde.' });
+  },
+});
 
 /**
  * @openapi
@@ -19,6 +35,20 @@ authRouter.post('/register', validateBody(registerSchema), async (req, res, next
     next(e);
   }
 });
+
+authRouter.post(
+  '/forgot-password',
+  forgotPasswordLimiter,
+  validateBody(forgotPasswordSchema),
+  async (req, res, next) => {
+    try {
+      const result = await authService.requestPasswordReset(req.body.email);
+      res.json(result);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
 
 authRouter.post('/login', validateBody(loginSchema), async (req, res, next) => {
   try {
