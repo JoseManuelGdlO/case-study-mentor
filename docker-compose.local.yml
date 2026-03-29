@@ -1,5 +1,6 @@
 # Sobrescribe el compose principal para publicar puertos en tu máquina (desarrollo local).
 # Uso: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+# Necesitas DATABASE_URL y REDIS_URL en el entorno o en un archivo .env junto al compose (MySQL/Redis externos).
 
 services:
   backend:

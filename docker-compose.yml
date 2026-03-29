@@ -1,51 +1,26 @@
-# Stack: MySQL, Redis, API Node, SPA con nginx.
+# Stack: API Node + SPA (nginx). MySQL y Redis son externos — configúralos con variables de entorno.
 # Easy Panel: sin `ports` en backend/frontend — el panel enruta al puerto interno (backend 3001, frontend 80).
-#           Así se evita el aviso "ports is used… might cause conflicts" y choques entre stacks en el mismo host.
 # Local con puertos en el host: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+#
+# Obligatorio en el entorno (p. ej. Easy Panel):
+#   DATABASE_URL  — MySQL remoto, ej. mysql://user:pass@host:3306/enarm_db
+#   REDIS_URL     — Redis remoto, ej. redis://:pass@host:6379  (el backend usa Redis para refresh tokens y caché)
+#   JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, CORS_ORIGIN, etc.
+#
 # Proxy mismo origen: build del frontend con VITE_API_URL vacío; CORS_ORIGIN = URL pública.
 # Orígenes separados: VITE_API_URL=https://api.tu-dominio.com y CORS_ORIGIN=https://app.tu-dominio.com
-# Cambia JWT_* y MYSQL_* en producción (o usa variables de entorno de EasyPanel).
 
 services:
-  mysql:
-    image: mysql:8.4
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme_root}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-enarm_db}
-      MYSQL_USER: ${MYSQL_USER:-enarm}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-changeme_app}
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 40s
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - redis_data:/data
-
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: mysql://${MYSQL_USER:-enarm}:${MYSQL_PASSWORD:-changeme_app}@mysql:3306/${MYSQL_DATABASE:-enarm_db}
-      REDIS_URL: redis://redis:6379
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace-with-at-least-32-chars-in-production}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-replace-refresh-secret-32-chars-minimum}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-000000000000-placeholder.apps.googleusercontent.com}
@@ -66,6 +41,4 @@ services:
       - backend
 
 volumes:
-  mysql_data:
-  redis_data:
   backend_uploads:
