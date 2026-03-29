@@ -3,7 +3,10 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+/** override: true para que `.env` gane sobre NODE_ENV/SMTP vacíos heredados del shell o Docker. */
+dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
+/** Si el proceso se lanza con cwd distinto, intentar `.env` en cwd (sin pisar claves ya cargadas). */
+dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: false });
 const emptyToUndefined = (v) => (v === '' || v === undefined ? undefined : v);
 const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

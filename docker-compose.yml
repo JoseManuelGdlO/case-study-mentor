@@ -8,6 +8,10 @@
 #   JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, CORS_ORIGIN (coma = varios orígenes), etc.
 #   Pagos (opcionales): FRONTEND_URL, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
 #   PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_WEBHOOK_ID
+#   Correo / recuperar contraseña (opcionales pero necesarios para olvidé contraseña en prod):
+#   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_SECURE (true con puerto 465)
+#   Compose sustituye ${SMTP_*} desde el .env en ESTA carpeta (raíz del repo), no desde backend/.env.
+#   Copia las SMTP al .env raíz, o exporta las variables, o defínelas en el panel (Easy Panel, etc.).
 #
 # Proxy mismo origen: build del frontend con VITE_API_URL vacío; CORS_ORIGIN = URL pública.
 # Orígenes separados: VITE_API_URL=https://api.tu-dominio.com y CORS_ORIGIN=https://app.tu-dominio.com
@@ -34,6 +38,12 @@ services:
       PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
       PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-}
       PAYPAL_WEBHOOK_ID: ${PAYPAL_WEBHOOK_ID:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
     volumes:
       - backend_uploads:/app/uploads
 

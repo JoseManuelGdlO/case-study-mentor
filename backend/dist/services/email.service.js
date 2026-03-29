@@ -1,20 +1,50 @@
 import nodemailer from 'nodemailer';
 import { env, getFrontendBaseUrl } from '../config/env.js';
+/** Usa process.env tras dotenv: evita desajustes si env se evaluó antes de cargar SMTP. */
 export function isSmtpConfigured() {
-    return !!(env.SMTP_HOST && env.SMTP_FROM);
+    const host = (process.env.SMTP_HOST ?? env.SMTP_HOST ?? '').trim();
+    const fromAddr = (process.env.SMTP_FROM ?? env.SMTP_FROM ?? '').trim();
+    return host.length > 0 && fromAddr.length > 0;
+}
+function smtpHost() {
+    return (process.env.SMTP_HOST ?? env.SMTP_HOST ?? '').trim();
+}
+function smtpFrom() {
+    return (process.env.SMTP_FROM ?? env.SMTP_FROM ?? '').trim();
+}
+function smtpPort() {
+    const raw = process.env.SMTP_PORT ?? env.SMTP_PORT;
+    if (raw === undefined || raw === '')
+        return 587;
+    const n = typeof raw === 'number' ? raw : Number.parseInt(String(raw), 10);
+    return Number.isFinite(n) && n > 0 ? n : 587;
+}
+function smtpSecure(port) {
+    const raw = process.env.SMTP_SECURE ?? env.SMTP_SECURE;
+    if (raw === true || raw === 'true' || raw === '1')
+        return true;
+    if (raw === false || raw === 'false' || raw === '0')
+        return false;
+    return port === 465;
+}
+function smtpAuth() {
+    const user = (process.env.SMTP_USER ?? env.SMTP_USER ?? '').trim();
+    const pass = process.env.SMTP_PASS ?? env.SMTP_PASS ?? '';
+    if (user && pass)
+        return { user, pass };
+    return undefined;
 }
 function createTransporter() {
     if (!isSmtpConfigured())
         return null;
-    const port = env.SMTP_PORT ?? 587;
-    const secure = env.SMTP_SECURE ?? port === 465;
+    const host = smtpHost();
+    const port = smtpPort();
+    const secure = smtpSecure(port);
     return nodemailer.createTransport({
-        host: env.SMTP_HOST,
+        host,
         port,
         secure,
-        auth: env.SMTP_USER && env.SMTP_PASS
-            ? { user: env.SMTP_USER, pass: env.SMTP_PASS }
-            : undefined,
+        auth: smtpAuth(),
     });
 }
 function profileUrl() {
@@ -60,7 +90,7 @@ export async function sendTemporaryPasswordEmail(to, plainPassword) {
     const transporter = createTransporter();
     if (transporter) {
         await transporter.sendMail({
-            from: env.SMTP_FROM,
+            from: smtpFrom(),
             to,
             subject,
             text,
@@ -101,7 +131,7 @@ export async function sendGoogleAccountNoticeEmail(to) {
     const transporter = createTransporter();
     if (transporter) {
         await transporter.sendMail({
-            from: env.SMTP_FROM,
+            from: smtpFrom(),
             to,
             subject,
             text,
