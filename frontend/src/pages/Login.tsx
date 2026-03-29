@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -233,6 +233,16 @@ const Login = () => {
                 >
                   {isRegister ? 'Inicia sesión' : 'Regístrate gratis'}
                 </button>
+              </p>
+
+              <p className="text-center text-xs text-muted-foreground mt-4">
+                <Link to="/terminos" className="underline underline-offset-2 hover:text-primary">
+                  Términos y condiciones
+                </Link>
+                <span className="mx-2">·</span>
+                <Link to="/privacidad" className="underline underline-offset-2 hover:text-primary">
+                  Política de privacidad
+                </Link>
               </p>
 
               <div className="mt-4 pt-4 border-t border-border">

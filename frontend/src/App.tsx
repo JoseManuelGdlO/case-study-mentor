@@ -30,6 +30,8 @@ import ExamDatesManagement from "./pages/backoffice/ExamDatesManagement";
 import BulkUploadCases from "./pages/backoffice/BulkUploadCases";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +46,8 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/terminos" element={<TermsOfService />} />
+              <Route path="/privacidad" element={<PrivacyPolicy />} />
               <Route
                 path="/onboarding"
                 element={
