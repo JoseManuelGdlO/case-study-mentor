@@ -1,4 +1,7 @@
-# Stack local / EasyPanel (Compose): MySQL, Redis, API Node, SPA con nginx.
+# Stack: MySQL, Redis, API Node, SPA con nginx.
+# Easy Panel: sin `ports` en backend/frontend — el panel enruta al puerto interno (backend 3001, frontend 80).
+#           Así se evita el aviso "ports is used… might cause conflicts" y choques entre stacks en el mismo host.
+# Local con puertos en el host: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
 # Proxy mismo origen: build del frontend con VITE_API_URL vacío; CORS_ORIGIN = URL pública.
 # Orígenes separados: VITE_API_URL=https://api.tu-dominio.com y CORS_ORIGIN=https://app.tu-dominio.com
 # Cambia JWT_* y MYSQL_* en producción (o usa variables de entorno de EasyPanel).
@@ -50,8 +53,6 @@ services:
       UPLOAD_DIR: uploads
     volumes:
       - backend_uploads:/app/uploads
-    ports:
-      - "${BACKEND_PORT:-3001}:3001"
 
   frontend:
     build:
@@ -63,8 +64,6 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-    ports:
-      - "${FRONTEND_PORT:-8080}:80"
 
 volumes:
   mysql_data:
