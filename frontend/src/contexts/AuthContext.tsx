@@ -91,10 +91,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         body: JSON.stringify({ idToken }),
       });
-      await refreshUser();
+      // Usar el usuario de la respuesta de auth: si /api/profile falla (p. ej. cookies cross-origin
+      // con SameSite=Lax), refreshUser pondría user=null y ProtectedRoute te devuelve al login.
+      setUser(json.data.user);
+      const res = await apiFetch('/api/profile');
+      if (res.ok) {
+        const profile = (await res.json()) as { data: AuthUser };
+        setUser(profile.data);
+      }
       return { isNewUser: json.data.isNewUser };
     },
-    [refreshUser]
+    []
   );
 
   return (
