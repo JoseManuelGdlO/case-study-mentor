@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { mockCases, categories } from '@/data/mockData';
-import { Plus, Search, Eye, Pencil, Trash2, Filter } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, Filter, Upload } from 'lucide-react';
 
 const CaseList = () => {
   const navigate = useNavigate();
@@ -36,9 +36,14 @@ const CaseList = () => {
           <h1 className="text-3xl font-bold text-foreground">Casos Clínicos</h1>
           <p className="text-muted-foreground">Gestiona los casos clínicos de la plataforma</p>
         </div>
-        <Button className="gradient-primary border-0 font-semibold gap-2" onClick={() => navigate('/backoffice/cases/new')}>
-          <Plus className="w-4 h-4" /> Nuevo Caso
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => navigate('/backoffice/cases/bulk-upload')}>
+            <Upload className="w-4 h-4" /> Carga Masiva
+          </Button>
+          <Button className="gradient-primary border-0 font-semibold gap-2" onClick={() => navigate('/backoffice/cases/new')}>
+            <Plus className="w-4 h-4" /> Nuevo Caso
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
