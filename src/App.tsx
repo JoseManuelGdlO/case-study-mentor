@@ -25,6 +25,7 @@ import SpecialtyManagement from "./pages/backoffice/SpecialtyManagement";
 import SystemStats from "./pages/backoffice/SystemStats";
 import PhrasesManagement from "./pages/backoffice/PhrasesManagement";
 import ExamDatesManagement from "./pages/backoffice/ExamDatesManagement";
+import BulkUploadCases from "./pages/backoffice/BulkUploadCases";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
@@ -62,6 +63,7 @@ const App = () => (
             <Route index element={<BackofficeDashboard />} />
             <Route path="cases" element={<CaseList />} />
             <Route path="cases/new" element={<CaseEditor />} />
+            <Route path="cases/bulk-upload" element={<BulkUploadCases />} />
             <Route path="cases/:caseId" element={<CaseEditor />} />
             <Route path="specialties" element={<SpecialtyManagement />} />
             <Route path="users" element={<UserManagement />} />
