@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { PaymentProvider, PaymentStatus, } from '@prisma/client';
 import { prisma } from '../config/database.js';
-import { env, getFrontendBaseUrl } from '../config/env.js';
+import { env, requirePublicFrontendBaseUrlForPayments } from '../config/env.js';
 import { isPaidTier, TIER_CHECKOUT } from '../config/plans.js';
 function serviceError(message, status) {
     const e = new Error(message);
@@ -140,7 +140,7 @@ export async function applyCompletedPayment(input) {
 export async function createStripeCheckoutSession(userId, tier) {
     const stripe = getStripe();
     const cfg = TIER_CHECKOUT[tier];
-    const base = getFrontendBaseUrl();
+    const base = requirePublicFrontendBaseUrlForPayments();
     const session = await stripe.checkout.sessions.create({
         mode: 'payment',
         payment_method_types: ['card'],
@@ -202,7 +202,7 @@ export async function processStripeWebhook(rawBody, signature) {
 }
 export async function createPayPalOrder(userId, tier) {
     const cfg = TIER_CHECKOUT[tier];
-    const base = getFrontendBaseUrl();
+    const base = requirePublicFrontendBaseUrlForPayments();
     const customId = `${userId}:${tier}`;
     const res = await paypalFetch('/v2/checkout/orders', {
         method: 'POST',

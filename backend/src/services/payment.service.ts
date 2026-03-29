@@ -6,7 +6,7 @@ import {
   type SubscriptionTier,
 } from '@prisma/client';
 import { prisma } from '../config/database.js';
-import { env, getFrontendBaseUrl } from '../config/env.js';
+import { env, requirePublicFrontendBaseUrlForPayments } from '../config/env.js';
 import { isPaidTier, TIER_CHECKOUT, type PaidTier } from '../config/plans.js';
 
 function serviceError(message: string, status: number): Error & { status: number } {
@@ -163,7 +163,7 @@ export async function applyCompletedPayment(input: {
 export async function createStripeCheckoutSession(userId: string, tier: PaidTier): Promise<{ url: string }> {
   const stripe = getStripe();
   const cfg = TIER_CHECKOUT[tier];
-  const base = getFrontendBaseUrl();
+  const base = requirePublicFrontendBaseUrlForPayments();
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
@@ -229,7 +229,7 @@ export async function processStripeWebhook(rawBody: Buffer, signature: string | 
 
 export async function createPayPalOrder(userId: string, tier: PaidTier): Promise<{ approvalUrl: string }> {
   const cfg = TIER_CHECKOUT[tier];
-  const base = getFrontendBaseUrl();
+  const base = requirePublicFrontendBaseUrlForPayments();
   const customId = `${userId}:${tier}`;
 
   const res = await paypalFetch('/v2/checkout/orders', {

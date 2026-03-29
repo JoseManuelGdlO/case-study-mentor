@@ -93,7 +93,16 @@ export declare const env: {
     SMTP_FROM?: string | undefined;
     SMTP_SECURE?: boolean | undefined;
 };
-/** Base URL del frontend para redirects de checkout (sin barra final). */
+/**
+ * URL pública del frontend (sin barra final): enlaces en correos, redirects de pago, etc.
+ * - Si existe FRONTEND_URL, se usa siempre.
+ * - Si no, entre varios orígenes en CORS_ORIGIN (separados por coma) se prefiere el primero
+ *   que no sea localhost, para que Stripe/PayPal no redirijan al dev local en producción.
+ */
 export declare function getFrontendBaseUrl(): string;
+/**
+ * Stripe/PayPal: en producción no permitir redirects solo a localhost (config típica rota).
+ */
+export declare function requirePublicFrontendBaseUrlForPayments(): string;
 export {};
 //# sourceMappingURL=env.d.ts.map

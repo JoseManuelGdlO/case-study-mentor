@@ -43,14 +43,47 @@ function loadEnv() {
     return parsed.data;
 }
 export const env = loadEnv();
-/** Base URL del frontend para redirects de checkout (sin barra final). */
+function isLocalOrLoopbackOrigin(origin) {
+    try {
+        const u = new URL(origin);
+        return u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '[::1]';
+    }
+    catch {
+        return false;
+    }
+}
+/**
+ * URL pública del frontend (sin barra final): enlaces en correos, redirects de pago, etc.
+ * - Si existe FRONTEND_URL, se usa siempre.
+ * - Si no, entre varios orígenes en CORS_ORIGIN (separados por coma) se prefiere el primero
+ *   que no sea localhost, para que Stripe/PayPal no redirijan al dev local en producción.
+ */
 export function getFrontendBaseUrl() {
     const explicit = env.FRONTEND_URL?.replace(/\/$/, '');
     if (explicit)
         return explicit;
-    const first = env.CORS_ORIGIN.split(',')[0]?.trim().replace(/\/$/, '');
+    const origins = env.CORS_ORIGIN.split(',')
+        .map((o) => o.trim().replace(/\/$/, ''))
+        .filter(Boolean);
+    const publicOrigin = origins.find((o) => !isLocalOrLoopbackOrigin(o));
+    if (publicOrigin)
+        return publicOrigin;
+    const first = origins[0];
     if (first)
         return first;
     throw new Error('FRONTEND_URL o CORS_ORIGIN debe definir el origen del frontend');
+}
+/**
+ * Stripe/PayPal: en producción no permitir redirects solo a localhost (config típica rota).
+ */
+export function requirePublicFrontendBaseUrlForPayments() {
+    const base = getFrontendBaseUrl();
+    if (env.NODE_ENV === 'production' && isLocalOrLoopbackOrigin(base)) {
+        const err = new Error('Define FRONTEND_URL=https://enarm.com.mx (tu dominio público) en el servidor del API. ' +
+            'Si CORS_ORIGIN solo incluye localhost, los pagos redirigen mal tras Stripe.');
+        err.status = 503;
+        throw err;
+    }
+    return base;
 }
 //# sourceMappingURL=env.js.map
