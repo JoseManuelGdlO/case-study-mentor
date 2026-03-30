@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'crypto';
 import bcrypt from 'bcrypt';
 import { OAuth2Client } from 'google-auth-library';
+import type { AuthProvider, SubscriptionTier } from '@prisma/client';
 import type { Response } from 'express';
 import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
@@ -67,6 +68,27 @@ async function publicUser(userId: string) {
     },
   });
   if (!profile) return null;
+  return buildPublicUser(profile);
+}
+
+function buildPublicUser(profile: {
+  id: string;
+  email: string;
+  authProvider: AuthProvider;
+  firstName: string;
+  lastName: string;
+  university: string | null;
+  graduationYear: number | null;
+  examDate: Date | null;
+  avatarUrl: string | null;
+  onboardingDone: boolean;
+  subscriptionTier: SubscriptionTier;
+  subscriptionExpiresAt: Date | null;
+  stripeSubscriptionId: string | null;
+  paypalSubscriptionId: string | null;
+  subscriptionCancelAtPeriodEnd: boolean;
+  roles: { role: string }[];
+}) {
   const { plan, subscriptionExpiresAt } = effectivePlanFromProfile(profile);
   return {
     id: profile.id,
@@ -112,6 +134,44 @@ export async function register(
   await setAuthCookies(res, user.id, user.email);
   const u = await publicUser(user.id);
   return { data: { user: u, isNewUser: true } };
+}
+
+/** Crea cuenta con email/contraseña y roles arbitrarios (solo invocado desde backoffice admin). */
+export async function createUserByAdmin(data: {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  roles: ('admin' | 'editor' | 'user')[];
+}) {
+  const email = data.email.trim();
+  const existing = await prisma.profile.findUnique({ where: { email } });
+  if (existing) {
+    const err = new Error('El correo ya está registrado') as Error & { status: number };
+    err.status = 409;
+    throw err;
+  }
+  const hash = await bcrypt.hash(data.password, BCRYPT_ROUNDS);
+  const roleSet = [...new Set(data.roles)];
+  const onboardingDone = roleSet.some((r) => r === 'admin' || r === 'editor');
+  const user = await prisma.profile.create({
+    data: {
+      email,
+      password: hash,
+      authProvider: 'email',
+      firstName: data.firstName.trim(),
+      lastName: data.lastName.trim(),
+      onboardingDone,
+      roles: { createMany: { data: roleSet.map((role) => ({ role })) } },
+    },
+  });
+  const u = await publicUser(user.id);
+  if (!u) {
+    const err = new Error('No se pudo crear el usuario') as Error & { status: number };
+    err.status = 500;
+    throw err;
+  }
+  return { data: { user: u } };
 }
 
 export async function login(data: { email: string; password: string }, res: Response) {

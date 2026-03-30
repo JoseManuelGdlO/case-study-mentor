@@ -4,6 +4,7 @@ import { requireAdmin, requireCaseEditor } from '../middleware/roles.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import {
   areaCreateSchema,
+  backofficeUserCreateSchema,
   backofficeUsersQuerySchema,
   examDateCreateSchema,
   examDateUpdateSchema,
@@ -16,6 +17,7 @@ import {
   userRoleUpdateSchema,
 } from '../schemas/backoffice.schema.js';
 import { prisma } from '../config/database.js';
+import { createUserByAdmin } from '../services/auth.service.js';
 import { effectivePlanFromProfile } from '../services/profile.service.js';
 import { paginationParams, totalPages } from '../utils/helpers.js';
 import { cacheService } from '../services/cache.service.js';
@@ -335,6 +337,20 @@ backofficeRouter.delete('/pricing/:id', requireAdmin(), async (req, res, next) =
 });
 
 /* --- Users --- */
+backofficeRouter.post(
+  '/users',
+  requireAdmin(),
+  validateBody(backofficeUserCreateSchema),
+  async (req, res, next) => {
+    try {
+      const result = await createUserByAdmin(req.body);
+      res.status(201).json(result);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
 backofficeRouter.get(
   '/users',
   requireAdmin(),

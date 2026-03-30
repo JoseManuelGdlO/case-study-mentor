@@ -47,6 +47,14 @@ export const userRoleUpdateSchema = z.object({
   roles: z.array(z.enum(['admin', 'editor', 'user'])).min(1),
 });
 
+export const backofficeUserCreateSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  roles: z.array(z.enum(['admin', 'editor', 'user'])).min(1),
+});
+
 export const backofficeUsersQuerySchema = z.object({
   search: z.string().optional(),
   role: z.enum(['admin', 'editor', 'user']).optional(),

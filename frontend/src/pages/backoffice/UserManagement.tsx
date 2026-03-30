@@ -1,21 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
+import { toast } from 'sonner';
+import { apiJson } from '@/lib/api';
+
+type AppRole = 'admin' | 'editor' | 'user';
 
 function primaryRole(roles: AppRole[]): AppRole {
   if (roles.includes('admin')) return 'admin';
   if (roles.includes('editor')) return 'editor';
   return 'user';
 }
-import { toast } from 'sonner';
-import { apiJson } from '@/lib/api';
-
-type AppRole = 'admin' | 'editor' | 'user';
 
 type BackofficeUserRow = {
   id: string;
@@ -40,6 +41,12 @@ const UserManagement = () => {
   const [searchDebounced, setSearchDebounced] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | AppRole>('all');
   const [loading, setLoading] = useState(true);
+  const [createEmail, setCreateEmail] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createFirstName, setCreateFirstName] = useState('');
+  const [createLastName, setCreateLastName] = useState('');
+  const [createRole, setCreateRole] = useState<AppRole>('user');
+  const [creating, setCreating] = useState(false);
   const limit = 20;
 
   useEffect(() => {
@@ -95,12 +102,119 @@ const UserManagement = () => {
     }
   };
 
+  const createUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createEmail.trim() || !createPassword || !createFirstName.trim() || !createLastName.trim()) {
+      toast.error('Completa todos los campos');
+      return;
+    }
+    if (createPassword.length < 8) {
+      toast.error('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    setCreating(true);
+    try {
+      await apiJson('/api/backoffice/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: createEmail.trim(),
+          password: createPassword,
+          firstName: createFirstName.trim(),
+          lastName: createLastName.trim(),
+          roles: [createRole],
+        }),
+      });
+      toast.success('Usuario creado');
+      setCreateEmail('');
+      setCreatePassword('');
+      setCreateFirstName('');
+      setCreateLastName('');
+      setCreateRole('user');
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al crear usuario');
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Gestión de Usuarios</h1>
         <p className="text-muted-foreground">Lista de perfiles y asignación de roles (admin / editor / estudiante)</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <UserPlus className="w-5 h-5" />
+            Crear usuario
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={createUser} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="cu-email">Correo</Label>
+              <Input
+                id="cu-email"
+                type="email"
+                autoComplete="email"
+                value={createEmail}
+                onChange={(e) => setCreateEmail(e.target.value)}
+                placeholder="correo@ejemplo.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cu-password">Contraseña inicial</Label>
+              <Input
+                id="cu-password"
+                type="password"
+                autoComplete="new-password"
+                value={createPassword}
+                onChange={(e) => setCreatePassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cu-role">Rol</Label>
+              <Select value={createRole} onValueChange={(v) => setCreateRole(v as AppRole)}>
+                <SelectTrigger id="cu-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Estudiante</SelectItem>
+                  <SelectItem value="editor">Editor</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cu-fn">Nombre</Label>
+              <Input
+                id="cu-fn"
+                value={createFirstName}
+                onChange={(e) => setCreateFirstName(e.target.value)}
+                placeholder="Nombre"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cu-ln">Apellido</Label>
+              <Input
+                id="cu-ln"
+                value={createLastName}
+                onChange={(e) => setCreateLastName(e.target.value)}
+                placeholder="Apellido"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button type="submit" className="w-full gradient-primary border-0" disabled={creating}>
+                {creating ? 'Creando…' : 'Crear usuario'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
