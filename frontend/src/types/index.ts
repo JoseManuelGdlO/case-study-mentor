@@ -84,7 +84,12 @@ export interface UserAnswer {
 export interface ExamFlatQuestion extends Question {
   caseText: string;
   caseImageUrl?: string | null;
+  /** Especialidad del caso */
   specialty: string;
+  /** Subespecialidad / área */
+  area: string;
+  /** Tema del caso clínico */
+  topic: string;
   caseId: string;
   caseQuestionIndex?: number;
   caseQuestionTotal?: number;

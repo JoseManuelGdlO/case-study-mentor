@@ -10,6 +10,7 @@ import { getUploadUrl } from '@/lib/api';
 import { Clock, ChevronLeft, ChevronRight, Flag, AlertTriangle, Lightbulb, ChevronDown } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import LabResultsAccordion from '@/components/LabResultsAccordion';
+import { CaseClinicalMetadata } from '@/components/CaseClinicalMetadata';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -168,7 +169,11 @@ const ExamSimulation = () => {
         <div className="space-y-4">
           <Card className="border-0 shadow-md h-fit">
             <CardContent className="p-6">
-              <Badge className="gradient-primary text-primary-foreground border-0 mb-3">{question.specialty}</Badge>
+              <CaseClinicalMetadata
+                specialty={question.specialty}
+                area={question.area}
+                topic={question.topic}
+              />
               <div className="prose prose-sm max-w-none text-foreground">
                 <p className="leading-relaxed">{question.caseText}</p>
               </div>

@@ -59,6 +59,8 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
             caseText: string;
             caseImageUrl: string | null;
             specialty: string;
+            area: string;
+            topic: string;
             caseId: string;
             labResults: {
                 id: string;
@@ -151,6 +153,8 @@ export declare function getExamById(userId: string, examId: string): Promise<{
             caseText: string;
             caseImageUrl: string | null;
             specialty: string;
+            area: string;
+            topic: string;
             caseId: string;
             labResults: {
                 id: string;
@@ -236,6 +240,8 @@ export declare function completeExam(userId: string, examId: string, timeSpentSe
             caseText: string;
             caseImageUrl: string | null;
             specialty: string;
+            area: string;
+            topic: string;
             caseId: string;
             labResults: {
                 id: string;
@@ -305,6 +311,8 @@ export declare function getExamResults(userId: string, examId: string): Promise<
             caseText: string;
             caseImageUrl: string | null;
             specialty: string;
+            area: string;
+            topic: string;
             caseId: string;
             labResults: {
                 id: string;

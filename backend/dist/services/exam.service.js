@@ -238,6 +238,8 @@ export async function getExamById(userId, examId) {
             caseText: cc.text,
             caseImageUrl: cc.imageUrl,
             specialty: cc.specialty.name,
+            area: cc.area.name,
+            topic: cc.topic,
             caseId: cc.id,
             labResults: cc.labResults.map((l) => ({
                 id: l.id,

@@ -147,6 +147,13 @@ const Results = () => {
                       {answered ? isCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" /> : '?'}
                     </div>
                     <div>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        <span className="font-medium text-foreground/80">Especialidad:</span> {q.specialty}
+                        {' · '}
+                        <span className="font-medium text-foreground/80">Subespecialidad:</span> {q.area}
+                        {' · '}
+                        <span className="font-medium text-foreground/80">Tema:</span> {q.topic}
+                      </p>
                       <p className="font-medium text-foreground text-sm">{q.text}</p>
                       {answered && (
                         <p className="text-xs text-muted-foreground mt-1">
