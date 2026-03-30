@@ -100,6 +100,65 @@ async function main() {
     });
     console.log('Seeded subscription_plans (precios backoffice)');
   }
+
+  const phraseCount = await prisma.motivationalPhrase.count();
+  if (phraseCount === 0) {
+    await prisma.motivationalPhrase.createMany({
+      data: [
+        {
+          text: 'El éxito es la suma de pequeños esfuerzos repetidos día tras día.',
+          author: 'Robert Collier',
+          isActive: true,
+        },
+        {
+          text: 'Cree que puedes y ya estás a medio camino.',
+          author: 'Theodore Roosevelt',
+          isActive: true,
+        },
+        {
+          text: 'La disciplina es el puente entre metas y logros.',
+          author: 'Jim Rohn',
+          isActive: true,
+        },
+        {
+          text: 'No hay atajos para ningún lugar al que merezca la pena ir.',
+          author: 'Beverly Sills',
+          isActive: true,
+        },
+        {
+          text: 'La constancia vence lo que la dicha no alcanza.',
+          author: 'Proverbio',
+          isActive: true,
+        },
+        {
+          text: 'Cada caso que resuelves fortalece tu criterio clínico para el ENARM.',
+          author: 'ENARM Mentor',
+          isActive: true,
+        },
+        {
+          text: 'Estudiar medicina es un maratón: ritmo sostenido vence al sprint del último día.',
+          author: 'ENARM Mentor',
+          isActive: true,
+        },
+        {
+          text: 'El conocimiento se construye con repaso activo, no solo con lectura pasiva.',
+          author: 'ENARM Mentor',
+          isActive: true,
+        },
+        {
+          text: 'Lo que no se revisa se olvida; lo que se aplica, se queda.',
+          author: 'ENARM Mentor',
+          isActive: true,
+        },
+        {
+          text: 'Tu futuro paciente confía en que hoy eliges prepararte con seriedad.',
+          author: 'ENARM Mentor',
+          isActive: true,
+        },
+      ],
+    });
+    console.log('Seeded motivational_phrases (banner)');
+  }
 }
 
 main()

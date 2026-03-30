@@ -132,14 +132,7 @@ const App = () => (
                   }
                 />
                 <Route path="cases/:caseId" element={<CaseEditor />} />
-                <Route
-                  path="specialties"
-                  element={
-                    <AdminRoute>
-                      <SpecialtyManagement />
-                    </AdminRoute>
-                  }
-                />
+                <Route path="specialties" element={<SpecialtyManagement />} />
                 <Route
                   path="users"
                   element={

@@ -26,7 +26,7 @@ const navItems: {
 }[] = [
   { title: 'Dashboard', url: '/backoffice', icon: LayoutDashboard, adminOnly: true },
   { title: 'Casos Clínicos', url: '/backoffice/cases', icon: FileText },
-  { title: 'Especialidades', url: '/backoffice/specialties', icon: FolderTree, adminOnly: true },
+  { title: 'Especialidades', url: '/backoffice/specialties', icon: FolderTree },
   { title: 'Usuarios', url: '/backoffice/users', icon: Users, adminOnly: true },
   { title: 'Cancelaciones', url: '/backoffice/subscription-cancellation-feedback', icon: MessageSquareText, adminOnly: true },
   { title: 'Precios', url: '/backoffice/pricing', icon: CreditCard, adminOnly: true },

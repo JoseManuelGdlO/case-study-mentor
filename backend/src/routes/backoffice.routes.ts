@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
-import { requireAdmin } from '../middleware/roles.js';
+import { requireAdmin, requireCaseEditor } from '../middleware/roles.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import {
   areaCreateSchema,
@@ -24,10 +24,10 @@ import { paramString } from '../utils/params.js';
 
 export const backofficeRouter = Router();
 
-backofficeRouter.use(authenticate, requireAdmin());
+backofficeRouter.use(authenticate);
 
-/* --- Specialties --- */
-backofficeRouter.get('/specialties', async (_req, res, next) => {
+/* --- Specialties (editores: listar y crear especialidades/áreas; solo admin: editar/eliminar) --- */
+backofficeRouter.get('/specialties', requireCaseEditor(), async (_req, res, next) => {
   try {
     const rows = await prisma.specialty.findMany({
       orderBy: { name: 'asc' },
@@ -39,18 +39,24 @@ backofficeRouter.get('/specialties', async (_req, res, next) => {
   }
 });
 
-backofficeRouter.post('/specialties', validateBody(specialtyCreateSchema), async (req, res, next) => {
-  try {
-    const s = await prisma.specialty.create({ data: { name: req.body.name } });
-    await invalidateSpecialtyCache();
-    res.status(201).json({ data: s });
-  } catch (e) {
-    next(e);
+backofficeRouter.post(
+  '/specialties',
+  requireCaseEditor(),
+  validateBody(specialtyCreateSchema),
+  async (req, res, next) => {
+    try {
+      const s = await prisma.specialty.create({ data: { name: req.body.name } });
+      await invalidateSpecialtyCache();
+      res.status(201).json({ data: s });
+    } catch (e) {
+      next(e);
+    }
   }
-});
+);
 
 backofficeRouter.put(
   '/specialties/:id',
+  requireAdmin(),
   validateBody(specialtyUpdateSchema),
   async (req, res, next) => {
     try {
@@ -66,7 +72,7 @@ backofficeRouter.put(
   }
 );
 
-backofficeRouter.delete('/specialties/:id', async (req, res, next) => {
+backofficeRouter.delete('/specialties/:id', requireAdmin(), async (req, res, next) => {
   try {
     await prisma.specialty.delete({ where: { id: paramString(req.params.id) } });
     await invalidateSpecialtyCache();
@@ -78,6 +84,7 @@ backofficeRouter.delete('/specialties/:id', async (req, res, next) => {
 
 backofficeRouter.post(
   '/specialties/:specialtyId/areas',
+  requireCaseEditor(),
   validateBody(areaCreateSchema),
   async (req, res, next) => {
     try {
@@ -94,6 +101,7 @@ backofficeRouter.post(
 
 backofficeRouter.put(
   '/areas/:areaId',
+  requireAdmin(),
   validateBody(areaCreateSchema),
   async (req, res, next) => {
     try {
@@ -109,7 +117,7 @@ backofficeRouter.put(
   }
 );
 
-backofficeRouter.delete('/areas/:areaId', async (req, res, next) => {
+backofficeRouter.delete('/areas/:areaId', requireAdmin(), async (req, res, next) => {
   try {
     await prisma.area.delete({ where: { id: paramString(req.params.areaId) } });
     await invalidateSpecialtyCache();
@@ -120,7 +128,7 @@ backofficeRouter.delete('/areas/:areaId', async (req, res, next) => {
 });
 
 /* --- Phrases --- */
-backofficeRouter.get('/phrases', async (req, res, next) => {
+backofficeRouter.get('/phrases', requireAdmin(), async (req, res, next) => {
   try {
     const { skip, take, page, limit } = paginationParams(
       req.query.page as string,
@@ -140,7 +148,11 @@ backofficeRouter.get('/phrases', async (req, res, next) => {
   }
 });
 
-backofficeRouter.post('/phrases', validateBody(phraseCreateSchema), async (req, res, next) => {
+backofficeRouter.post(
+  '/phrases',
+  requireAdmin(),
+  validateBody(phraseCreateSchema),
+  async (req, res, next) => {
   try {
     const row = await prisma.motivationalPhrase.create({ data: req.body });
     await cacheService.invalidate('cache:phrases*');
@@ -152,6 +164,7 @@ backofficeRouter.post('/phrases', validateBody(phraseCreateSchema), async (req, 
 
 backofficeRouter.put(
   '/phrases/:id',
+  requireAdmin(),
   validateBody(phraseUpdateSchema),
   async (req, res, next) => {
     try {
@@ -167,7 +180,7 @@ backofficeRouter.put(
   }
 );
 
-backofficeRouter.delete('/phrases/:id', async (req, res, next) => {
+backofficeRouter.delete('/phrases/:id', requireAdmin(), async (req, res, next) => {
   try {
     await prisma.motivationalPhrase.delete({ where: { id: paramString(req.params.id) } });
     await cacheService.invalidate('cache:phrases*');
@@ -178,7 +191,7 @@ backofficeRouter.delete('/phrases/:id', async (req, res, next) => {
 });
 
 /* --- Exam dates --- */
-backofficeRouter.get('/exam-dates', async (req, res, next) => {
+backofficeRouter.get('/exam-dates', requireAdmin(), async (req, res, next) => {
   try {
     const { skip, take, page, limit } = paginationParams(
       req.query.page as string,
@@ -206,24 +219,30 @@ backofficeRouter.get('/exam-dates', async (req, res, next) => {
   }
 });
 
-backofficeRouter.post('/exam-dates', validateBody(examDateCreateSchema), async (req, res, next) => {
-  try {
-    const row = await prisma.examDate.create({
-      data: {
-        name: req.body.name,
-        date: new Date(req.body.date),
-        isActive: req.body.isActive ?? true,
-      },
-    });
-    await cacheService.invalidate('cache:exam-dates*');
-    res.status(201).json({ data: { ...row, date: row.date.toISOString() } });
-  } catch (e) {
-    next(e);
+backofficeRouter.post(
+  '/exam-dates',
+  requireAdmin(),
+  validateBody(examDateCreateSchema),
+  async (req, res, next) => {
+    try {
+      const row = await prisma.examDate.create({
+        data: {
+          name: req.body.name,
+          date: new Date(req.body.date),
+          isActive: req.body.isActive ?? true,
+        },
+      });
+      await cacheService.invalidate('cache:exam-dates*');
+      res.status(201).json({ data: { ...row, date: row.date.toISOString() } });
+    } catch (e) {
+      next(e);
+    }
   }
-});
+);
 
 backofficeRouter.put(
   '/exam-dates/:id',
+  requireAdmin(),
   validateBody(examDateUpdateSchema),
   async (req, res, next) => {
     try {
@@ -248,7 +267,7 @@ backofficeRouter.put(
   }
 );
 
-backofficeRouter.delete('/exam-dates/:id', async (req, res, next) => {
+backofficeRouter.delete('/exam-dates/:id', requireAdmin(), async (req, res, next) => {
   try {
     await prisma.examDate.delete({ where: { id: paramString(req.params.id) } });
     await cacheService.invalidate('cache:exam-dates*');
@@ -259,7 +278,7 @@ backofficeRouter.delete('/exam-dates/:id', async (req, res, next) => {
 });
 
 /* --- Pricing --- */
-backofficeRouter.get('/pricing', async (req, res, next) => {
+backofficeRouter.get('/pricing', requireAdmin(), async (req, res, next) => {
   try {
     const { skip, take, page, limit } = paginationParams(
       req.query.page as string,
@@ -275,17 +294,23 @@ backofficeRouter.get('/pricing', async (req, res, next) => {
   }
 });
 
-backofficeRouter.post('/pricing', validateBody(planCreateSchema), async (req, res, next) => {
-  try {
-    const row = await prisma.subscriptionPlan.create({ data: req.body });
-    res.status(201).json({ data: row });
-  } catch (e) {
-    next(e);
+backofficeRouter.post(
+  '/pricing',
+  requireAdmin(),
+  validateBody(planCreateSchema),
+  async (req, res, next) => {
+    try {
+      const row = await prisma.subscriptionPlan.create({ data: req.body });
+      res.status(201).json({ data: row });
+    } catch (e) {
+      next(e);
+    }
   }
-});
+);
 
 backofficeRouter.put(
   '/pricing/:id',
+  requireAdmin(),
   validateBody(planUpdateSchema),
   async (req, res, next) => {
     try {
@@ -300,7 +325,7 @@ backofficeRouter.put(
   }
 );
 
-backofficeRouter.delete('/pricing/:id', async (req, res, next) => {
+backofficeRouter.delete('/pricing/:id', requireAdmin(), async (req, res, next) => {
   try {
     await prisma.subscriptionPlan.delete({ where: { id: paramString(req.params.id) } });
     res.json({ data: { ok: true } });
@@ -312,6 +337,7 @@ backofficeRouter.delete('/pricing/:id', async (req, res, next) => {
 /* --- Users --- */
 backofficeRouter.get(
   '/users',
+  requireAdmin(),
   validateQuery(backofficeUsersQuerySchema),
   async (req, res, next) => {
     try {
@@ -378,6 +404,7 @@ backofficeRouter.get(
 
 backofficeRouter.put(
   '/users/:id/role',
+  requireAdmin(),
   validateBody(userRoleUpdateSchema),
   async (req, res, next) => {
     try {
@@ -405,7 +432,7 @@ backofficeRouter.put(
   }
 );
 
-backofficeRouter.get('/stats', async (_req, res, next) => {
+backofficeRouter.get('/stats', requireAdmin(), async (_req, res, next) => {
   try {
     const [totalUsers, totalExams, totalCases, totalQuestions] = await Promise.all([
       prisma.profile.count(),
@@ -434,29 +461,33 @@ backofficeRouter.get('/stats', async (_req, res, next) => {
   }
 });
 
-backofficeRouter.get('/subscription-cancellation-feedback', async (_req, res, next) => {
-  try {
-    const rows = await prisma.subscriptionCancellationFeedback.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-      include: {
-        user: { select: { email: true, firstName: true, lastName: true } },
-      },
-    });
-    res.json({
-      data: {
-        items: rows.map((r) => ({
-          id: r.id,
-          createdAt: r.createdAt.toISOString(),
-          provider: r.provider,
-          reason: r.reason,
-          details: r.details,
-          userEmail: r.user.email,
-          userName: `${r.user.firstName} ${r.user.lastName}`.trim(),
-        })),
-      },
-    });
-  } catch (e) {
-    next(e);
+backofficeRouter.get(
+  '/subscription-cancellation-feedback',
+  requireAdmin(),
+  async (_req, res, next) => {
+    try {
+      const rows = await prisma.subscriptionCancellationFeedback.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+        include: {
+          user: { select: { email: true, firstName: true, lastName: true } },
+        },
+      });
+      res.json({
+        data: {
+          items: rows.map((r) => ({
+            id: r.id,
+            createdAt: r.createdAt.toISOString(),
+            provider: r.provider,
+            reason: r.reason,
+            details: r.details,
+            userEmail: r.user.email,
+            userName: `${r.user.firstName} ${r.user.lastName}`.trim(),
+          })),
+        },
+      });
+    } catch (e) {
+      next(e);
+    }
   }
-});
+);

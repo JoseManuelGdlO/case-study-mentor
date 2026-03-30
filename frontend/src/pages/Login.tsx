@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Navigate, Link } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, Navigate, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,8 @@ import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import logoConLetra from '@/assets/logotipoconletra.png';
+
+const POST_LOGIN_REDIRECT_KEY = 'postLoginRedirect';
 
 declare global {
   interface Window {
@@ -24,7 +26,25 @@ declare global {
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationRef = useRef(location);
+  locationRef.current = location;
   const { user, loading, login, register, googleLogin } = useAuth();
+
+  /** Tras login: ruta protegida que originó el acceso, botón backoffice, o dashboard */
+  const getDestinationAfterAuth = useCallback(() => {
+    const state = locationRef.current.state as { from?: { pathname?: string } } | null;
+    const fromPath = state?.from?.pathname;
+    const stored = sessionStorage.getItem(POST_LOGIN_REDIRECT_KEY);
+    sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY);
+    if (fromPath && fromPath.startsWith('/') && fromPath !== '/login') {
+      return fromPath;
+    }
+    if (stored && stored.startsWith('/')) {
+      return stored;
+    }
+    return '/dashboard';
+  }, []);
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
@@ -48,7 +68,8 @@ const Login = () => {
           try {
             const { isNewUser } = await googleLogin(response.credential);
             toast.success(isNewUser ? 'Cuenta creada' : 'Bienvenido');
-            navigate(isNewUser ? '/onboarding' : '/dashboard', { replace: true });
+            const next = isNewUser ? '/onboarding' : getDestinationAfterAuth();
+            navigate(next, { replace: true });
           } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Error con Google');
           }
@@ -66,7 +87,7 @@ const Login = () => {
     return () => {
       script.remove();
     };
-  }, [clientId, googleLogin, navigate]);
+  }, [clientId, googleLogin, navigate, getDestinationAfterAuth]);
 
   if (!loading && user) {
     return <Navigate to="/dashboard" replace />;
@@ -78,11 +99,11 @@ const Login = () => {
       if (isRegister) {
         const { isNewUser } = await register({ email, password, firstName, lastName });
         toast.success('Cuenta creada');
-        navigate(isNewUser ? '/onboarding' : '/dashboard', { replace: true });
+        navigate(isNewUser ? '/onboarding' : getDestinationAfterAuth(), { replace: true });
       } else {
         await login(email, password);
         toast.success('Bienvenido');
-        navigate('/dashboard', { replace: true });
+        navigate(getDestinationAfterAuth(), { replace: true });
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error');
@@ -263,7 +284,10 @@ const Login = () => {
               <div className="mt-4 pt-4 border-t border-border">
                 <button
                   type="button"
-                  onClick={() => navigate('/backoffice')}
+                  onClick={() => {
+                    sessionStorage.setItem(POST_LOGIN_REDIRECT_KEY, '/backoffice');
+                    toast.message('Inicia sesión abajo para entrar al panel de editores');
+                  }}
                   className="w-full text-center text-xs text-muted-foreground hover:text-primary transition-colors"
                 >
                   Acceso Editores / Backoffice →

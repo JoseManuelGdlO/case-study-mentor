@@ -8,6 +8,7 @@ import { ChevronDown, ChevronRight, Plus, Trash2, Edit, Save, X, FolderTree } fr
 import { type Category } from '@/types';
 import { toast } from 'sonner';
 import { apiJson } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 type BackofficeArea = { id: string; name: string };
 type BackofficeSpecialtyRow = { id: string; name: string; areas: BackofficeArea[] };
@@ -21,6 +22,8 @@ function normalizeCategories(rows: BackofficeSpecialtyRow[]): Category[] {
 }
 
 const SpecialtyManagement = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.roles.includes('admin') ?? false;
   const [specs, setSpecs] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [openIds, setOpenIds] = useState<string[]>([]);
@@ -135,7 +138,11 @@ const SpecialtyManagement = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Especialidades y Categorías</h1>
-        <p className="text-muted-foreground">Administra el catálogo de especialidades médicas</p>
+        <p className="text-muted-foreground">
+          {isAdmin
+            ? 'Administra el catálogo de especialidades médicas'
+            : 'Agrega especialidades y áreas; solo un administrador puede editar o eliminar entradas existentes'}
+        </p>
       </div>
 
       <Card>
@@ -195,7 +202,7 @@ const SpecialtyManagement = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary">{spec.subcategories.length} áreas</Badge>
-                      {editingId !== spec.id && (
+                      {isAdmin && editingId !== spec.id && (
                         <>
                           <Button
                             size="icon"
@@ -244,7 +251,7 @@ const SpecialtyManagement = () => {
                         ) : (
                           <span className="text-sm text-foreground">{sub.name}</span>
                         )}
-                        {editingId !== sub.id && (
+                        {isAdmin && editingId !== sub.id && (
                           <div className="flex items-center gap-1">
                             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(sub.id, sub.name)}>
                               <Edit className="w-3 h-3" />
