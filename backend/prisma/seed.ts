@@ -64,6 +64,42 @@ async function main() {
     });
     console.log('Seeded specialty + demo case');
   }
+
+  const planCount = await prisma.subscriptionPlan.count();
+  if (planCount === 0) {
+    await prisma.subscriptionPlan.createMany({
+      data: [
+        {
+          name: 'Plan mensual ENARM',
+          price: 200,
+          duration: 30,
+          features: 'Exámenes ilimitados\nEstadísticas',
+          isActive: true,
+          highlighted: false,
+          tier: 'monthly',
+        },
+        {
+          name: 'Plan semestral ENARM',
+          price: 1000,
+          duration: 180,
+          features: 'Exámenes ilimitados\nEstadísticas\nAhorro vs mensual',
+          isActive: true,
+          highlighted: false,
+          tier: 'semester',
+        },
+        {
+          name: 'Plan anual ENARM',
+          price: 2100,
+          duration: 365,
+          features: 'Exámenes ilimitados\nEstadísticas\nMejor valor',
+          isActive: true,
+          highlighted: true,
+          tier: 'annual',
+        },
+      ],
+    });
+    console.log('Seeded subscription_plans (precios backoffice)');
+  }
 }
 
 main()

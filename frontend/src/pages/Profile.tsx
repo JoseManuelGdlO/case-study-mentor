@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Mail, GraduationCap, Save, Shield, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, GraduationCap, Save, Shield, Lock, Eye, EyeOff, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiJson } from '@/lib/api';
 
@@ -34,6 +34,8 @@ const Profile = () => {
   const [showPw, setShowPw] = useState(false);
   const [pwSaving, setPwSaving] = useState(false);
   const [confirmPwOpen, setConfirmPwOpen] = useState(false);
+  const [cancelSubOpen, setCancelSubOpen] = useState(false);
+  const [cancelSubBusy, setCancelSubBusy] = useState(false);
 
   useEffect(() => {
     let c = false;
@@ -102,6 +104,20 @@ const Profile = () => {
     setConfirmPwOpen(true);
   };
 
+  const cancelStripeSubscription = async () => {
+    setCancelSubBusy(true);
+    try {
+      await apiJson('/api/payments/stripe/cancel-subscription', { method: 'POST' });
+      await refreshUser();
+      toast.success('Tu suscripción se cancelará al final del periodo pagado. Seguirás con acceso hasta esa fecha.');
+      setCancelSubOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo cancelar la suscripción');
+    } finally {
+      setCancelSubBusy(false);
+    }
+  };
+
   const submitPasswordChange = async () => {
     setPwSaving(true);
     try {
@@ -157,7 +173,7 @@ const Profile = () => {
               </Badge>
               {!isFreeUser && user?.subscriptionExpiresAt && (
                 <p className="text-xs text-muted-foreground mt-1 w-full">
-                  Vigente hasta{' '}
+                  {user?.hasStripeSubscription ? 'Próxima renovación o fin de acceso: ' : 'Vigente hasta '}
                   {new Date(user.subscriptionExpiresAt).toLocaleDateString('es-MX', {
                     day: 'numeric',
                     month: 'long',
@@ -216,6 +232,61 @@ const Profile = () => {
           </div>
         </CardContent>
       </Card>
+
+      {user?.hasStripeSubscription && (
+        <Card className="border-0 shadow-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Crown className="w-5 h-5 text-warning" /> Membresía (Stripe)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Tienes una suscripción recurrente con Stripe. Puedes cancelarla cuando quieras; seguirás con acceso hasta el
+              final del periodo ya pagado.
+            </p>
+            {user?.subscriptionCancelAtPeriodEnd ? (
+              <Badge variant="secondary" className="bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/30">
+                Cancelación programada al final del periodo
+              </Badge>
+            ) : (
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setCancelSubOpen(true)}>
+                Cancelar suscripción
+              </Button>
+            )}
+
+            <AlertDialog open={cancelSubOpen} onOpenChange={setCancelSubOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Cancelar suscripción?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    No volveremos a cobrarte. Mantendrás el acceso completo hasta{' '}
+                    {user.subscriptionExpiresAt
+                      ? new Date(user.subscriptionExpiresAt).toLocaleDateString('es-MX', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })
+                      : 'el fin del periodo actual'}
+                    .
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={cancelSubBusy}>Volver</AlertDialogCancel>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={cancelSubBusy}
+                    onClick={() => void cancelStripeSubscription()}
+                  >
+                    {cancelSubBusy ? 'Procesando…' : 'Sí, cancelar al final del periodo'}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      )}
 
       {user?.authProvider === 'google' ? (
         <Card className="border-0 shadow-md">

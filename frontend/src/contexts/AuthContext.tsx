@@ -17,6 +17,8 @@ export type AuthUser = {
   roles: AppRole[];
   plan?: 'free' | 'monthly' | 'semester' | 'annual';
   subscriptionExpiresAt?: string | null;
+  hasStripeSubscription?: boolean;
+  subscriptionCancelAtPeriodEnd?: boolean;
 };
 
 type AuthContextType = {

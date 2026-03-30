@@ -43,9 +43,11 @@ model Profile {
   examDate              DateTime?         @map("exam_date")
   avatarUrl             String?           @map("avatar_url")
   onboardingDone        Boolean           @default(false) @map("onboarding_done")
-  subscriptionTier      SubscriptionTier  @default(free) @map("subscription_tier")
-  subscriptionExpiresAt DateTime?         @map("subscription_expires_at")
-  stripeCustomerId      String?           @map("stripe_customer_id")
+  subscriptionTier               SubscriptionTier  @default(free) @map("subscription_tier")
+  subscriptionExpiresAt          DateTime?         @map("subscription_expires_at")
+  stripeCustomerId               String?           @map("stripe_customer_id")
+  stripeSubscriptionId           String?           @unique @map("stripe_subscription_id")
+  subscriptionCancelAtPeriodEnd  Boolean           @default(false) @map("subscription_cancel_at_period_end")
   createdAt             DateTime          @default(now()) @map("created_at")
   updatedAt             DateTime          @updatedAt @map("updated_at")
 
@@ -293,13 +295,16 @@ model ExamDate {
 }
 
 model SubscriptionPlan {
-  id          String  @id @default(uuid())
+  id          String            @id @default(uuid())
   name        String
   price       Float
   duration    Int
-  features    String  @db.Text
-  isActive    Boolean @default(true) @map("is_active")
-  highlighted Boolean @default(false)
+  features    String            @db.Text
+  isActive    Boolean           @default(true) @map("is_active")
+  highlighted Boolean           @default(false)
+  /** Opcional: monthly | semester | annual para enlazar con el checkout sin depender solo de `duration`. */
+  tier        SubscriptionTier?
 
+  @@index([tier])
   @@map("subscription_plans")
 }

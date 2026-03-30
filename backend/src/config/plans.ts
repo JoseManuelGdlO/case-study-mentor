@@ -5,7 +5,7 @@ export function isPaidTier(t: string): t is PaidTier {
   return (PAID_TIERS as readonly string[]).includes(t);
 }
 
-/** Precios alineados con el frontend (MXN); amount en centavos para Stripe. */
+/** Valores por defecto (duración en días y etiquetas) cuando el backoffice no tiene aún filas; los montos reales vienen de `subscription_plans`. */
 export const TIER_CHECKOUT: Record<
   PaidTier,
   { amountCents: number; durationDays: number; stripeProductName: string; paypalAmount: string }

@@ -40,6 +40,8 @@ export async function getProfile(userId: string) {
       onboardingDone: true,
       subscriptionTier: true,
       subscriptionExpiresAt: true,
+      stripeSubscriptionId: true,
+      subscriptionCancelAtPeriodEnd: true,
       roles: { select: { role: true } },
     },
   });
@@ -64,6 +66,8 @@ export async function getProfile(userId: string) {
       roles: p.roles.map((r) => r.role),
       plan,
       subscriptionExpiresAt,
+      hasStripeSubscription: !!p.stripeSubscriptionId,
+      subscriptionCancelAtPeriodEnd: p.subscriptionCancelAtPeriodEnd,
     },
   };
 }

@@ -129,7 +129,7 @@ const Subscription = () => {
     if (!selectedPlan || selectedPlan === 'free') return;
     setPayBusy('stripe');
     try {
-      const json = await apiJson<{ data: { url: string } }>('/api/payments/stripe/checkout-session', {
+      const json = await apiJson<{ data: { url: string } }>('/api/payments/stripe/subscription-checkout', {
         method: 'POST',
         body: JSON.stringify({ tier: selectedPlan }),
       });
@@ -176,7 +176,7 @@ const Subscription = () => {
               disabled={!!payBusy}
             >
               {payBusy === 'stripe' ? <Loader2 className="w-5 h-5 animate-spin" /> : <CreditCard className="w-5 h-5" />}
-              Pagar con Stripe
+              Suscribirse con Stripe
             </Button>
             <Button
               className="w-full h-14 text-base font-semibold gap-3 bg-[#0070BA] hover:bg-[#005C99] text-white"
@@ -193,7 +193,8 @@ const Subscription = () => {
               Pagar con PayPal
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              Serás redirigido al proveedor de pago seguro. Tras pagar, volverás aquí y actualizaremos tu plan.
+              Cargo recurrente: el cobro se repetirá cada periodo hasta que canceles desde tu perfil. Serás redirigido a
+              Stripe de forma segura.
             </p>
           </CardContent>
         </Card>

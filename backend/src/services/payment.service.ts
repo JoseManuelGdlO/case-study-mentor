@@ -7,7 +7,11 @@ import {
 } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { env, requirePublicFrontendBaseUrlForPayments } from '../config/env.js';
-import { isPaidTier, TIER_CHECKOUT, type PaidTier } from '../config/plans.js';
+import { isPaidTier, type PaidTier } from '../config/plans.js';
+import {
+  getActiveSubscriptionPlanForTier,
+  subscriptionPlanPriceCents,
+} from './subscription-plan.service.js';
 
 function serviceError(message: string, status: number): Error & { status: number } {
   const e = new Error(message) as Error & { status: number };
@@ -93,9 +97,10 @@ export async function applyCompletedPayment(input: {
   stripeCustomerId?: string | null;
   metadata?: Prisma.InputJsonValue;
 }): Promise<void> {
-  const cfg = TIER_CHECKOUT[input.tier];
-  if (input.amountCents !== cfg.amountCents) {
-    throw serviceError('El monto del pago no coincide con el plan', 400);
+  const plan = await getActiveSubscriptionPlanForTier(input.tier);
+  const expectedCents = subscriptionPlanPriceCents(plan);
+  if (input.amountCents !== expectedCents) {
+    throw serviceError('El monto del pago no coincide con el plan del backoffice', 400);
   }
   if (input.currency.toLowerCase() !== 'mxn') {
     throw serviceError('Moneda no soportada', 400);
@@ -147,7 +152,7 @@ export async function applyCompletedPayment(input: {
       profile.subscriptionExpiresAt && profile.subscriptionExpiresAt > now
         ? profile.subscriptionExpiresAt
         : now;
-    const newExpires = new Date(base.getTime() + cfg.durationDays * 86_400_000);
+    const newExpires = new Date(base.getTime() + plan.duration * 86_400_000);
 
     await tx.profile.update({
       where: { id: input.userId },
@@ -162,7 +167,7 @@ export async function applyCompletedPayment(input: {
 
 export async function createStripeCheckoutSession(userId: string, tier: PaidTier): Promise<{ url: string }> {
   const stripe = getStripe();
-  const cfg = TIER_CHECKOUT[tier];
+  const plan = await getActiveSubscriptionPlanForTier(tier);
   const base = requirePublicFrontendBaseUrlForPayments();
 
   const session = await stripe.checkout.sessions.create({
@@ -172,8 +177,8 @@ export async function createStripeCheckoutSession(userId: string, tier: PaidTier
       {
         price_data: {
           currency: 'mxn',
-          product_data: { name: cfg.stripeProductName },
-          unit_amount: cfg.amountCents,
+          product_data: { name: plan.name },
+          unit_amount: subscriptionPlanPriceCents(plan),
         },
         quantity: 1,
       },
@@ -186,6 +191,208 @@ export async function createStripeCheckoutSession(userId: string, tier: PaidTier
 
   if (!session.url) throw serviceError('Stripe no devolvió URL de checkout', 502);
   return { url: session.url };
+}
+
+export async function createStripeSubscriptionCheckoutSession(
+  userId: string,
+  tier: PaidTier
+): Promise<{ url: string }> {
+  const stripe = getStripe();
+  const plan = await getActiveSubscriptionPlanForTier(tier);
+  const base = requirePublicFrontendBaseUrlForPayments();
+
+  const profile = await prisma.profile.findUnique({
+    where: { id: userId },
+    select: { stripeCustomerId: true },
+  });
+  if (!profile) throw serviceError('Usuario no encontrado', 404);
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    mode: 'subscription',
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price_data: {
+          currency: 'mxn',
+          product_data: { name: plan.name },
+          unit_amount: subscriptionPlanPriceCents(plan),
+          recurring: {
+            interval: 'day',
+            interval_count: plan.duration,
+          },
+        },
+        quantity: 1,
+      },
+    ],
+    success_url: `${base}/dashboard/subscription?paid=stripe&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${base}/dashboard/subscription?canceled=stripe`,
+    client_reference_id: userId,
+    metadata: { userId, tier },
+    subscription_data: {
+      metadata: { userId, tier },
+    },
+  };
+
+  if (profile.stripeCustomerId) {
+    sessionParams.customer = profile.stripeCustomerId;
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionParams);
+
+  if (!session.url) throw serviceError('Stripe no devolvió URL de checkout', 502);
+  return { url: session.url };
+}
+
+async function resolveUserIdForStripeSubscription(sub: Stripe.Subscription): Promise<string | null> {
+  const metaUid = sub.metadata?.userId;
+  if (metaUid) return metaUid;
+  const profile = await prisma.profile.findUnique({
+    where: { stripeSubscriptionId: sub.id },
+    select: { id: true },
+  });
+  return profile?.id ?? null;
+}
+
+function tierFromStripeSubscription(sub: Stripe.Subscription): PaidTier | null {
+  const t = sub.metadata?.tier;
+  if (t && isPaidTier(t)) return t;
+  return null;
+}
+
+async function syncStripeSubscriptionToProfile(sub: Stripe.Subscription): Promise<void> {
+  const userId = await resolveUserIdForStripeSubscription(sub);
+  if (!userId) {
+    console.warn('[payments] Stripe subscription sin userId resoluble', sub.id);
+    return;
+  }
+  const tier = tierFromStripeSubscription(sub);
+  if (!tier) {
+    console.warn('[payments] No se pudo resolver tier de suscripción', sub.id);
+    return;
+  }
+
+  const customerId =
+    typeof sub.customer === 'string' ? sub.customer : (sub.customer as Stripe.Customer | null)?.id ?? null;
+  const periodEnd = sub.current_period_end;
+  if (!periodEnd) return;
+
+  const expiresAt = new Date(periodEnd * 1000);
+
+  await prisma.profile.update({
+    where: { id: userId },
+    data: {
+      stripeSubscriptionId: sub.id,
+      ...(customerId ? { stripeCustomerId: customerId } : {}),
+      subscriptionTier: tier as SubscriptionTier,
+      subscriptionExpiresAt: expiresAt,
+      subscriptionCancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+    },
+  });
+}
+
+async function handleStripeCheckoutSessionSubscriptionCompleted(session: Stripe.Checkout.Session): Promise<void> {
+  const subRef = session.subscription;
+  const subId = typeof subRef === 'string' ? subRef : subRef?.id;
+  if (!subId) throw serviceError('Sesión Stripe sin suscripción', 400);
+  const stripe = getStripe();
+  const sub = await stripe.subscriptions.retrieve(subId);
+  await syncStripeSubscriptionToProfile(sub);
+}
+
+async function handleStripeSubscriptionDeleted(sub: Stripe.Subscription): Promise<void> {
+  const userId = await resolveUserIdForStripeSubscription(sub);
+  if (!userId) return;
+  await prisma.profile.update({
+    where: { id: userId },
+    data: {
+      stripeSubscriptionId: null,
+      subscriptionCancelAtPeriodEnd: false,
+      subscriptionTier: 'free',
+      subscriptionExpiresAt: null,
+    },
+  });
+}
+
+async function handleStripeInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
+  const subRef = invoice.subscription;
+  const subId = typeof subRef === 'string' ? subRef : subRef?.id;
+  if (!subId) return;
+
+  const stripe = getStripe();
+  const sub = await stripe.subscriptions.retrieve(subId);
+  await syncStripeSubscriptionToProfile(sub);
+
+  const amountCents = invoice.amount_paid ?? 0;
+  if (!invoice.id || amountCents <= 0) return;
+
+  const userId = await resolveUserIdForStripeSubscription(sub);
+  if (!userId) return;
+  const tier = tierFromStripeSubscription(sub);
+  if (!tier) return;
+
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.payment.findUnique({
+      where: {
+        provider_externalId: { provider: PaymentProvider.stripe, externalId: invoice.id! },
+      },
+    });
+    if (existing?.status === PaymentStatus.completed) return;
+
+    if (existing && existing.userId !== userId) {
+      throw serviceError('Conflicto de identidad en factura', 400);
+    }
+
+    const meta = { invoiceId: invoice.id, subscriptionId: subId } satisfies Record<string, string>;
+
+    if (existing) {
+      await tx.payment.update({
+        where: { id: existing.id },
+        data: {
+          status: PaymentStatus.completed,
+          amount: amountCents,
+          currency: (invoice.currency ?? 'mxn').toLowerCase(),
+          tier: tier as SubscriptionTier,
+          metadata: meta,
+        },
+      });
+    } else {
+      await tx.payment.create({
+        data: {
+          userId,
+          provider: PaymentProvider.stripe,
+          externalId: invoice.id!,
+          amount: amountCents,
+          currency: (invoice.currency ?? 'mxn').toLowerCase(),
+          status: PaymentStatus.completed,
+          tier: tier as SubscriptionTier,
+          metadata: meta,
+        },
+      });
+    }
+  });
+}
+
+export async function cancelStripeSubscription(userId: string): Promise<void> {
+  const stripe = getStripe();
+  const profile = await prisma.profile.findUnique({
+    where: { id: userId },
+    select: { stripeSubscriptionId: true },
+  });
+  if (!profile?.stripeSubscriptionId) {
+    throw serviceError('No hay suscripción activa de Stripe', 400);
+  }
+  const sub = await stripe.subscriptions.retrieve(profile.stripeSubscriptionId);
+  const resolved = await resolveUserIdForStripeSubscription(sub);
+  if (resolved !== userId) {
+    throw serviceError('La suscripción no corresponde a este usuario', 403);
+  }
+  await stripe.subscriptions.update(profile.stripeSubscriptionId, {
+    cancel_at_period_end: true,
+  });
+  await prisma.profile.update({
+    where: { id: userId },
+    data: { subscriptionCancelAtPeriodEnd: true },
+  });
 }
 
 export async function processStripeWebhook(rawBody: Buffer, signature: string | undefined): Promise<void> {
@@ -201,34 +408,61 @@ export async function processStripeWebhook(rawBody: Buffer, signature: string | 
     throw serviceError(msg, 400);
   }
 
-  if (event.type !== 'checkout.session.completed') return;
+  switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.mode === 'subscription') {
+        await handleStripeCheckoutSessionSubscriptionCompleted(session);
+        return;
+      }
+      const userId = session.metadata?.userId ?? session.client_reference_id;
+      const tierRaw = session.metadata?.tier;
+      if (!userId || !tierRaw || !isPaidTier(tierRaw)) {
+        throw serviceError('Metadatos de sesión Stripe incompletos', 400);
+      }
+      const amountTotal = session.amount_total;
+      if (amountTotal == null) throw serviceError('Sesión Stripe sin monto', 400);
 
-  const session = event.data.object as Stripe.Checkout.Session;
-  const userId = session.metadata?.userId ?? session.client_reference_id;
-  const tierRaw = session.metadata?.tier;
-  if (!userId || !tierRaw || !isPaidTier(tierRaw)) {
-    throw serviceError('Metadatos de sesión Stripe incompletos', 400);
+      const stripeCustomerId =
+        typeof session.customer === 'string' ? session.customer : (session.customer as { id?: string } | null)?.id;
+
+      await applyCompletedPayment({
+        userId,
+        provider: PaymentProvider.stripe,
+        externalId: session.id,
+        amountCents: amountTotal,
+        currency: session.currency ?? 'mxn',
+        tier: tierRaw,
+        stripeCustomerId: stripeCustomerId ?? undefined,
+        metadata: { sessionId: session.id, paymentStatus: session.payment_status },
+      });
+      return;
+    }
+    case 'customer.subscription.updated': {
+      const sub = event.data.object as Stripe.Subscription;
+      await syncStripeSubscriptionToProfile(sub);
+      return;
+    }
+    case 'customer.subscription.deleted': {
+      const sub = event.data.object as Stripe.Subscription;
+      await handleStripeSubscriptionDeleted(sub);
+      return;
+    }
+    case 'invoice.paid': {
+      const invoice = event.data.object as Stripe.Invoice;
+      if (invoice.subscription) {
+        await handleStripeInvoicePaid(invoice);
+      }
+      return;
+    }
+    default:
+      return;
   }
-  const amountTotal = session.amount_total;
-  if (amountTotal == null) throw serviceError('Sesión Stripe sin monto', 400);
-
-  const stripeCustomerId =
-    typeof session.customer === 'string' ? session.customer : (session.customer as { id?: string } | null)?.id;
-
-  await applyCompletedPayment({
-    userId,
-    provider: PaymentProvider.stripe,
-    externalId: session.id,
-    amountCents: amountTotal,
-    currency: session.currency ?? 'mxn',
-    tier: tierRaw,
-    stripeCustomerId: stripeCustomerId ?? undefined,
-    metadata: { sessionId: session.id, paymentStatus: session.payment_status },
-  });
 }
 
 export async function createPayPalOrder(userId: string, tier: PaidTier): Promise<{ approvalUrl: string }> {
-  const cfg = TIER_CHECKOUT[tier];
+  const plan = await getActiveSubscriptionPlanForTier(tier);
+  const paypalAmount = plan.price.toFixed(2);
   const base = requirePublicFrontendBaseUrlForPayments();
   const customId = `${userId}:${tier}`;
 
@@ -238,7 +472,7 @@ export async function createPayPalOrder(userId: string, tier: PaidTier): Promise
       intent: 'CAPTURE',
       purchase_units: [
         {
-          amount: { currency_code: 'MXN', value: cfg.paypalAmount },
+          amount: { currency_code: 'MXN', value: paypalAmount },
           custom_id: customId,
         },
       ],

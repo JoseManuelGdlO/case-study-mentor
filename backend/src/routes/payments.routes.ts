@@ -53,6 +53,32 @@ paymentsRouter.post(
   }
 );
 
+paymentsRouter.post(
+  '/stripe/subscription-checkout',
+  authenticate,
+  validateBody(checkoutTierSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) throw new Error('No user');
+      const { tier } = req.body as { tier: 'monthly' | 'semester' | 'annual' };
+      const { url } = await paymentService.createStripeSubscriptionCheckoutSession(req.user.id, tier);
+      res.json({ data: { url } });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+paymentsRouter.post('/stripe/cancel-subscription', authenticate, async (req, res, next) => {
+  try {
+    if (!req.user) throw new Error('No user');
+    await paymentService.cancelStripeSubscription(req.user.id);
+    res.json({ data: { ok: true } });
+  } catch (e) {
+    next(e);
+  }
+});
+
 paymentsRouter.post('/paypal/create-order', authenticate, validateBody(checkoutTierSchema), async (req, res, next) => {
   try {
     if (!req.user) throw new Error('No user');

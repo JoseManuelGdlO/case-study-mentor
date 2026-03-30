@@ -35,6 +35,8 @@ export const planCreateSchema = z.object({
   features: z.string(),
   isActive: z.boolean().optional(),
   highlighted: z.boolean().optional(),
+  /** monthly | semester | annual — recomendado para enlazar con el checkout. */
+  tier: z.enum(['monthly', 'semester', 'annual']).optional(),
 });
 
 export const planUpdateSchema = planCreateSchema.partial();
