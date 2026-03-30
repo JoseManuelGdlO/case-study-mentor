@@ -22,6 +22,7 @@ No desactives esto en producción salvo una ventana de medición controlada y br
 | `BASE_URL` | Base de la API (default `http://localhost:3001`) |
 | `TEST_EMAIL` / `TEST_PASSWORD` | Credenciales si no usas `users.json` (default: seed `admin@enarm.test` / `Admin12345678`) |
 | `USERS_FILE` | Ruta a un JSON de credenciales (array de `{ email, password }`) |
+| `VUS` | Solo `auth-read.js`: VUs deseadas (default `20`). El script **no usa más VUs que cuentas** en la lista: con 1 usuario solo corre **1 VU** (una sesión activa por usuario en Redis). |
 
 ## Instalación de k6
 
@@ -71,7 +72,7 @@ En Linux, `host.docker.internal` puede requerir `--add-host=host.docker.internal
 
 - **Un solo usuario en BD** y muchas VUs en `auth-read.js`: cada VU hace login una vez; el servidor **revoca la sesión anterior** en Redis al volver a iniciar sesión con la misma cuenta. Varios logins concurrentes con la misma cuenta compiten y pueden provocar **401** en lecturas. Eso no refleja “N usuarios reales” con distintas cuentas.
 
-- **Más fiel a N usuarios**: crea N cuentas (o amplía el seed), copia `users.json.example` a `users.json` (ignorado por git) y añade una entrada por usuario. Ajusta `vus` en `auth-read.js` para que no supere el número de cuentas si quieres 1 sesión estable por cuenta.
+- **Más fiel a N usuarios**: crea N cuentas en producción/staging, pon **N entradas** en `users.json` y opcionalmente `VUS=N`. El script limita automáticamente `vus` a `min(VUS, número de cuentas)` y avisa en consola si pedías más VUs que usuarios.
 
 - **Solo throughput de lecturas con una sesión**: usa un login en `setup()` (o 1 VU) y mide solo `GET` autenticados; no mide “N usuarios simultáneos” con N identidades.
 

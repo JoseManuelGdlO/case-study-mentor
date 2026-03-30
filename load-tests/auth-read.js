@@ -32,8 +32,17 @@ const users = new SharedArray('users', function () {
   ];
 });
 
+/** Cada VU debe usar una cuenta distinta: el servidor solo mantiene una sesión activa por usuario en Redis. */
+const requestedVUs = parseInt(__ENV.VUS || '20', 10);
+const effectiveVUs = Math.max(1, Math.min(requestedVUs, users.length));
+if (requestedVUs > users.length) {
+  console.warn(
+    `VUS=${requestedVUs} > ${users.length} cuenta(s) en la lista: se limita a ${effectiveVUs} VUs (una sesión válida por usuario).`
+  );
+}
+
 export const options = {
-  vus: 20,
+  vus: effectiveVUs,
   duration: '2m',
   thresholds: {
     http_req_failed: ['rate<0.01'],
