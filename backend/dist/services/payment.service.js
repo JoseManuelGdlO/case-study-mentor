@@ -2,7 +2,10 @@ import Stripe from 'stripe';
 import { PaymentProvider, PaymentStatus, } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { env, requirePublicFrontendBaseUrlForPayments } from '../config/env.js';
-import { isPaidTier, TIER_CHECKOUT } from '../config/plans.js';
+import { isPaidTier } from '../config/plans.js';
+import { getActiveSubscriptionPlanForTier, subscriptionPlanPriceCents, } from './subscription-plan.service.js';
+import { getPayPalSubscription, syncProfileFromPayPalSubscriptionResource, } from './paypal-billing.service.js';
+import { paypalAccessToken, paypalApiBase, paypalFetch } from './paypal-api.js';
 function serviceError(message, status) {
     const e = new Error(message);
     e.status = status;
@@ -16,45 +19,6 @@ function getStripe() {
         stripeSdk = new Stripe(env.STRIPE_SECRET_KEY);
     }
     return stripeSdk;
-}
-function paypalApiBase() {
-    return env.NODE_ENV === 'production' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
-}
-let paypalToken = null;
-async function paypalAccessToken() {
-    if (!env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET) {
-        throw serviceError('PayPal no está configurado', 503);
-    }
-    const now = Date.now();
-    if (paypalToken && paypalToken.expiresAt > now + 60_000)
-        return paypalToken.token;
-    const auth = Buffer.from(`${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`).toString('base64');
-    const res = await fetch(`${paypalApiBase()}/v1/oauth2/token`, {
-        method: 'POST',
-        headers: {
-            Authorization: `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: 'grant_type=client_credentials',
-    });
-    if (!res.ok) {
-        const t = await res.text();
-        throw serviceError(`PayPal OAuth falló: ${t}`, 502);
-    }
-    const json = (await res.json());
-    paypalToken = {
-        token: json.access_token,
-        expiresAt: now + (json.expires_in ?? 300) * 1000,
-    };
-    return json.access_token;
-}
-async function paypalFetch(path, init) {
-    const token = await paypalAccessToken();
-    const headers = new Headers(init.headers);
-    headers.set('Authorization', `Bearer ${token}`);
-    if (!headers.has('Content-Type') && init.body)
-        headers.set('Content-Type', 'application/json');
-    return fetch(`${paypalApiBase()}${path}`, { ...init, headers });
 }
 function paypalValueToCents(value, currency) {
     const n = parseFloat(value);
@@ -75,9 +39,10 @@ function parsePayPalCustomId(raw) {
     return { userId, tier };
 }
 export async function applyCompletedPayment(input) {
-    const cfg = TIER_CHECKOUT[input.tier];
-    if (input.amountCents !== cfg.amountCents) {
-        throw serviceError('El monto del pago no coincide con el plan', 400);
+    const plan = await getActiveSubscriptionPlanForTier(input.tier);
+    const expectedCents = subscriptionPlanPriceCents(plan);
+    if (input.amountCents !== expectedCents) {
+        throw serviceError('El monto del pago no coincide con el plan del backoffice', 400);
     }
     if (input.currency.toLowerCase() !== 'mxn') {
         throw serviceError('Moneda no soportada', 400);
@@ -126,7 +91,7 @@ export async function applyCompletedPayment(input) {
         const base = profile.subscriptionExpiresAt && profile.subscriptionExpiresAt > now
             ? profile.subscriptionExpiresAt
             : now;
-        const newExpires = new Date(base.getTime() + cfg.durationDays * 86_400_000);
+        const newExpires = new Date(base.getTime() + plan.duration * 86_400_000);
         await tx.profile.update({
             where: { id: input.userId },
             data: {
@@ -139,7 +104,7 @@ export async function applyCompletedPayment(input) {
 }
 export async function createStripeCheckoutSession(userId, tier) {
     const stripe = getStripe();
-    const cfg = TIER_CHECKOUT[tier];
+    const plan = await getActiveSubscriptionPlanForTier(tier);
     const base = requirePublicFrontendBaseUrlForPayments();
     const session = await stripe.checkout.sessions.create({
         mode: 'payment',
@@ -148,8 +113,8 @@ export async function createStripeCheckoutSession(userId, tier) {
             {
                 price_data: {
                     currency: 'mxn',
-                    product_data: { name: cfg.stripeProductName },
-                    unit_amount: cfg.amountCents,
+                    product_data: { name: plan.name },
+                    unit_amount: subscriptionPlanPriceCents(plan),
                 },
                 quantity: 1,
             },
@@ -162,6 +127,209 @@ export async function createStripeCheckoutSession(userId, tier) {
     if (!session.url)
         throw serviceError('Stripe no devolvió URL de checkout', 502);
     return { url: session.url };
+}
+export async function createStripeSubscriptionCheckoutSession(userId, tier) {
+    const stripe = getStripe();
+    const plan = await getActiveSubscriptionPlanForTier(tier);
+    const base = requirePublicFrontendBaseUrlForPayments();
+    const profile = await prisma.profile.findUnique({
+        where: { id: userId },
+        select: { stripeCustomerId: true, paypalSubscriptionId: true },
+    });
+    if (!profile)
+        throw serviceError('Usuario no encontrado', 404);
+    if (profile.paypalSubscriptionId) {
+        throw serviceError('Ya tienes una suscripción con PayPal. Cancélala antes de usar Stripe.', 409);
+    }
+    const sessionParams = {
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+            {
+                price_data: {
+                    currency: 'mxn',
+                    product_data: { name: plan.name },
+                    unit_amount: subscriptionPlanPriceCents(plan),
+                    recurring: {
+                        interval: 'day',
+                        interval_count: plan.duration,
+                    },
+                },
+                quantity: 1,
+            },
+        ],
+        success_url: `${base}/dashboard/subscription?paid=stripe&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${base}/dashboard/subscription?canceled=stripe`,
+        client_reference_id: userId,
+        metadata: { userId, tier },
+        subscription_data: {
+            metadata: { userId, tier },
+        },
+    };
+    if (profile.stripeCustomerId) {
+        sessionParams.customer = profile.stripeCustomerId;
+    }
+    const session = await stripe.checkout.sessions.create(sessionParams);
+    if (!session.url)
+        throw serviceError('Stripe no devolvió URL de checkout', 502);
+    return { url: session.url };
+}
+async function resolveUserIdForStripeSubscription(sub) {
+    const metaUid = sub.metadata?.userId;
+    if (metaUid)
+        return metaUid;
+    const profile = await prisma.profile.findUnique({
+        where: { stripeSubscriptionId: sub.id },
+        select: { id: true },
+    });
+    return profile?.id ?? null;
+}
+function tierFromStripeSubscription(sub) {
+    const t = sub.metadata?.tier;
+    if (t && isPaidTier(t))
+        return t;
+    return null;
+}
+async function syncStripeSubscriptionToProfile(sub) {
+    const userId = await resolveUserIdForStripeSubscription(sub);
+    if (!userId) {
+        console.warn('[payments] Stripe subscription sin userId resoluble', sub.id);
+        return;
+    }
+    const tier = tierFromStripeSubscription(sub);
+    if (!tier) {
+        console.warn('[payments] No se pudo resolver tier de suscripción', sub.id);
+        return;
+    }
+    const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer?.id ?? null;
+    const periodEnd = sub.current_period_end;
+    if (!periodEnd)
+        return;
+    const expiresAt = new Date(periodEnd * 1000);
+    await prisma.profile.update({
+        where: { id: userId },
+        data: {
+            stripeSubscriptionId: sub.id,
+            ...(customerId ? { stripeCustomerId: customerId } : {}),
+            subscriptionTier: tier,
+            subscriptionExpiresAt: expiresAt,
+            subscriptionCancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+        },
+    });
+}
+async function handleStripeCheckoutSessionSubscriptionCompleted(session) {
+    const subRef = session.subscription;
+    const subId = typeof subRef === 'string' ? subRef : subRef?.id;
+    if (!subId)
+        throw serviceError('Sesión Stripe sin suscripción', 400);
+    const stripe = getStripe();
+    const sub = await stripe.subscriptions.retrieve(subId);
+    await syncStripeSubscriptionToProfile(sub);
+}
+async function handleStripeSubscriptionDeleted(sub) {
+    const userId = await resolveUserIdForStripeSubscription(sub);
+    if (!userId)
+        return;
+    await prisma.profile.update({
+        where: { id: userId },
+        data: {
+            stripeSubscriptionId: null,
+            subscriptionCancelAtPeriodEnd: false,
+            subscriptionTier: 'free',
+            subscriptionExpiresAt: null,
+        },
+    });
+}
+async function handleStripeInvoicePaid(invoice) {
+    const subRef = invoice.subscription;
+    const subId = typeof subRef === 'string' ? subRef : subRef?.id;
+    if (!subId)
+        return;
+    const stripe = getStripe();
+    const sub = await stripe.subscriptions.retrieve(subId);
+    await syncStripeSubscriptionToProfile(sub);
+    const amountCents = invoice.amount_paid ?? 0;
+    if (!invoice.id || amountCents <= 0)
+        return;
+    const userId = await resolveUserIdForStripeSubscription(sub);
+    if (!userId)
+        return;
+    const tier = tierFromStripeSubscription(sub);
+    if (!tier)
+        return;
+    await prisma.$transaction(async (tx) => {
+        const existing = await tx.payment.findUnique({
+            where: {
+                provider_externalId: { provider: PaymentProvider.stripe, externalId: invoice.id },
+            },
+        });
+        if (existing?.status === PaymentStatus.completed)
+            return;
+        if (existing && existing.userId !== userId) {
+            throw serviceError('Conflicto de identidad en factura', 400);
+        }
+        const meta = { invoiceId: invoice.id, subscriptionId: subId };
+        if (existing) {
+            await tx.payment.update({
+                where: { id: existing.id },
+                data: {
+                    status: PaymentStatus.completed,
+                    amount: amountCents,
+                    currency: (invoice.currency ?? 'mxn').toLowerCase(),
+                    tier: tier,
+                    metadata: meta,
+                },
+            });
+        }
+        else {
+            await tx.payment.create({
+                data: {
+                    userId,
+                    provider: PaymentProvider.stripe,
+                    externalId: invoice.id,
+                    amount: amountCents,
+                    currency: (invoice.currency ?? 'mxn').toLowerCase(),
+                    status: PaymentStatus.completed,
+                    tier: tier,
+                    metadata: meta,
+                },
+            });
+        }
+    });
+}
+export async function recordSubscriptionCancellationFeedback(userId, provider, feedback) {
+    const details = feedback.details?.trim();
+    await prisma.subscriptionCancellationFeedback.create({
+        data: {
+            userId,
+            provider,
+            reason: feedback.reason,
+            details: details || null,
+        },
+    });
+}
+export async function cancelStripeSubscription(userId, feedback) {
+    const stripe = getStripe();
+    const profile = await prisma.profile.findUnique({
+        where: { id: userId },
+        select: { stripeSubscriptionId: true },
+    });
+    if (!profile?.stripeSubscriptionId) {
+        throw serviceError('No hay suscripción activa de Stripe', 400);
+    }
+    const sub = await stripe.subscriptions.retrieve(profile.stripeSubscriptionId);
+    const resolved = await resolveUserIdForStripeSubscription(sub);
+    if (resolved !== userId) {
+        throw serviceError('La suscripción no corresponde a este usuario', 403);
+    }
+    await stripe.subscriptions.update(profile.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+    });
+    await prisma.profile.update({
+        where: { id: userId },
+        data: { subscriptionCancelAtPeriodEnd: true },
+    });
+    await recordSubscriptionCancellationFeedback(userId, PaymentProvider.stripe, feedback);
 }
 export async function processStripeWebhook(rawBody, signature) {
     if (!env.STRIPE_WEBHOOK_SECRET)
@@ -177,31 +345,58 @@ export async function processStripeWebhook(rawBody, signature) {
         const msg = err instanceof Error ? err.message : 'Firma inválida';
         throw serviceError(msg, 400);
     }
-    if (event.type !== 'checkout.session.completed')
-        return;
-    const session = event.data.object;
-    const userId = session.metadata?.userId ?? session.client_reference_id;
-    const tierRaw = session.metadata?.tier;
-    if (!userId || !tierRaw || !isPaidTier(tierRaw)) {
-        throw serviceError('Metadatos de sesión Stripe incompletos', 400);
+    switch (event.type) {
+        case 'checkout.session.completed': {
+            const session = event.data.object;
+            if (session.mode === 'subscription') {
+                await handleStripeCheckoutSessionSubscriptionCompleted(session);
+                return;
+            }
+            const userId = session.metadata?.userId ?? session.client_reference_id;
+            const tierRaw = session.metadata?.tier;
+            if (!userId || !tierRaw || !isPaidTier(tierRaw)) {
+                throw serviceError('Metadatos de sesión Stripe incompletos', 400);
+            }
+            const amountTotal = session.amount_total;
+            if (amountTotal == null)
+                throw serviceError('Sesión Stripe sin monto', 400);
+            const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+            await applyCompletedPayment({
+                userId,
+                provider: PaymentProvider.stripe,
+                externalId: session.id,
+                amountCents: amountTotal,
+                currency: session.currency ?? 'mxn',
+                tier: tierRaw,
+                stripeCustomerId: stripeCustomerId ?? undefined,
+                metadata: { sessionId: session.id, paymentStatus: session.payment_status },
+            });
+            return;
+        }
+        case 'customer.subscription.updated': {
+            const sub = event.data.object;
+            await syncStripeSubscriptionToProfile(sub);
+            return;
+        }
+        case 'customer.subscription.deleted': {
+            const sub = event.data.object;
+            await handleStripeSubscriptionDeleted(sub);
+            return;
+        }
+        case 'invoice.paid': {
+            const invoice = event.data.object;
+            if (invoice.subscription) {
+                await handleStripeInvoicePaid(invoice);
+            }
+            return;
+        }
+        default:
+            return;
     }
-    const amountTotal = session.amount_total;
-    if (amountTotal == null)
-        throw serviceError('Sesión Stripe sin monto', 400);
-    const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
-    await applyCompletedPayment({
-        userId,
-        provider: PaymentProvider.stripe,
-        externalId: session.id,
-        amountCents: amountTotal,
-        currency: session.currency ?? 'mxn',
-        tier: tierRaw,
-        stripeCustomerId: stripeCustomerId ?? undefined,
-        metadata: { sessionId: session.id, paymentStatus: session.payment_status },
-    });
 }
 export async function createPayPalOrder(userId, tier) {
-    const cfg = TIER_CHECKOUT[tier];
+    const plan = await getActiveSubscriptionPlanForTier(tier);
+    const paypalAmount = plan.price.toFixed(2);
     const base = requirePublicFrontendBaseUrlForPayments();
     const customId = `${userId}:${tier}`;
     const res = await paypalFetch('/v2/checkout/orders', {
@@ -210,7 +405,7 @@ export async function createPayPalOrder(userId, tier) {
             intent: 'CAPTURE',
             purchase_units: [
                 {
-                    amount: { currency_code: 'MXN', value: cfg.paypalAmount },
+                    amount: { currency_code: 'MXN', value: paypalAmount },
                     custom_id: customId,
                 },
             ],
@@ -325,39 +520,167 @@ export async function verifyPayPalWebhookRequest(req) {
     return verdict.verification_status === 'SUCCESS';
 }
 export async function processPayPalWebhookEvent(body) {
-    if (body.event_type !== 'PAYMENT.CAPTURE.COMPLETED')
-        return;
-    const captureId = body.resource?.id;
-    if (!captureId)
-        return;
-    let customId = body.resource?.custom_id;
-    let amountValue = body.resource?.amount?.value;
-    let currencyCode = body.resource?.amount?.currency_code;
-    if (!customId || !amountValue || !currencyCode) {
-        const detailRes = await paypalFetch(`/v2/payments/captures/${encodeURIComponent(captureId)}`, {
-            method: 'GET',
-        });
-        if (!detailRes.ok)
+    const eventType = body.event_type;
+    switch (eventType) {
+        case 'BILLING.SUBSCRIPTION.ACTIVATED':
+        case 'BILLING.SUBSCRIPTION.UPDATED':
+        case 'BILLING.SUBSCRIPTION.CANCELLED':
+        case 'BILLING.SUBSCRIPTION.EXPIRED':
+        case 'BILLING.SUBSCRIPTION.SUSPENDED': {
+            const subId = body.resource?.id;
+            if (!subId)
+                return;
+            try {
+                const sub = await getPayPalSubscription(subId);
+                await syncProfileFromPayPalSubscriptionResource(sub);
+            }
+            catch (e) {
+                console.warn('[payments] Webhook PayPal suscripción:', e);
+            }
             return;
-        const detail = (await detailRes.json());
-        customId = customId ?? detail.custom_id;
-        amountValue = amountValue ?? detail.amount?.value;
-        currencyCode = currencyCode ?? detail.amount?.currency_code;
+        }
+        case 'PAYMENT.SALE.COMPLETED': {
+            const subId = body.resource?.billing_agreement_id;
+            if (!subId)
+                return;
+            try {
+                const sub = await getPayPalSubscription(subId);
+                await syncProfileFromPayPalSubscriptionResource(sub);
+                const saleId = body.resource?.id;
+                const total = body.resource?.amount?.total;
+                const currency = body.resource?.amount?.currency ?? 'MXN';
+                if (saleId && total) {
+                    const amountCents = paypalValueToCents(total, currency);
+                    const parsed = parsePayPalCustomId(sub.custom_id);
+                    if (parsed) {
+                        await prisma.$transaction(async (tx) => {
+                            const existing = await tx.payment.findUnique({
+                                where: {
+                                    provider_externalId: { provider: PaymentProvider.paypal, externalId: saleId },
+                                },
+                            });
+                            if (existing?.status === PaymentStatus.completed)
+                                return;
+                            await tx.payment.create({
+                                data: {
+                                    userId: parsed.userId,
+                                    provider: PaymentProvider.paypal,
+                                    externalId: saleId,
+                                    amount: amountCents,
+                                    currency: currency.toLowerCase(),
+                                    status: PaymentStatus.completed,
+                                    tier: parsed.tier,
+                                    metadata: { source: 'sale', subscriptionId: subId },
+                                },
+                            });
+                        });
+                    }
+                }
+            }
+            catch (e) {
+                console.warn('[payments] Webhook PayPal PAYMENT.SALE:', e);
+            }
+            return;
+        }
+        case 'PAYMENT.CAPTURE.COMPLETED': {
+            const captureId = body.resource?.id;
+            if (!captureId)
+                return;
+            let customId = body.resource?.custom_id;
+            let amountValue = body.resource?.amount?.value;
+            let currencyCode = body.resource?.amount?.currency_code;
+            if (!customId || !amountValue || !currencyCode) {
+                const detailRes = await paypalFetch(`/v2/payments/captures/${encodeURIComponent(captureId)}`, {
+                    method: 'GET',
+                });
+                if (!detailRes.ok)
+                    return;
+                const detail = (await detailRes.json());
+                customId = customId ?? detail.custom_id;
+                amountValue = amountValue ?? detail.amount?.value;
+                currencyCode = currencyCode ?? detail.amount?.currency_code;
+            }
+            const parsed = parsePayPalCustomId(customId);
+            if (!parsed || !amountValue || !currencyCode) {
+                console.warn('[payments] Webhook PayPal: no se pudo resolver custom_id/monto', captureId);
+                return;
+            }
+            const amountCents = paypalValueToCents(amountValue, currencyCode);
+            await applyCompletedPayment({
+                userId: parsed.userId,
+                provider: PaymentProvider.paypal,
+                externalId: captureId,
+                amountCents,
+                currency: currencyCode,
+                tier: parsed.tier,
+                metadata: { source: 'webhook' },
+            });
+            return;
+        }
+        default:
+            return;
     }
-    const parsed = parsePayPalCustomId(customId);
-    if (!parsed || !amountValue || !currencyCode) {
-        console.warn('[payments] Webhook PayPal: no se pudo resolver custom_id/monto', captureId);
-        return;
-    }
-    const amountCents = paypalValueToCents(amountValue, currencyCode);
-    await applyCompletedPayment({
-        userId: parsed.userId,
-        provider: PaymentProvider.paypal,
-        externalId: captureId,
-        amountCents,
-        currency: currencyCode,
-        tier: parsed.tier,
-        metadata: { source: 'webhook' },
+}
+export async function listPaymentsForUser(userId) {
+    const rows = await prisma.payment.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        select: {
+            id: true,
+            createdAt: true,
+            amount: true,
+            currency: true,
+            provider: true,
+            status: true,
+            tier: true,
+        },
     });
+    return rows.map((r) => ({
+        id: r.id,
+        createdAt: r.createdAt.toISOString(),
+        amount: r.amount,
+        currency: r.currency,
+        provider: r.provider,
+        status: r.status,
+        tier: r.tier,
+    }));
+}
+/** Resolves a hosted receipt URL for Stripe payments; PayPal returns null. */
+export async function getReceiptUrlForPayment(userId, paymentId) {
+    const row = await prisma.payment.findFirst({
+        where: { id: paymentId, userId },
+        select: { provider: true, externalId: true },
+    });
+    if (!row)
+        throw serviceError('Pago no encontrado', 404);
+    if (row.provider === PaymentProvider.paypal) {
+        return null;
+    }
+    const stripe = getStripe();
+    const ext = row.externalId;
+    if (ext.startsWith('in_')) {
+        const inv = await stripe.invoices.retrieve(ext);
+        return inv.hosted_invoice_url ?? inv.invoice_pdf ?? null;
+    }
+    if (ext.startsWith('cs_')) {
+        const session = await stripe.checkout.sessions.retrieve(ext, { expand: ['invoice'] });
+        if (session.invoice) {
+            const inv = typeof session.invoice === 'string'
+                ? await stripe.invoices.retrieve(session.invoice)
+                : session.invoice;
+            return inv.hosted_invoice_url ?? inv.invoice_pdf ?? null;
+        }
+        const piRef = session.payment_intent;
+        const piId = typeof piRef === 'string' ? piRef : piRef?.id;
+        if (piId) {
+            const pi = await stripe.paymentIntents.retrieve(piId, { expand: ['latest_charge'] });
+            const lc = pi.latest_charge;
+            if (typeof lc === 'object' && lc && 'receipt_url' in lc) {
+                return lc.receipt_url ?? null;
+            }
+        }
+        return null;
+    }
+    return null;
 }
 //# sourceMappingURL=payment.service.js.map

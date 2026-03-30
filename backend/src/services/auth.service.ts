@@ -30,10 +30,20 @@ function refreshRedisKey(userId: string, jti: string): string {
   return `refresh:${userId}:${jti}`;
 }
 
+export function sessionActiveKey(userId: string): string {
+  return `session:active:${userId}`;
+}
+
 export async function setAuthCookies(res: Response, userId: string, email: string): Promise<void> {
-  const access = signAccessToken(userId, email);
-  const { token: refresh, jti } = signRefreshToken(userId);
+  const oldJti = await redis.get(sessionActiveKey(userId));
+  if (oldJti) {
+    await redis.del(refreshRedisKey(userId, oldJti));
+  }
+  const jti = randomUUID();
+  const access = signAccessToken(userId, email, jti);
+  const { token: refresh } = signRefreshToken(userId, jti);
   await redis.setex(refreshRedisKey(userId, jti), REFRESH_TTL_SEC, '1');
+  await redis.setex(sessionActiveKey(userId), REFRESH_TTL_SEC, jti);
   const base = cookieBase();
   res.cookie(ACCESS_COOKIE, access, { ...base, maxAge: 15 * 60 * 1000 });
   res.cookie(REFRESH_COOKIE, refresh, { ...base, maxAge: REFRESH_TTL_SEC * 1000 });
@@ -259,6 +269,7 @@ export async function logout(refreshCookie: string | undefined, res: Response) {
     try {
       const payload = verifyRefreshToken(refreshCookie);
       await redis.del(refreshRedisKey(payload.sub, payload.jti));
+      await redis.del(sessionActiveKey(payload.sub));
     } catch {
       /* ignore */
     }

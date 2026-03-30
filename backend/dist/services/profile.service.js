@@ -29,6 +29,9 @@ export async function getProfile(userId) {
             onboardingDone: true,
             subscriptionTier: true,
             subscriptionExpiresAt: true,
+            stripeSubscriptionId: true,
+            paypalSubscriptionId: true,
+            subscriptionCancelAtPeriodEnd: true,
             roles: { select: { role: true } },
         },
     });
@@ -53,6 +56,9 @@ export async function getProfile(userId) {
             roles: p.roles.map((r) => r.role),
             plan,
             subscriptionExpiresAt,
+            hasStripeSubscription: !!p.stripeSubscriptionId,
+            hasPayPalSubscription: !!p.paypalSubscriptionId,
+            subscriptionCancelAtPeriodEnd: p.subscriptionCancelAtPeriodEnd,
         },
     };
 }

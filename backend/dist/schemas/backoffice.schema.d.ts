@@ -79,20 +79,28 @@ export declare const planCreateSchema: z.ZodObject<{
     features: z.ZodString;
     isActive: z.ZodOptional<z.ZodBoolean>;
     highlighted: z.ZodOptional<z.ZodBoolean>;
+    /** monthly | semester | annual — recomendado para enlazar con el checkout. */
+    tier: z.ZodOptional<z.ZodEnum<["monthly", "semester", "annual"]>>;
+    /** Plan de facturación PayPal (P-...), opcional si se crea por API. */
+    paypalPlanId: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     name: string;
     price: number;
     duration: number;
     features: string;
+    tier?: "monthly" | "semester" | "annual" | undefined;
     isActive?: boolean | undefined;
     highlighted?: boolean | undefined;
+    paypalPlanId?: string | undefined;
 }, {
     name: string;
     price: number;
     duration: number;
     features: string;
+    tier?: "monthly" | "semester" | "annual" | undefined;
     isActive?: boolean | undefined;
     highlighted?: boolean | undefined;
+    paypalPlanId?: string | undefined;
 }>;
 export declare const planUpdateSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
@@ -101,26 +109,51 @@ export declare const planUpdateSchema: z.ZodObject<{
     features: z.ZodOptional<z.ZodString>;
     isActive: z.ZodOptional<z.ZodOptional<z.ZodBoolean>>;
     highlighted: z.ZodOptional<z.ZodOptional<z.ZodBoolean>>;
+    tier: z.ZodOptional<z.ZodOptional<z.ZodEnum<["monthly", "semester", "annual"]>>>;
+    paypalPlanId: z.ZodOptional<z.ZodOptional<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
     name?: string | undefined;
+    tier?: "monthly" | "semester" | "annual" | undefined;
     isActive?: boolean | undefined;
     price?: number | undefined;
     duration?: number | undefined;
     features?: string | undefined;
     highlighted?: boolean | undefined;
+    paypalPlanId?: string | undefined;
 }, {
     name?: string | undefined;
+    tier?: "monthly" | "semester" | "annual" | undefined;
     isActive?: boolean | undefined;
     price?: number | undefined;
     duration?: number | undefined;
     features?: string | undefined;
     highlighted?: boolean | undefined;
+    paypalPlanId?: string | undefined;
 }>;
 export declare const userRoleUpdateSchema: z.ZodObject<{
     roles: z.ZodArray<z.ZodEnum<["admin", "editor", "user"]>, "many">;
 }, "strip", z.ZodTypeAny, {
     roles: ("admin" | "editor" | "user")[];
 }, {
+    roles: ("admin" | "editor" | "user")[];
+}>;
+export declare const backofficeUserCreateSchema: z.ZodObject<{
+    email: z.ZodString;
+    password: z.ZodString;
+    firstName: z.ZodString;
+    lastName: z.ZodString;
+    roles: z.ZodArray<z.ZodEnum<["admin", "editor", "user"]>, "many">;
+}, "strip", z.ZodTypeAny, {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    roles: ("admin" | "editor" | "user")[];
+}, {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
     roles: ("admin" | "editor" | "user")[];
 }>;
 export declare const backofficeUsersQuerySchema: z.ZodObject<{

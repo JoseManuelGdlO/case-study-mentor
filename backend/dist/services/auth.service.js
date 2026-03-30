@@ -22,10 +22,19 @@ function cookieBase() {
 function refreshRedisKey(userId, jti) {
     return `refresh:${userId}:${jti}`;
 }
+export function sessionActiveKey(userId) {
+    return `session:active:${userId}`;
+}
 export async function setAuthCookies(res, userId, email) {
-    const access = signAccessToken(userId, email);
-    const { token: refresh, jti } = signRefreshToken(userId);
+    const oldJti = await redis.get(sessionActiveKey(userId));
+    if (oldJti) {
+        await redis.del(refreshRedisKey(userId, oldJti));
+    }
+    const jti = randomUUID();
+    const access = signAccessToken(userId, email, jti);
+    const { token: refresh } = signRefreshToken(userId, jti);
     await redis.setex(refreshRedisKey(userId, jti), REFRESH_TTL_SEC, '1');
+    await redis.setex(sessionActiveKey(userId), REFRESH_TTL_SEC, jti);
     const base = cookieBase();
     res.cookie(ACCESS_COOKIE, access, { ...base, maxAge: 15 * 60 * 1000 });
     res.cookie(REFRESH_COOKIE, refresh, { ...base, maxAge: REFRESH_TTL_SEC * 1000 });
@@ -51,11 +60,17 @@ async function publicUser(userId) {
             onboardingDone: true,
             subscriptionTier: true,
             subscriptionExpiresAt: true,
+            stripeSubscriptionId: true,
+            paypalSubscriptionId: true,
+            subscriptionCancelAtPeriodEnd: true,
             roles: { select: { role: true } },
         },
     });
     if (!profile)
         return null;
+    return buildPublicUser(profile);
+}
+function buildPublicUser(profile) {
     const { plan, subscriptionExpiresAt } = effectivePlanFromProfile(profile);
     return {
         id: profile.id,
@@ -71,6 +86,9 @@ async function publicUser(userId) {
         roles: profile.roles.map((r) => r.role),
         plan,
         subscriptionExpiresAt,
+        hasStripeSubscription: !!profile.stripeSubscriptionId,
+        hasPayPalSubscription: !!profile.paypalSubscriptionId,
+        subscriptionCancelAtPeriodEnd: profile.subscriptionCancelAtPeriodEnd,
     };
 }
 export async function register(data, res) {
@@ -94,6 +112,37 @@ export async function register(data, res) {
     await setAuthCookies(res, user.id, user.email);
     const u = await publicUser(user.id);
     return { data: { user: u, isNewUser: true } };
+}
+/** Crea cuenta con email/contraseña y roles arbitrarios (solo invocado desde backoffice admin). */
+export async function createUserByAdmin(data) {
+    const email = data.email.trim();
+    const existing = await prisma.profile.findUnique({ where: { email } });
+    if (existing) {
+        const err = new Error('El correo ya está registrado');
+        err.status = 409;
+        throw err;
+    }
+    const hash = await bcrypt.hash(data.password, BCRYPT_ROUNDS);
+    const roleSet = [...new Set(data.roles)];
+    const onboardingDone = roleSet.some((r) => r === 'admin' || r === 'editor');
+    const user = await prisma.profile.create({
+        data: {
+            email,
+            password: hash,
+            authProvider: 'email',
+            firstName: data.firstName.trim(),
+            lastName: data.lastName.trim(),
+            onboardingDone,
+            roles: { createMany: { data: roleSet.map((role) => ({ role })) } },
+        },
+    });
+    const u = await publicUser(user.id);
+    if (!u) {
+        const err = new Error('No se pudo crear el usuario');
+        err.status = 500;
+        throw err;
+    }
+    return { data: { user: u } };
 }
 export async function login(data, res) {
     const user = await prisma.profile.findUnique({ where: { email: data.email } });
@@ -174,6 +223,7 @@ export async function logout(refreshCookie, res) {
         try {
             const payload = verifyRefreshToken(refreshCookie);
             await redis.del(refreshRedisKey(payload.sub, payload.jti));
+            await redis.del(sessionActiveKey(payload.sub));
         }
         catch {
             /* ignore */

@@ -27,9 +27,20 @@ export const planCreateSchema = z.object({
     features: z.string(),
     isActive: z.boolean().optional(),
     highlighted: z.boolean().optional(),
+    /** monthly | semester | annual — recomendado para enlazar con el checkout. */
+    tier: z.enum(['monthly', 'semester', 'annual']).optional(),
+    /** Plan de facturación PayPal (P-...), opcional si se crea por API. */
+    paypalPlanId: z.string().min(1).optional(),
 });
 export const planUpdateSchema = planCreateSchema.partial();
 export const userRoleUpdateSchema = z.object({
+    roles: z.array(z.enum(['admin', 'editor', 'user'])).min(1),
+});
+export const backofficeUserCreateSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(8),
+    firstName: z.string().min(1),
+    lastName: z.string().min(1),
     roles: z.array(z.enum(['admin', 'editor', 'user'])).min(1),
 });
 export const backofficeUsersQuerySchema = z.object({

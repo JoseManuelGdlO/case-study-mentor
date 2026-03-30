@@ -1,18 +1,19 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
-import { requireAdmin } from '../middleware/roles.js';
+import { requireAdmin, requireCaseEditor } from '../middleware/roles.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
-import { areaCreateSchema, backofficeUsersQuerySchema, examDateCreateSchema, examDateUpdateSchema, phraseCreateSchema, phraseUpdateSchema, planCreateSchema, planUpdateSchema, specialtyCreateSchema, specialtyUpdateSchema, userRoleUpdateSchema, } from '../schemas/backoffice.schema.js';
+import { areaCreateSchema, backofficeUserCreateSchema, backofficeUsersQuerySchema, examDateCreateSchema, examDateUpdateSchema, phraseCreateSchema, phraseUpdateSchema, planCreateSchema, planUpdateSchema, specialtyCreateSchema, specialtyUpdateSchema, userRoleUpdateSchema, } from '../schemas/backoffice.schema.js';
 import { prisma } from '../config/database.js';
+import { createUserByAdmin } from '../services/auth.service.js';
 import { effectivePlanFromProfile } from '../services/profile.service.js';
 import { paginationParams, totalPages } from '../utils/helpers.js';
 import { cacheService } from '../services/cache.service.js';
 import { invalidateSpecialtyCache } from '../services/specialty.service.js';
 import { paramString } from '../utils/params.js';
 export const backofficeRouter = Router();
-backofficeRouter.use(authenticate, requireAdmin());
-/* --- Specialties --- */
-backofficeRouter.get('/specialties', async (_req, res, next) => {
+backofficeRouter.use(authenticate);
+/* --- Specialties (editores: listar y crear especialidades/áreas; solo admin: editar/eliminar) --- */
+backofficeRouter.get('/specialties', requireCaseEditor(), async (_req, res, next) => {
     try {
         const rows = await prisma.specialty.findMany({
             orderBy: { name: 'asc' },
@@ -24,7 +25,7 @@ backofficeRouter.get('/specialties', async (_req, res, next) => {
         next(e);
     }
 });
-backofficeRouter.post('/specialties', validateBody(specialtyCreateSchema), async (req, res, next) => {
+backofficeRouter.post('/specialties', requireCaseEditor(), validateBody(specialtyCreateSchema), async (req, res, next) => {
     try {
         const s = await prisma.specialty.create({ data: { name: req.body.name } });
         await invalidateSpecialtyCache();
@@ -34,7 +35,7 @@ backofficeRouter.post('/specialties', validateBody(specialtyCreateSchema), async
         next(e);
     }
 });
-backofficeRouter.put('/specialties/:id', validateBody(specialtyUpdateSchema), async (req, res, next) => {
+backofficeRouter.put('/specialties/:id', requireAdmin(), validateBody(specialtyUpdateSchema), async (req, res, next) => {
     try {
         const s = await prisma.specialty.update({
             where: { id: paramString(req.params.id) },
@@ -47,7 +48,7 @@ backofficeRouter.put('/specialties/:id', validateBody(specialtyUpdateSchema), as
         next(e);
     }
 });
-backofficeRouter.delete('/specialties/:id', async (req, res, next) => {
+backofficeRouter.delete('/specialties/:id', requireAdmin(), async (req, res, next) => {
     try {
         await prisma.specialty.delete({ where: { id: paramString(req.params.id) } });
         await invalidateSpecialtyCache();
@@ -57,7 +58,7 @@ backofficeRouter.delete('/specialties/:id', async (req, res, next) => {
         next(e);
     }
 });
-backofficeRouter.post('/specialties/:specialtyId/areas', validateBody(areaCreateSchema), async (req, res, next) => {
+backofficeRouter.post('/specialties/:specialtyId/areas', requireCaseEditor(), validateBody(areaCreateSchema), async (req, res, next) => {
     try {
         const a = await prisma.area.create({
             data: { specialtyId: paramString(req.params.specialtyId), name: req.body.name },
@@ -69,7 +70,7 @@ backofficeRouter.post('/specialties/:specialtyId/areas', validateBody(areaCreate
         next(e);
     }
 });
-backofficeRouter.put('/areas/:areaId', validateBody(areaCreateSchema), async (req, res, next) => {
+backofficeRouter.put('/areas/:areaId', requireAdmin(), validateBody(areaCreateSchema), async (req, res, next) => {
     try {
         const a = await prisma.area.update({
             where: { id: paramString(req.params.areaId) },
@@ -82,7 +83,7 @@ backofficeRouter.put('/areas/:areaId', validateBody(areaCreateSchema), async (re
         next(e);
     }
 });
-backofficeRouter.delete('/areas/:areaId', async (req, res, next) => {
+backofficeRouter.delete('/areas/:areaId', requireAdmin(), async (req, res, next) => {
     try {
         await prisma.area.delete({ where: { id: paramString(req.params.areaId) } });
         await invalidateSpecialtyCache();
@@ -93,7 +94,7 @@ backofficeRouter.delete('/areas/:areaId', async (req, res, next) => {
     }
 });
 /* --- Phrases --- */
-backofficeRouter.get('/phrases', async (req, res, next) => {
+backofficeRouter.get('/phrases', requireAdmin(), async (req, res, next) => {
     try {
         const { skip, take, page, limit } = paginationParams(req.query.page, req.query.limit);
         const [total, data] = await Promise.all([
@@ -110,7 +111,7 @@ backofficeRouter.get('/phrases', async (req, res, next) => {
         next(e);
     }
 });
-backofficeRouter.post('/phrases', validateBody(phraseCreateSchema), async (req, res, next) => {
+backofficeRouter.post('/phrases', requireAdmin(), validateBody(phraseCreateSchema), async (req, res, next) => {
     try {
         const row = await prisma.motivationalPhrase.create({ data: req.body });
         await cacheService.invalidate('cache:phrases*');
@@ -120,7 +121,7 @@ backofficeRouter.post('/phrases', validateBody(phraseCreateSchema), async (req, 
         next(e);
     }
 });
-backofficeRouter.put('/phrases/:id', validateBody(phraseUpdateSchema), async (req, res, next) => {
+backofficeRouter.put('/phrases/:id', requireAdmin(), validateBody(phraseUpdateSchema), async (req, res, next) => {
     try {
         const row = await prisma.motivationalPhrase.update({
             where: { id: paramString(req.params.id) },
@@ -133,7 +134,7 @@ backofficeRouter.put('/phrases/:id', validateBody(phraseUpdateSchema), async (re
         next(e);
     }
 });
-backofficeRouter.delete('/phrases/:id', async (req, res, next) => {
+backofficeRouter.delete('/phrases/:id', requireAdmin(), async (req, res, next) => {
     try {
         await prisma.motivationalPhrase.delete({ where: { id: paramString(req.params.id) } });
         await cacheService.invalidate('cache:phrases*');
@@ -144,7 +145,7 @@ backofficeRouter.delete('/phrases/:id', async (req, res, next) => {
     }
 });
 /* --- Exam dates --- */
-backofficeRouter.get('/exam-dates', async (req, res, next) => {
+backofficeRouter.get('/exam-dates', requireAdmin(), async (req, res, next) => {
     try {
         const { skip, take, page, limit } = paginationParams(req.query.page, req.query.limit);
         const [total, data] = await Promise.all([
@@ -169,7 +170,7 @@ backofficeRouter.get('/exam-dates', async (req, res, next) => {
         next(e);
     }
 });
-backofficeRouter.post('/exam-dates', validateBody(examDateCreateSchema), async (req, res, next) => {
+backofficeRouter.post('/exam-dates', requireAdmin(), validateBody(examDateCreateSchema), async (req, res, next) => {
     try {
         const row = await prisma.examDate.create({
             data: {
@@ -185,7 +186,7 @@ backofficeRouter.post('/exam-dates', validateBody(examDateCreateSchema), async (
         next(e);
     }
 });
-backofficeRouter.put('/exam-dates/:id', validateBody(examDateUpdateSchema), async (req, res, next) => {
+backofficeRouter.put('/exam-dates/:id', requireAdmin(), validateBody(examDateUpdateSchema), async (req, res, next) => {
     try {
         const b = req.body;
         const row = await prisma.examDate.update({
@@ -203,7 +204,7 @@ backofficeRouter.put('/exam-dates/:id', validateBody(examDateUpdateSchema), asyn
         next(e);
     }
 });
-backofficeRouter.delete('/exam-dates/:id', async (req, res, next) => {
+backofficeRouter.delete('/exam-dates/:id', requireAdmin(), async (req, res, next) => {
     try {
         await prisma.examDate.delete({ where: { id: paramString(req.params.id) } });
         await cacheService.invalidate('cache:exam-dates*');
@@ -214,7 +215,7 @@ backofficeRouter.delete('/exam-dates/:id', async (req, res, next) => {
     }
 });
 /* --- Pricing --- */
-backofficeRouter.get('/pricing', async (req, res, next) => {
+backofficeRouter.get('/pricing', requireAdmin(), async (req, res, next) => {
     try {
         const { skip, take, page, limit } = paginationParams(req.query.page, req.query.limit);
         const [total, data] = await Promise.all([
@@ -227,7 +228,7 @@ backofficeRouter.get('/pricing', async (req, res, next) => {
         next(e);
     }
 });
-backofficeRouter.post('/pricing', validateBody(planCreateSchema), async (req, res, next) => {
+backofficeRouter.post('/pricing', requireAdmin(), validateBody(planCreateSchema), async (req, res, next) => {
     try {
         const row = await prisma.subscriptionPlan.create({ data: req.body });
         res.status(201).json({ data: row });
@@ -236,7 +237,7 @@ backofficeRouter.post('/pricing', validateBody(planCreateSchema), async (req, re
         next(e);
     }
 });
-backofficeRouter.put('/pricing/:id', validateBody(planUpdateSchema), async (req, res, next) => {
+backofficeRouter.put('/pricing/:id', requireAdmin(), validateBody(planUpdateSchema), async (req, res, next) => {
     try {
         const row = await prisma.subscriptionPlan.update({
             where: { id: paramString(req.params.id) },
@@ -248,7 +249,7 @@ backofficeRouter.put('/pricing/:id', validateBody(planUpdateSchema), async (req,
         next(e);
     }
 });
-backofficeRouter.delete('/pricing/:id', async (req, res, next) => {
+backofficeRouter.delete('/pricing/:id', requireAdmin(), async (req, res, next) => {
     try {
         await prisma.subscriptionPlan.delete({ where: { id: paramString(req.params.id) } });
         res.json({ data: { ok: true } });
@@ -258,7 +259,16 @@ backofficeRouter.delete('/pricing/:id', async (req, res, next) => {
     }
 });
 /* --- Users --- */
-backofficeRouter.get('/users', validateQuery(backofficeUsersQuerySchema), async (req, res, next) => {
+backofficeRouter.post('/users', requireAdmin(), validateBody(backofficeUserCreateSchema), async (req, res, next) => {
+    try {
+        const result = await createUserByAdmin(req.body);
+        res.status(201).json(result);
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.get('/users', requireAdmin(), validateQuery(backofficeUsersQuerySchema), async (req, res, next) => {
     try {
         const q = req.query;
         const { skip, take, page, limit } = paginationParams(q.page, q.limit);
@@ -315,7 +325,7 @@ backofficeRouter.get('/users', validateQuery(backofficeUsersQuerySchema), async 
         next(e);
     }
 });
-backofficeRouter.put('/users/:id/role', validateBody(userRoleUpdateSchema), async (req, res, next) => {
+backofficeRouter.put('/users/:id/role', requireAdmin(), validateBody(userRoleUpdateSchema), async (req, res, next) => {
     try {
         const userId = paramString(req.params.id);
         const { roles } = req.body;
@@ -340,7 +350,7 @@ backofficeRouter.put('/users/:id/role', validateBody(userRoleUpdateSchema), asyn
         next(e);
     }
 });
-backofficeRouter.get('/stats', async (_req, res, next) => {
+backofficeRouter.get('/stats', requireAdmin(), async (_req, res, next) => {
     try {
         const [totalUsers, totalExams, totalCases, totalQuestions] = await Promise.all([
             prisma.profile.count(),
@@ -362,6 +372,33 @@ backofficeRouter.get('/stats', async (_req, res, next) => {
                 estimatedRevenue: 0,
                 avgAccuracy: 0,
                 abandonRate: 0,
+            },
+        });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.get('/subscription-cancellation-feedback', requireAdmin(), async (_req, res, next) => {
+    try {
+        const rows = await prisma.subscriptionCancellationFeedback.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 200,
+            include: {
+                user: { select: { email: true, firstName: true, lastName: true } },
+            },
+        });
+        res.json({
+            data: {
+                items: rows.map((r) => ({
+                    id: r.id,
+                    createdAt: r.createdAt.toISOString(),
+                    provider: r.provider,
+                    reason: r.reason,
+                    details: r.details,
+                    userEmail: r.user.email,
+                    userName: `${r.user.firstName} ${r.user.lastName}`.trim(),
+                })),
             },
         });
     }

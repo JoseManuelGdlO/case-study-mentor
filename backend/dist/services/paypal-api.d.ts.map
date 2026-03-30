@@ -1,0 +1,1 @@
+{"version":3,"file":"paypal-api.d.ts","sourceRoot":"","sources":["../../src/services/paypal-api.ts"],"names":[],"mappings":"AAQA,wBAAgB,aAAa,IAAI,MAAM,CAEtC;AAID,wBAAsB,iBAAiB,IAAI,OAAO,CAAC,MAAM,CAAC,CA0BzD;AAED,wBAAsB,WAAW,CAAC,IAAI,EAAE,MAAM,EAAE,IAAI,EAAE,WAAW,GAAG,OAAO,CAAC,QAAQ,CAAC,CAMpF"}

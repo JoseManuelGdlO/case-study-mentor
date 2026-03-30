@@ -22,6 +22,9 @@ export declare function getProfile(userId: string): Promise<{
         roles: import("@prisma/client").$Enums.AppRole[];
         plan: ApiUserPlan;
         subscriptionExpiresAt: string | null;
+        hasStripeSubscription: boolean;
+        hasPayPalSubscription: boolean;
+        subscriptionCancelAtPeriodEnd: boolean;
     };
 }>;
 export declare function updateProfile(userId: string, body: {
@@ -46,6 +49,9 @@ export declare function updateProfile(userId: string, body: {
         roles: import("@prisma/client").$Enums.AppRole[];
         plan: ApiUserPlan;
         subscriptionExpiresAt: string | null;
+        hasStripeSubscription: boolean;
+        hasPayPalSubscription: boolean;
+        subscriptionCancelAtPeriodEnd: boolean;
     };
 }>;
 export declare function completeOnboarding(userId: string): Promise<{
@@ -63,6 +69,9 @@ export declare function completeOnboarding(userId: string): Promise<{
         roles: import("@prisma/client").$Enums.AppRole[];
         plan: ApiUserPlan;
         subscriptionExpiresAt: string | null;
+        hasStripeSubscription: boolean;
+        hasPayPalSubscription: boolean;
+        subscriptionCancelAtPeriodEnd: boolean;
     };
 }>;
 export declare function changePassword(userId: string, body: {

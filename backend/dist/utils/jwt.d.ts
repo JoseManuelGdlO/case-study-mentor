@@ -1,6 +1,7 @@
 export interface AccessPayload {
     sub: string;
     email: string;
+    jti: string;
     type: 'access';
 }
 export interface RefreshPayload {
@@ -9,8 +10,9 @@ export interface RefreshPayload {
     type: 'refresh';
 }
 declare const REFRESH_TTL_SEC: number;
-export declare function signAccessToken(userId: string, email: string): string;
-export declare function signRefreshToken(userId: string): {
+/** Access and refresh share the same `jti` so the server can enforce one session per user (see session:active in Redis). */
+export declare function signAccessToken(userId: string, email: string, jti: string): string;
+export declare function signRefreshToken(userId: string, jti: string): {
     token: string;
     jti: string;
 };
