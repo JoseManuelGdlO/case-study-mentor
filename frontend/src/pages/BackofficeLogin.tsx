@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Navigate, Link, useLocation } from 'react-router-dom';
+import type { Location } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import type { AuthUser } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import logoConLetra from '@/assets/logotipoconletra.png';
 
@@ -22,31 +24,47 @@ declare global {
   }
 }
 
-const Login = () => {
+function hasBackofficeAccess(u: AuthUser) {
+  return u.roles.includes('admin') || u.roles.includes('editor');
+}
+
+function destinationAfterBackofficeAuth(location: Location): string {
+  const state = location.state as { from?: { pathname?: string } } | null;
+  const fromPath = state?.from?.pathname;
+  if (
+    fromPath &&
+    fromPath.startsWith('/backoffice') &&
+    fromPath !== '/backoffice/login'
+  ) {
+    return fromPath;
+  }
+  return '/backoffice/cases';
+}
+
+const BackofficeLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const locationRef = useRef(location);
   locationRef.current = location;
-  const { user, loading, login, register, googleLogin } = useAuth();
-
-  /** Tras login: ruta protegida que originó el acceso o dashboard */
-  const getDestinationAfterAuth = useCallback(() => {
-    const state = locationRef.current.state as { from?: { pathname?: string } } | null;
-    const fromPath = state?.from?.pathname;
-    if (fromPath && fromPath.startsWith('/') && fromPath !== '/login') {
-      return fromPath;
-    }
-    return '/dashboard';
-  }, []);
-  const [isRegister, setIsRegister] = useState(false);
+  const { user, loading, login, googleLogin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  const goAfterSuccessfulStaffAuth = useCallback(
+    (u: AuthUser) => {
+      if (hasBackofficeAccess(u)) {
+        navigate(destinationAfterBackofficeAuth(locationRef.current), { replace: true });
+      } else {
+        toast.message('Esta cuenta no tiene acceso al panel de editores');
+        navigate('/dashboard', { replace: true });
+      }
+    },
+    [navigate],
+  );
 
   useEffect(() => {
     if (!clientId || !googleBtnRef.current) return;
@@ -59,10 +77,13 @@ const Login = () => {
         client_id: clientId,
         callback: async (response) => {
           try {
-            const { isNewUser } = await googleLogin(response.credential);
+            const { isNewUser, user: u } = await googleLogin(response.credential);
             toast.success(isNewUser ? 'Cuenta creada' : 'Bienvenido');
-            const next = isNewUser ? '/onboarding' : getDestinationAfterAuth();
-            navigate(next, { replace: true });
+            if (isNewUser) {
+              navigate('/onboarding', { replace: true });
+              return;
+            }
+            goAfterSuccessfulStaffAuth(u);
           } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Error con Google');
           }
@@ -80,24 +101,30 @@ const Login = () => {
     return () => {
       script.remove();
     };
-  }, [clientId, googleLogin, navigate, getDestinationAfterAuth]);
+  }, [clientId, googleLogin, navigate, goAfterSuccessfulStaffAuth]);
 
   if (!loading && user) {
+    if (hasBackofficeAccess(user)) {
+      const state = location.state as { from?: { pathname?: string } } | null;
+      const fromPath = state?.from?.pathname;
+      if (
+        fromPath &&
+        fromPath.startsWith('/backoffice') &&
+        fromPath !== '/backoffice/login'
+      ) {
+        return <Navigate to={fromPath} replace />;
+      }
+      return <Navigate to="/backoffice/cases" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (isRegister) {
-        const { isNewUser } = await register({ email, password, firstName, lastName });
-        toast.success('Cuenta creada');
-        navigate(isNewUser ? '/onboarding' : getDestinationAfterAuth(), { replace: true });
-      } else {
-        await login(email, password);
-        toast.success('Bienvenido');
-        navigate(getDestinationAfterAuth(), { replace: true });
-      }
+      const u = await login(email, password);
+      toast.success('Bienvenido');
+      goAfterSuccessfulStaffAuth(u);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error');
     }
@@ -128,9 +155,8 @@ const Login = () => {
               className="h-16 sm:h-20 w-auto max-w-[280px] mx-auto object-contain"
             />
           </div>
-          <p className="text-xl text-white/90 mb-6">
-            Tu plataforma de preparación para el Examen Nacional de Residencias Médicas
-          </p>
+          <p className="text-xl text-white/90 mb-2">Panel de editores</p>
+          <p className="text-white/80 text-sm">Acceso para administración de contenido</p>
         </div>
       </div>
 
@@ -147,12 +173,8 @@ const Login = () => {
           <Card className="border-0 shadow-xl">
             <CardContent className="p-8">
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-foreground">
-                  {isRegister ? 'Crear cuenta' : 'Bienvenido de vuelta'}
-                </h2>
-                <p className="text-muted-foreground mt-1">
-                  {isRegister ? 'Comienza tu preparación hoy' : 'Continúa tu preparación'}
-                </p>
+                <h2 className="text-2xl font-bold text-foreground">Acceso editores</h2>
+                <p className="text-muted-foreground mt-1">Inicia sesión para el backoffice</p>
               </div>
 
               {clientId ? (
@@ -175,59 +197,34 @@ const Login = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {isRegister && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="fn">Nombre</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="fn"
-                          className="pl-10 h-12"
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="ln">Apellido</Label>
-                      <Input
-                        id="ln"
-                        className="h-12"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
                 <div className="space-y-2">
-                  <Label htmlFor="email">Correo electrónico</Label>
+                  <Label htmlFor="bo-email">Correo electrónico</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="email"
+                      id="bo-email"
                       type="email"
                       className="pl-10 h-12"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      autoComplete="username"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Contraseña</Label>
+                  <Label htmlFor="bo-password">Contraseña</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="password"
+                      id="bo-password"
                       type={showPassword ? 'text' : 'password'}
                       className="pl-10 pr-10 h-12"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       minLength={8}
+                      autoComplete="current-password"
                     />
                     <button
                       type="button"
@@ -238,50 +235,25 @@ const Login = () => {
                     </button>
                   </div>
                 </div>
-                {!isRegister && (
-                  <div className="text-right -mt-1">
-                    <Link
-                      to="/recuperar-contrasena"
-                      className="text-sm text-primary font-medium hover:underline underline-offset-2"
-                    >
-                      ¿Olvidaste tu contraseña?
-                    </Link>
-                  </div>
-                )}
+                <div className="text-right -mt-1">
+                  <Link
+                    to="/recuperar-contrasena"
+                    className="text-sm text-primary font-medium hover:underline underline-offset-2"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </div>
                 <Button type="submit" className="w-full h-12 text-base font-semibold gradient-primary border-0">
-                  {isRegister ? 'Crear cuenta y continuar' : 'Iniciar sesión'}
+                  Entrar al backoffice
                 </Button>
               </form>
 
               <p className="text-center text-sm text-muted-foreground mt-6">
-                {isRegister ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?'}{' '}
-                <button
-                  type="button"
-                  onClick={() => setIsRegister(!isRegister)}
-                  className="text-primary font-semibold hover:underline"
-                >
-                  {isRegister ? 'Inicia sesión' : 'Regístrate gratis'}
-                </button>
-              </p>
-
-              <p className="text-center text-xs text-muted-foreground mt-4">
-                <Link to="/terminos" className="underline underline-offset-2 hover:text-primary">
-                  Términos y condiciones
-                </Link>
-                <span className="mx-2">·</span>
-                <Link to="/privacidad" className="underline underline-offset-2 hover:text-primary">
-                  Política de privacidad
+                ¿Eres estudiante?{' '}
+                <Link to="/login" className="text-primary font-semibold hover:underline">
+                  Acceso estudiantes
                 </Link>
               </p>
-
-              <div className="mt-4 pt-4 border-t border-border">
-                <Link
-                  to="/backoffice/login"
-                  className="block w-full text-center text-xs text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Acceso Editores / Backoffice →
-                </Link>
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -290,4 +262,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default BackofficeLogin;

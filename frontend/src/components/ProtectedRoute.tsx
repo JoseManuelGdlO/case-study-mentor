@@ -28,7 +28,7 @@ export function BackofficeRoute({ children }: { children: React.ReactNode }) {
     );
   }
   if (!user) {
-    return <Navigate to="/login" state={{ from: loc }} replace />;
+    return <Navigate to="/backoffice/login" state={{ from: loc }} replace />;
   }
   const ok = user.roles.includes('admin') || user.roles.includes('editor');
   if (!ok) {
@@ -54,7 +54,7 @@ export function AdminRoute({
     );
   }
   if (!user) {
-    return <Navigate to="/login" state={{ from: loc }} replace />;
+    return <Navigate to="/backoffice/login" state={{ from: loc }} replace />;
   }
   if (!user.roles.includes('admin')) {
     return <>{fallback ?? <Navigate to="/backoffice/cases" replace />}</>;

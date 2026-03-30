@@ -27,10 +27,10 @@ type AuthContextType = {
   loading: boolean;
   setUser: (u: AuthUser | null) => void;
   refreshUser: () => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<AuthUser>;
   register: (data: { email: string; password: string; firstName: string; lastName: string }) => Promise<{ isNewUser: boolean }>;
   logout: () => Promise<void>;
-  googleLogin: (idToken: string) => Promise<{ isNewUser: boolean }>;
+  googleLogin: (idToken: string) => Promise<{ isNewUser: boolean; user: AuthUser }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -66,11 +66,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshUser]);
 
   const login = useCallback(async (email: string, password: string) => {
-    await apiJson<{ data: { user: AuthUser } }>('/api/auth/login', {
+    const json = await apiJson<{ data: { user: AuthUser } }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
     await refreshUser();
+    return json.data.user;
   }, [refreshUser]);
 
   const register = useCallback(
@@ -98,13 +99,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       // Usar el usuario de la respuesta de auth: si /api/profile falla (p. ej. cookies cross-origin
       // con SameSite=Lax), refreshUser pondría user=null y ProtectedRoute te devuelve al login.
-      setUser(json.data.user);
+      let nextUser = json.data.user;
+      setUser(nextUser);
       const res = await apiFetch('/api/profile');
       if (res.ok) {
         const profile = (await res.json()) as { data: AuthUser };
-        setUser(profile.data);
+        nextUser = profile.data;
+        setUser(nextUser);
       }
-      return { isNewUser: json.data.isNewUser };
+      return { isNewUser: json.data.isNewUser, user: nextUser };
     },
     []
   );
