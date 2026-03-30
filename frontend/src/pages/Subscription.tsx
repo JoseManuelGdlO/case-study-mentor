@@ -44,7 +44,17 @@ const Subscription = () => {
 
   const clearPaymentQueryParams = useCallback(() => {
     const next = new URLSearchParams(searchParams);
-    ['paid', 'session_id', 'paypal_return', 'token', 'PayerID', 'canceled'].forEach((k) => next.delete(k));
+    [
+      'paid',
+      'session_id',
+      'paypal_return',
+      'paypal_sub_return',
+      'subscription_id',
+      'ba_token',
+      'token',
+      'PayerID',
+      'canceled',
+    ].forEach((k) => next.delete(k));
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
@@ -88,6 +98,39 @@ const Subscription = () => {
   }, [searchParams, refreshUser, clearPaymentQueryParams]);
 
   useEffect(() => {
+    const paypalSubReturn = searchParams.get('paypal_sub_return');
+    if (paypalSubReturn === '1') {
+      const subscriptionId =
+        searchParams.get('subscription_id') ?? searchParams.get('token') ?? searchParams.get('ba_token');
+      if (!subscriptionId) return;
+
+      let cancelled = false;
+      (async () => {
+        try {
+          await apiJson<{ data: { ok: boolean } }>('/api/payments/paypal/subscription-confirm', {
+            method: 'POST',
+            body: JSON.stringify({ subscriptionId }),
+          });
+          if (!cancelled) await refreshUser();
+          if (!cancelled) {
+            toast.success('¡Suscripción PayPal activada!', {
+              description: 'Tu plan se ha actualizado.',
+            });
+          }
+        } catch (e) {
+          if (!cancelled) {
+            toast.error(e instanceof Error ? e.message : 'No se pudo confirmar la suscripción con PayPal.');
+          }
+        } finally {
+          if (!cancelled) clearPaymentQueryParams();
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
     const paypalReturn = searchParams.get('paypal_return');
     const token = searchParams.get('token');
     if (paypalReturn !== '1' || !token) return;
@@ -144,7 +187,7 @@ const Subscription = () => {
     if (!selectedPlan || selectedPlan === 'free') return;
     setPayBusy('paypal');
     try {
-      const json = await apiJson<{ data: { approvalUrl: string } }>('/api/payments/paypal/create-order', {
+      const json = await apiJson<{ data: { approvalUrl: string } }>('/api/payments/paypal/create-subscription', {
         method: 'POST',
         body: JSON.stringify({ tier: selectedPlan }),
       });
@@ -190,11 +233,11 @@ const Subscription = () => {
                   <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c1.725 3.386.14 7.13-3.62 7.13h-2.19a1.627 1.627 0 0 0-1.604 1.373l-1.12 7.106a.641.641 0 0 0 .633.74h3.472c.457 0 .846-.334.917-.787l.378-2.398a.925.925 0 0 1 .913-.787h.601c3.728 0 6.643-1.515 7.497-5.896.36-1.846.148-3.372-.87-4.44z" />
                 </svg>
               )}
-              Pagar con PayPal
+              Suscribirse con PayPal
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              Cargo recurrente: el cobro se repetirá cada periodo hasta que canceles desde tu perfil. Serás redirigido a
-              Stripe de forma segura.
+              Cargo recurrente: el cobro se repetirá cada periodo hasta que canceles desde tu perfil. Stripe y PayPal te
+              redirigen de forma segura.
             </p>
           </CardContent>
         </Card>

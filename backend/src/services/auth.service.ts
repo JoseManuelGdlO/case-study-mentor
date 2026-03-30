@@ -61,6 +61,7 @@ async function publicUser(userId: string) {
       subscriptionTier: true,
       subscriptionExpiresAt: true,
       stripeSubscriptionId: true,
+      paypalSubscriptionId: true,
       subscriptionCancelAtPeriodEnd: true,
       roles: { select: { role: true } },
     },
@@ -82,6 +83,7 @@ async function publicUser(userId: string) {
     plan,
     subscriptionExpiresAt,
     hasStripeSubscription: !!profile.stripeSubscriptionId,
+    hasPayPalSubscription: !!profile.paypalSubscriptionId,
     subscriptionCancelAtPeriodEnd: profile.subscriptionCancelAtPeriodEnd,
   };
 }

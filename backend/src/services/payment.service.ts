@@ -12,6 +12,11 @@ import {
   getActiveSubscriptionPlanForTier,
   subscriptionPlanPriceCents,
 } from './subscription-plan.service.js';
+import {
+  getPayPalSubscription,
+  syncProfileFromPayPalSubscriptionResource,
+} from './paypal-billing.service.js';
+import { paypalAccessToken, paypalApiBase, paypalFetch } from './paypal-api.js';
 
 function serviceError(message: string, status: number): Error & { status: number } {
   const e = new Error(message) as Error & { status: number };
@@ -27,48 +32,6 @@ function getStripe(): Stripe {
     stripeSdk = new Stripe(env.STRIPE_SECRET_KEY);
   }
   return stripeSdk;
-}
-
-function paypalApiBase(): string {
-  return env.NODE_ENV === 'production' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
-}
-
-let paypalToken: { token: string; expiresAt: number } | null = null;
-
-async function paypalAccessToken(): Promise<string> {
-  if (!env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET) {
-    throw serviceError('PayPal no está configurado', 503);
-  }
-  const now = Date.now();
-  if (paypalToken && paypalToken.expiresAt > now + 60_000) return paypalToken.token;
-
-  const auth = Buffer.from(`${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`).toString('base64');
-  const res = await fetch(`${paypalApiBase()}/v1/oauth2/token`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${auth}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials',
-  });
-  if (!res.ok) {
-    const t = await res.text();
-    throw serviceError(`PayPal OAuth falló: ${t}`, 502);
-  }
-  const json = (await res.json()) as { access_token: string; expires_in: number };
-  paypalToken = {
-    token: json.access_token,
-    expiresAt: now + (json.expires_in ?? 300) * 1000,
-  };
-  return json.access_token;
-}
-
-async function paypalFetch(path: string, init: RequestInit): Promise<Response> {
-  const token = await paypalAccessToken();
-  const headers = new Headers(init.headers);
-  headers.set('Authorization', `Bearer ${token}`);
-  if (!headers.has('Content-Type') && init.body) headers.set('Content-Type', 'application/json');
-  return fetch(`${paypalApiBase()}${path}`, { ...init, headers });
 }
 
 function paypalValueToCents(value: string, currency: string): number {
@@ -203,9 +166,12 @@ export async function createStripeSubscriptionCheckoutSession(
 
   const profile = await prisma.profile.findUnique({
     where: { id: userId },
-    select: { stripeCustomerId: true },
+    select: { stripeCustomerId: true, paypalSubscriptionId: true },
   });
   if (!profile) throw serviceError('Usuario no encontrado', 404);
+  if (profile.paypalSubscriptionId) {
+    throw serviceError('Ya tienes una suscripción con PayPal. Cancélala antes de usar Stripe.', 409);
+  }
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'subscription',
@@ -621,46 +587,113 @@ export async function verifyPayPalWebhookRequest(req: {
 
 export async function processPayPalWebhookEvent(body: {
   event_type?: string;
-  resource?: { id?: string; amount?: { currency_code?: string; value?: string }; custom_id?: string };
+  resource?: {
+    id?: string;
+    amount?: { currency_code?: string; value?: string; total?: string; currency?: string };
+    custom_id?: string;
+    billing_agreement_id?: string;
+  };
 }): Promise<void> {
-  if (body.event_type !== 'PAYMENT.CAPTURE.COMPLETED') return;
+  const eventType = body.event_type;
 
-  const captureId = body.resource?.id;
-  if (!captureId) return;
+  switch (eventType) {
+    case 'BILLING.SUBSCRIPTION.ACTIVATED':
+    case 'BILLING.SUBSCRIPTION.UPDATED':
+    case 'BILLING.SUBSCRIPTION.CANCELLED':
+    case 'BILLING.SUBSCRIPTION.EXPIRED':
+    case 'BILLING.SUBSCRIPTION.SUSPENDED': {
+      const subId = body.resource?.id;
+      if (!subId) return;
+      try {
+        const sub = await getPayPalSubscription(subId);
+        await syncProfileFromPayPalSubscriptionResource(sub);
+      } catch (e) {
+        console.warn('[payments] Webhook PayPal suscripción:', e);
+      }
+      return;
+    }
+    case 'PAYMENT.SALE.COMPLETED': {
+      const subId = body.resource?.billing_agreement_id;
+      if (!subId) return;
+      try {
+        const sub = await getPayPalSubscription(subId);
+        await syncProfileFromPayPalSubscriptionResource(sub);
+        const saleId = body.resource?.id;
+        const total = body.resource?.amount?.total;
+        const currency = body.resource?.amount?.currency ?? 'MXN';
+        if (saleId && total) {
+          const amountCents = paypalValueToCents(total, currency);
+          const parsed = parsePayPalCustomId(sub.custom_id);
+          if (parsed) {
+            await prisma.$transaction(async (tx) => {
+              const existing = await tx.payment.findUnique({
+                where: {
+                  provider_externalId: { provider: PaymentProvider.paypal, externalId: saleId },
+                },
+              });
+              if (existing?.status === PaymentStatus.completed) return;
+              await tx.payment.create({
+                data: {
+                  userId: parsed.userId,
+                  provider: PaymentProvider.paypal,
+                  externalId: saleId,
+                  amount: amountCents,
+                  currency: currency.toLowerCase(),
+                  status: PaymentStatus.completed,
+                  tier: parsed.tier as SubscriptionTier,
+                  metadata: { source: 'sale', subscriptionId: subId } as Prisma.InputJsonValue,
+                },
+              });
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('[payments] Webhook PayPal PAYMENT.SALE:', e);
+      }
+      return;
+    }
+    case 'PAYMENT.CAPTURE.COMPLETED': {
+      const captureId = body.resource?.id;
+      if (!captureId) return;
 
-  let customId = body.resource?.custom_id;
-  let amountValue = body.resource?.amount?.value;
-  let currencyCode = body.resource?.amount?.currency_code;
+      let customId = body.resource?.custom_id;
+      let amountValue = body.resource?.amount?.value;
+      let currencyCode = body.resource?.amount?.currency_code;
 
-  if (!customId || !amountValue || !currencyCode) {
-    const detailRes = await paypalFetch(`/v2/payments/captures/${encodeURIComponent(captureId)}`, {
-      method: 'GET',
-    });
-    if (!detailRes.ok) return;
-    const detail = (await detailRes.json()) as {
-      custom_id?: string;
-      amount?: { currency_code?: string; value?: string };
-    };
-    customId = customId ?? detail.custom_id;
-    amountValue = amountValue ?? detail.amount?.value;
-    currencyCode = currencyCode ?? detail.amount?.currency_code;
+      if (!customId || !amountValue || !currencyCode) {
+        const detailRes = await paypalFetch(`/v2/payments/captures/${encodeURIComponent(captureId)}`, {
+          method: 'GET',
+        });
+        if (!detailRes.ok) return;
+        const detail = (await detailRes.json()) as {
+          custom_id?: string;
+          amount?: { currency_code?: string; value?: string };
+        };
+        customId = customId ?? detail.custom_id;
+        amountValue = amountValue ?? detail.amount?.value;
+        currencyCode = currencyCode ?? detail.amount?.currency_code;
+      }
+
+      const parsed = parsePayPalCustomId(customId);
+      if (!parsed || !amountValue || !currencyCode) {
+        console.warn('[payments] Webhook PayPal: no se pudo resolver custom_id/monto', captureId);
+        return;
+      }
+
+      const amountCents = paypalValueToCents(amountValue, currencyCode);
+
+      await applyCompletedPayment({
+        userId: parsed.userId,
+        provider: PaymentProvider.paypal,
+        externalId: captureId,
+        amountCents,
+        currency: currencyCode,
+        tier: parsed.tier,
+        metadata: { source: 'webhook' },
+      });
+      return;
+    }
+    default:
+      return;
   }
-
-  const parsed = parsePayPalCustomId(customId);
-  if (!parsed || !amountValue || !currencyCode) {
-    console.warn('[payments] Webhook PayPal: no se pudo resolver custom_id/monto', captureId);
-    return;
-  }
-
-  const amountCents = paypalValueToCents(amountValue, currencyCode);
-
-  await applyCompletedPayment({
-    userId: parsed.userId,
-    provider: PaymentProvider.paypal,
-    externalId: captureId,
-    amountCents,
-    currency: currencyCode,
-    tier: parsed.tier,
-    metadata: { source: 'webhook' },
-  });
 }

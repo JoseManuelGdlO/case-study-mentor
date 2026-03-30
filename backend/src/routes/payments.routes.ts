@@ -2,7 +2,12 @@ import { Router } from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
-import { checkoutTierSchema, paypalCaptureSchema } from '../schemas/payment.schema.js';
+import {
+  checkoutTierSchema,
+  paypalCaptureSchema,
+  paypalSubscriptionConfirmSchema,
+} from '../schemas/payment.schema.js';
+import * as paypalBillingService from '../services/paypal-billing.service.js';
 import * as paymentService from '../services/payment.service.js';
 
 export async function stripeWebhookHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -85,6 +90,48 @@ paymentsRouter.post('/paypal/create-order', authenticate, validateBody(checkoutT
     const { tier } = req.body as { tier: 'monthly' | 'semester' | 'annual' };
     const { approvalUrl } = await paymentService.createPayPalOrder(req.user.id, tier);
     res.json({ data: { approvalUrl } });
+  } catch (e) {
+    next(e);
+  }
+});
+
+paymentsRouter.post(
+  '/paypal/create-subscription',
+  authenticate,
+  validateBody(checkoutTierSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) throw new Error('No user');
+      const { tier } = req.body as { tier: 'monthly' | 'semester' | 'annual' };
+      const { approvalUrl } = await paypalBillingService.createPayPalSubscriptionCheckout(req.user.id, tier);
+      res.json({ data: { approvalUrl } });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+paymentsRouter.post(
+  '/paypal/subscription-confirm',
+  authenticate,
+  validateBody(paypalSubscriptionConfirmSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) throw new Error('No user');
+      const { subscriptionId } = req.body as { subscriptionId: string };
+      await paypalBillingService.confirmPayPalSubscriptionAfterApproval(req.user.id, subscriptionId);
+      res.json({ data: { ok: true } });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+paymentsRouter.post('/paypal/cancel-subscription', authenticate, async (req, res, next) => {
+  try {
+    if (!req.user) throw new Error('No user');
+    await paypalBillingService.cancelPayPalSubscriptionForUser(req.user.id);
+    res.json({ data: { ok: true } });
   } catch (e) {
     next(e);
   }

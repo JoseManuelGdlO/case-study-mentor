@@ -37,6 +37,8 @@ export const planCreateSchema = z.object({
   highlighted: z.boolean().optional(),
   /** monthly | semester | annual — recomendado para enlazar con el checkout. */
   tier: z.enum(['monthly', 'semester', 'annual']).optional(),
+  /** Plan de facturación PayPal (P-...), opcional si se crea por API. */
+  paypalPlanId: z.string().min(1).optional(),
 });
 
 export const planUpdateSchema = planCreateSchema.partial();

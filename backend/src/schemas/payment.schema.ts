@@ -7,3 +7,7 @@ export const checkoutTierSchema = z.object({
 export const paypalCaptureSchema = z.object({
   orderId: z.string().min(1),
 });
+
+export const paypalSubscriptionConfirmSchema = z.object({
+  subscriptionId: z.string().min(1),
+});

@@ -41,6 +41,7 @@ export async function getProfile(userId: string) {
       subscriptionTier: true,
       subscriptionExpiresAt: true,
       stripeSubscriptionId: true,
+      paypalSubscriptionId: true,
       subscriptionCancelAtPeriodEnd: true,
       roles: { select: { role: true } },
     },
@@ -67,6 +68,7 @@ export async function getProfile(userId: string) {
       plan,
       subscriptionExpiresAt,
       hasStripeSubscription: !!p.stripeSubscriptionId,
+      hasPayPalSubscription: !!p.paypalSubscriptionId,
       subscriptionCancelAtPeriodEnd: p.subscriptionCancelAtPeriodEnd,
     },
   };

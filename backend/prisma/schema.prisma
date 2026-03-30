@@ -47,6 +47,7 @@ model Profile {
   subscriptionExpiresAt          DateTime?         @map("subscription_expires_at")
   stripeCustomerId               String?           @map("stripe_customer_id")
   stripeSubscriptionId           String?           @unique @map("stripe_subscription_id")
+  paypalSubscriptionId           String?           @unique @map("paypal_subscription_id")
   subscriptionCancelAtPeriodEnd  Boolean           @default(false) @map("subscription_cancel_at_period_end")
   createdAt             DateTime          @default(now()) @map("created_at")
   updatedAt             DateTime          @updatedAt @map("updated_at")
@@ -303,7 +304,9 @@ model SubscriptionPlan {
   isActive    Boolean           @default(true) @map("is_active")
   highlighted Boolean           @default(false)
   /** Opcional: monthly | semester | annual para enlazar con el checkout sin depender solo de `duration`. */
-  tier        SubscriptionTier?
+  tier         SubscriptionTier?
+  /** ID de plan de facturación PayPal (P-...); se rellena al crear el plan por API o manualmente en backoffice. */
+  paypalPlanId String?           @map("paypal_plan_id")
 
   @@index([tier])
   @@map("subscription_plans")

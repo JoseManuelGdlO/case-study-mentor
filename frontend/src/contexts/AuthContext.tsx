@@ -18,6 +18,7 @@ export type AuthUser = {
   plan?: 'free' | 'monthly' | 'semester' | 'annual';
   subscriptionExpiresAt?: string | null;
   hasStripeSubscription?: boolean;
+  hasPayPalSubscription?: boolean;
   subscriptionCancelAtPeriodEnd?: boolean;
 };
 

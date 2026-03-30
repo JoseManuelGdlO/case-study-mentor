@@ -34,8 +34,10 @@ const Profile = () => {
   const [showPw, setShowPw] = useState(false);
   const [pwSaving, setPwSaving] = useState(false);
   const [confirmPwOpen, setConfirmPwOpen] = useState(false);
-  const [cancelSubOpen, setCancelSubOpen] = useState(false);
-  const [cancelSubBusy, setCancelSubBusy] = useState(false);
+  const [cancelStripeOpen, setCancelStripeOpen] = useState(false);
+  const [cancelStripeBusy, setCancelStripeBusy] = useState(false);
+  const [cancelPayPalOpen, setCancelPayPalOpen] = useState(false);
+  const [cancelPayPalBusy, setCancelPayPalBusy] = useState(false);
 
   useEffect(() => {
     let c = false;
@@ -105,16 +107,30 @@ const Profile = () => {
   };
 
   const cancelStripeSubscription = async () => {
-    setCancelSubBusy(true);
+    setCancelStripeBusy(true);
     try {
       await apiJson('/api/payments/stripe/cancel-subscription', { method: 'POST' });
       await refreshUser();
       toast.success('Tu suscripción se cancelará al final del periodo pagado. Seguirás con acceso hasta esa fecha.');
-      setCancelSubOpen(false);
+      setCancelStripeOpen(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'No se pudo cancelar la suscripción');
     } finally {
-      setCancelSubBusy(false);
+      setCancelStripeBusy(false);
+    }
+  };
+
+  const cancelPayPalSubscription = async () => {
+    setCancelPayPalBusy(true);
+    try {
+      await apiJson('/api/payments/paypal/cancel-subscription', { method: 'POST' });
+      await refreshUser();
+      toast.success('Tu suscripción de PayPal se ha cancelado según las condiciones de PayPal.');
+      setCancelPayPalOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo cancelar la suscripción');
+    } finally {
+      setCancelPayPalBusy(false);
     }
   };
 
@@ -173,7 +189,9 @@ const Profile = () => {
               </Badge>
               {!isFreeUser && user?.subscriptionExpiresAt && (
                 <p className="text-xs text-muted-foreground mt-1 w-full">
-                  {user?.hasStripeSubscription ? 'Próxima renovación o fin de acceso: ' : 'Vigente hasta '}
+                  {user?.hasStripeSubscription || user?.hasPayPalSubscription
+                    ? 'Próxima renovación o fin de acceso: '
+                    : 'Vigente hasta '}
                   {new Date(user.subscriptionExpiresAt).toLocaleDateString('es-MX', {
                     day: 'numeric',
                     month: 'long',
@@ -250,12 +268,12 @@ const Profile = () => {
                 Cancelación programada al final del periodo
               </Badge>
             ) : (
-              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setCancelSubOpen(true)}>
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setCancelStripeOpen(true)}>
                 Cancelar suscripción
               </Button>
             )}
 
-            <AlertDialog open={cancelSubOpen} onOpenChange={setCancelSubOpen}>
+            <AlertDialog open={cancelStripeOpen} onOpenChange={setCancelStripeOpen}>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>¿Cancelar suscripción?</AlertDialogTitle>
@@ -272,14 +290,61 @@ const Profile = () => {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel disabled={cancelSubBusy}>Volver</AlertDialogCancel>
+                  <AlertDialogCancel disabled={cancelStripeBusy}>Volver</AlertDialogCancel>
                   <Button
                     type="button"
                     variant="destructive"
-                    disabled={cancelSubBusy}
+                    disabled={cancelStripeBusy}
                     onClick={() => void cancelStripeSubscription()}
                   >
-                    {cancelSubBusy ? 'Procesando…' : 'Sí, cancelar al final del periodo'}
+                    {cancelStripeBusy ? 'Procesando…' : 'Sí, cancelar al final del periodo'}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      )}
+
+      {user?.hasPayPalSubscription && (
+        <Card className="border-0 shadow-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Crown className="w-5 h-5 text-warning" /> Membresía (PayPal)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Tienes una suscripción recurrente con PayPal. Puedes cancelarla desde aquí; el efecto exacto depende
+              del estado de tu suscripción en PayPal.
+            </p>
+            {user?.subscriptionCancelAtPeriodEnd ? (
+              <Badge variant="secondary" className="bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/30">
+                Cancelación solicitada
+              </Badge>
+            ) : (
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setCancelPayPalOpen(true)}>
+                Cancelar suscripción
+              </Button>
+            )}
+
+            <AlertDialog open={cancelPayPalOpen} onOpenChange={setCancelPayPalOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Cancelar suscripción PayPal?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Se enviará la cancelación a PayPal. Si tienes dudas, revisa también el centro de PayPal.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={cancelPayPalBusy}>Volver</AlertDialogCancel>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={cancelPayPalBusy}
+                    onClick={() => void cancelPayPalSubscription()}
+                  >
+                    {cancelPayPalBusy ? 'Procesando…' : 'Sí, cancelar'}
                   </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
