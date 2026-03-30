@@ -697,3 +697,77 @@ export async function processPayPalWebhookEvent(body: {
       return;
   }
 }
+
+export type PaymentHistoryItem = {
+  id: string;
+  createdAt: string;
+  amount: number;
+  currency: string;
+  provider: PaymentProvider;
+  status: PaymentStatus;
+  tier: SubscriptionTier;
+};
+
+export async function listPaymentsForUser(userId: string): Promise<PaymentHistoryItem[]> {
+  const rows = await prisma.payment.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      createdAt: true,
+      amount: true,
+      currency: true,
+      provider: true,
+      status: true,
+      tier: true,
+    },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    createdAt: r.createdAt.toISOString(),
+    amount: r.amount,
+    currency: r.currency,
+    provider: r.provider,
+    status: r.status,
+    tier: r.tier,
+  }));
+}
+
+/** Resolves a hosted receipt URL for Stripe payments; PayPal returns null. */
+export async function getReceiptUrlForPayment(userId: string, paymentId: string): Promise<string | null> {
+  const row = await prisma.payment.findFirst({
+    where: { id: paymentId, userId },
+    select: { provider: true, externalId: true },
+  });
+  if (!row) throw serviceError('Pago no encontrado', 404);
+  if (row.provider === PaymentProvider.paypal) {
+    return null;
+  }
+  const stripe = getStripe();
+  const ext = row.externalId;
+  if (ext.startsWith('in_')) {
+    const inv = await stripe.invoices.retrieve(ext);
+    return inv.hosted_invoice_url ?? inv.invoice_pdf ?? null;
+  }
+  if (ext.startsWith('cs_')) {
+    const session = await stripe.checkout.sessions.retrieve(ext, { expand: ['invoice'] });
+    if (session.invoice) {
+      const inv =
+        typeof session.invoice === 'string'
+          ? await stripe.invoices.retrieve(session.invoice)
+          : session.invoice;
+      return inv.hosted_invoice_url ?? inv.invoice_pdf ?? null;
+    }
+    const piRef = session.payment_intent;
+    const piId = typeof piRef === 'string' ? piRef : piRef?.id;
+    if (piId) {
+      const pi = await stripe.paymentIntents.retrieve(piId, { expand: ['latest_charge'] });
+      const lc = pi.latest_charge;
+      if (typeof lc === 'object' && lc && 'receipt_url' in lc) {
+        return (lc as Stripe.Charge).receipt_url ?? null;
+      }
+    }
+    return null;
+  }
+  return null;
+}

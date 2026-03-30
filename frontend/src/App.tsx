@@ -17,6 +17,7 @@ import ExamStudy from "./pages/ExamStudy";
 import Results from "./pages/Results";
 import Statistics from "./pages/Statistics";
 import Subscription from "./pages/Subscription";
+import Soporte from "./pages/Soporte";
 import Profile from "./pages/Profile";
 import CaseList from "./pages/CaseList";
 import CaseEditor from "./pages/CaseEditor";
@@ -74,6 +75,7 @@ const App = () => (
                 <Route path="new-exam" element={<NewExam />} />
                 <Route path="stats" element={<Statistics />} />
                 <Route path="subscription" element={<Subscription />} />
+                <Route path="soporte" element={<Soporte />} />
                 <Route path="profile" element={<Profile />} />
               </Route>
 

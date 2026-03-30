@@ -42,6 +42,36 @@ export async function paypalWebhookHandler(req: Request, res: Response, next: Ne
 
 export const paymentsRouter = Router();
 
+paymentsRouter.get('/history', authenticate, async (req, res, next) => {
+  try {
+    if (!req.user) throw new Error('No user');
+    const payments = await paymentService.listPaymentsForUser(req.user.id);
+    res.json({ data: { payments } });
+  } catch (e) {
+    next(e);
+  }
+});
+
+paymentsRouter.get('/:paymentId/receipt', authenticate, async (req, res, next) => {
+  try {
+    if (!req.user) throw new Error('No user');
+    const rawId = req.params.paymentId;
+    const paymentId = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!paymentId) {
+      res.status(400).json({ error: 'Falta el identificador del pago' });
+      return;
+    }
+    const receiptUrl = await paymentService.getReceiptUrlForPayment(req.user.id, paymentId);
+    if (!receiptUrl) {
+      res.status(404).json({ error: 'No hay recibo disponible para este pago' });
+      return;
+    }
+    res.json({ data: { url: receiptUrl } });
+  } catch (e) {
+    next(e);
+  }
+});
+
 paymentsRouter.post(
   '/stripe/checkout-session',
   authenticate,
