@@ -47,7 +47,10 @@ async function main() {
               text: '¿Pregunta demo?',
               summary: 'Resumen breve.',
               bibliography: 'Demo.',
-              difficulty: 'medium',
+              difficultyLevel: 2,
+              cognitiveCompetence: false,
+              previousEnarmPresence: false,
+              hint: '',
               orderIndex: 0,
               options: {
                 create: [

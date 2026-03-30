@@ -8,12 +8,17 @@ const optionSchema = z.object({
   explanation: z.string(),
 });
 
+const difficultyLevelSchema = z.union([z.literal(1), z.literal(2), z.literal(3)]);
+
 const questionSchema = z.object({
   text: z.string(),
   imageUrl: z.string().optional().nullable(),
   summary: z.string(),
   bibliography: z.string(),
-  difficulty: z.enum(['low', 'medium', 'high']).default('medium'),
+  difficultyLevel: difficultyLevelSchema.default(2),
+  cognitiveCompetence: z.boolean().default(false),
+  previousEnarmPresence: z.boolean().default(false),
+  hint: z.string().default(''),
   orderIndex: z.number().int().min(0).optional(),
   options: z.array(optionSchema).length(4),
 });

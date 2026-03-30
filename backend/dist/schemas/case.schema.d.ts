@@ -12,7 +12,10 @@ export declare const createCaseSchema: z.ZodObject<{
         imageUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         summary: z.ZodString;
         bibliography: z.ZodString;
-        difficulty: z.ZodDefault<z.ZodEnum<["low", "medium", "high"]>>;
+        difficultyLevel: z.ZodDefault<z.ZodUnion<[z.ZodLiteral<1>, z.ZodLiteral<2>, z.ZodLiteral<3>]>>;
+        cognitiveCompetence: z.ZodDefault<z.ZodBoolean>;
+        previousEnarmPresence: z.ZodDefault<z.ZodBoolean>;
+        hint: z.ZodDefault<z.ZodString>;
         orderIndex: z.ZodOptional<z.ZodNumber>;
         options: z.ZodArray<z.ZodObject<{
             label: z.ZodString;
@@ -44,7 +47,10 @@ export declare const createCaseSchema: z.ZodObject<{
         text: string;
         summary: string;
         bibliography: string;
-        difficulty: "high" | "low" | "medium";
+        difficultyLevel: 1 | 3 | 2;
+        cognitiveCompetence: boolean;
+        previousEnarmPresence: boolean;
+        hint: string;
         imageUrl?: string | null | undefined;
         orderIndex?: number | undefined;
     }, {
@@ -59,7 +65,10 @@ export declare const createCaseSchema: z.ZodObject<{
         summary: string;
         bibliography: string;
         imageUrl?: string | null | undefined;
-        difficulty?: "high" | "low" | "medium" | undefined;
+        difficultyLevel?: 1 | 3 | 2 | undefined;
+        cognitiveCompetence?: boolean | undefined;
+        previousEnarmPresence?: boolean | undefined;
+        hint?: string | undefined;
         orderIndex?: number | undefined;
     }>, "many">;
     labResults: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodObject<{
@@ -96,7 +105,10 @@ export declare const createCaseSchema: z.ZodObject<{
         text: string;
         summary: string;
         bibliography: string;
-        difficulty: "high" | "low" | "medium";
+        difficultyLevel: 1 | 3 | 2;
+        cognitiveCompetence: boolean;
+        previousEnarmPresence: boolean;
+        hint: string;
         imageUrl?: string | null | undefined;
         orderIndex?: number | undefined;
     }[];
@@ -124,7 +136,10 @@ export declare const createCaseSchema: z.ZodObject<{
         summary: string;
         bibliography: string;
         imageUrl?: string | null | undefined;
-        difficulty?: "high" | "low" | "medium" | undefined;
+        difficultyLevel?: 1 | 3 | 2 | undefined;
+        cognitiveCompetence?: boolean | undefined;
+        previousEnarmPresence?: boolean | undefined;
+        hint?: string | undefined;
         orderIndex?: number | undefined;
     }[];
     status?: "draft" | "published" | "archived" | undefined;
@@ -151,7 +166,10 @@ export declare const updateCaseSchema: z.ZodObject<{
         imageUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         summary: z.ZodString;
         bibliography: z.ZodString;
-        difficulty: z.ZodDefault<z.ZodEnum<["low", "medium", "high"]>>;
+        difficultyLevel: z.ZodDefault<z.ZodUnion<[z.ZodLiteral<1>, z.ZodLiteral<2>, z.ZodLiteral<3>]>>;
+        cognitiveCompetence: z.ZodDefault<z.ZodBoolean>;
+        previousEnarmPresence: z.ZodDefault<z.ZodBoolean>;
+        hint: z.ZodDefault<z.ZodString>;
         orderIndex: z.ZodOptional<z.ZodNumber>;
         options: z.ZodArray<z.ZodObject<{
             label: z.ZodString;
@@ -183,7 +201,10 @@ export declare const updateCaseSchema: z.ZodObject<{
         text: string;
         summary: string;
         bibliography: string;
-        difficulty: "high" | "low" | "medium";
+        difficultyLevel: 1 | 3 | 2;
+        cognitiveCompetence: boolean;
+        previousEnarmPresence: boolean;
+        hint: string;
         imageUrl?: string | null | undefined;
         orderIndex?: number | undefined;
     }, {
@@ -198,7 +219,10 @@ export declare const updateCaseSchema: z.ZodObject<{
         summary: string;
         bibliography: string;
         imageUrl?: string | null | undefined;
-        difficulty?: "high" | "low" | "medium" | undefined;
+        difficultyLevel?: 1 | 3 | 2 | undefined;
+        cognitiveCompetence?: boolean | undefined;
+        previousEnarmPresence?: boolean | undefined;
+        hint?: string | undefined;
         orderIndex?: number | undefined;
     }>, "many">>;
     labResults: z.ZodOptional<z.ZodArray<z.ZodObject<{
@@ -236,7 +260,10 @@ export declare const updateCaseSchema: z.ZodObject<{
         text: string;
         summary: string;
         bibliography: string;
-        difficulty: "high" | "low" | "medium";
+        difficultyLevel: 1 | 3 | 2;
+        cognitiveCompetence: boolean;
+        previousEnarmPresence: boolean;
+        hint: string;
         imageUrl?: string | null | undefined;
         orderIndex?: number | undefined;
     }[] | undefined;
@@ -266,7 +293,10 @@ export declare const updateCaseSchema: z.ZodObject<{
         summary: string;
         bibliography: string;
         imageUrl?: string | null | undefined;
-        difficulty?: "high" | "low" | "medium" | undefined;
+        difficultyLevel?: 1 | 3 | 2 | undefined;
+        cognitiveCompetence?: boolean | undefined;
+        previousEnarmPresence?: boolean | undefined;
+        hint?: string | undefined;
         orderIndex?: number | undefined;
     }[] | undefined;
     labResults?: {

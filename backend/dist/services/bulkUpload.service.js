@@ -2,6 +2,30 @@ import * as XLSX from 'xlsx';
 import { z } from 'zod';
 import { prisma } from '../config/database.js';
 import { cacheService } from './cache.service.js';
+function parseDifficultyLevel(raw) {
+    if (raw === 1 || raw === 2 || raw === 3)
+        return raw;
+    const s = String(raw ?? '')
+        .trim()
+        .toLowerCase();
+    if (s === '1' || s === 'baja' || s === 'low')
+        return 1;
+    if (s === '3' || s === 'alta' || s === 'high')
+        return 3;
+    if (s === '2' || s === 'media' || s === 'medium')
+        return 2;
+    return 2;
+}
+function parseBool01(raw, defaultVal = false) {
+    if (raw == null || String(raw).trim() === '')
+        return defaultVal;
+    const s = String(raw).trim().toLowerCase();
+    if (s === '1' || s === 'sí' || s === 'si' || s === 'true' || s === 'yes' || s === 's')
+        return true;
+    if (s === '0' || s === 'no' || s === 'false' || s === 'n')
+        return false;
+    return defaultVal;
+}
 const rowSchema = z.object({
     Especialidad: z.string().min(1),
     area: z.string().min(1),
@@ -21,7 +45,10 @@ const rowSchema = z.object({
     expD: z.string().min(1),
     Resumen: z.string().min(1),
     Bibliografía: z.string().min(1),
-    Dificultad: z.enum(['low', 'medium', 'high']),
+    difficultyLevel: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    competenciaCognitiva: z.boolean(),
+    enarmPrevio: z.boolean(),
+    pista: z.string(),
     labNombre: z.string().optional().nullable(),
     labValor: z.string().optional().nullable(),
     labUnidad: z.string().optional().nullable(),
@@ -63,9 +90,20 @@ function normalizeRow(raw) {
         expD: pick(['ExplicaciónD', 'Explicación D']),
         Resumen: pick(['Resumen']),
         Bibliografía: pick(['Bibliografía', 'Bibliografia']),
-        Dificultad: String(pick(['Dificultad', 'Dificultad (low/medium/high)']) ?? 'medium')
-            .trim()
-            .toLowerCase(),
+        difficultyLevel: parseDifficultyLevel(pick(['Dificultad', 'Dificultad (1/2/3)', 'Dificultad (low/medium/high)']) ?? 'medium'),
+        competenciaCognitiva: parseBool01(pick([
+            'Competencia cognitiva',
+            'CompetenciaCognitiva',
+            'Competencia_cognitiva',
+            'Competencia cognitiva (0/1)',
+        ])),
+        enarmPrevio: parseBool01(pick([
+            'ENARM previo',
+            'Presencia ENARM previo',
+            'PresenciaEnARM',
+            'Presencia en ENARM previo',
+        ])),
+        pista: String(pick(['Pista', 'Pista (pregunta)']) ?? '').trim(),
         labNombre: pick(['Lab_Nombre', 'Lab - Estudio', 'Lab - Nombre']) ?? null,
         labValor: pick(['Lab_Valor', 'Lab - Valor']) ?? null,
         labUnidad: pick(['Lab_Unidad', 'Lab - Unidad']) ?? null,
@@ -87,9 +125,6 @@ export async function processBulkUpload(buffer) {
         const parsed = rowSchema.safeParse({
             ...normalized,
             correcta: correctLetter,
-            Dificultad: ['low', 'medium', 'high'].includes(String(normalized.Dificultad))
-                ? normalized.Dificultad
-                : 'medium',
         });
         if (!parsed.success) {
             results.errors.push({
@@ -143,7 +178,10 @@ export async function processBulkUpload(buffer) {
                                     text: row.Pregunta,
                                     summary: row.Resumen,
                                     bibliography: row.Bibliografía,
-                                    difficulty: row.Dificultad,
+                                    difficultyLevel: row.difficultyLevel,
+                                    cognitiveCompetence: row.competenciaCognitiva,
+                                    previousEnarmPresence: row.enarmPrevio,
+                                    hint: row.pista,
                                     orderIndex: 0,
                                     options: {
                                         create: labels.map((label, idx) => ({

@@ -4,7 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ChevronRight, ChevronLeft, CheckCircle2, XCircle, BookOpen, FileText, ArrowLeft } from 'lucide-react';
+import {
+  ChevronRight,
+  ChevronLeft,
+  CheckCircle2,
+  XCircle,
+  BookOpen,
+  FileText,
+  ArrowLeft,
+  Lightbulb,
+  ChevronDown,
+} from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import LabResultsAccordion from '@/components/LabResultsAccordion';
 import type { Exam, ExamFlatQuestion } from '@/types';
 import { apiJson } from '@/lib/api';
@@ -30,6 +41,7 @@ const ExamStudy = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answeredQuestions, setAnsweredQuestions] = useState<Record<string, LocalAnswer>>({});
+  const [hintOpen, setHintOpen] = useState(false);
 
   const reload = useCallback(async () => {
     if (!examId) return;
@@ -56,6 +68,10 @@ const ExamStudy = () => {
   const flat = useMemo(() => enrichFlat(exam?.flatQuestions ?? []), [exam]);
   const question = flat[currentIndex];
   const total = flat.length;
+
+  useEffect(() => {
+    setHintOpen(false);
+  }, [question?.id]);
   const progress = total ? Math.round(((currentIndex + 1) / total) * 100) : 0;
 
   const currentState = question ? answeredQuestions[question.id] : undefined;
@@ -178,6 +194,20 @@ const ExamStudy = () => {
           <Card className="border-0 shadow-md">
             <CardContent className="p-6">
               <h2 className="text-lg font-semibold text-foreground mb-4">{question.text}</h2>
+              {question.hint?.trim() ? (
+                <Collapsible open={hintOpen} onOpenChange={setHintOpen} className="mb-4">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" size="sm" type="button" className="gap-2 w-full sm:w-auto">
+                      <Lightbulb className="w-4 h-4" />
+                      {hintOpen ? 'Ocultar pista' : 'Ver pista'}
+                      <ChevronDown className={`w-4 h-4 transition-transform ${hintOpen ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3 text-sm text-muted-foreground rounded-lg border border-border bg-muted/30 p-4">
+                    {question.hint}
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : null}
               {question.imageUrl ? (
                 <img
                   src={getUploadUrl(question.imageUrl)}

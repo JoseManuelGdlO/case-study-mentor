@@ -181,14 +181,17 @@ model LabResult {
 }
 
 model Question {
-  id           String   @id @default(uuid())
-  caseId       String   @map("case_id")
-  text         String   @db.Text
-  imageUrl     String?  @map("image_url")
-  summary      String   @db.Text
-  bibliography String   @db.Text
-  difficulty   String   @default("medium")
-  orderIndex   Int      @default(0) @map("order_index")
+  id                    String   @id @default(uuid())
+  caseId                String   @map("case_id")
+  text                  String   @db.Text
+  imageUrl              String?  @map("image_url")
+  summary               String   @db.Text
+  bibliography          String   @db.Text
+  difficultyLevel       Int      @default(2) @map("difficulty_level")
+  cognitiveCompetence   Boolean  @default(false) @map("cognitive_competence")
+  previousEnarmPresence Boolean  @default(false) @map("previous_enarm_presence")
+  hint                  String   @default("") @db.Text
+  orderIndex            Int      @default(0) @map("order_index")
 
   clinicalCase ClinicalCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
   options       AnswerOption[]

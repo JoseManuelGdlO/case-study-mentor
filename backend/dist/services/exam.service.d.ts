@@ -52,7 +52,10 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
             }, "isCorrect" | "explanation">[];
             summary: string;
             bibliography: string;
-            difficulty: string;
+            difficultyLevel: number;
+            cognitiveCompetence: boolean;
+            previousEnarmPresence: boolean;
+            hint: string;
             caseText: string;
             caseImageUrl: string | null;
             specialty: string;
@@ -141,7 +144,10 @@ export declare function getExamById(userId: string, examId: string): Promise<{
             }, "isCorrect" | "explanation">[];
             summary: string;
             bibliography: string;
-            difficulty: string;
+            difficultyLevel: number;
+            cognitiveCompetence: boolean;
+            previousEnarmPresence: boolean;
+            hint: string;
             caseText: string;
             caseImageUrl: string | null;
             specialty: string;
@@ -223,7 +229,10 @@ export declare function completeExam(userId: string, examId: string, timeSpentSe
             }, "isCorrect" | "explanation">[];
             summary: string;
             bibliography: string;
-            difficulty: string;
+            difficultyLevel: number;
+            cognitiveCompetence: boolean;
+            previousEnarmPresence: boolean;
+            hint: string;
             caseText: string;
             caseImageUrl: string | null;
             specialty: string;
@@ -289,7 +298,10 @@ export declare function getExamResults(userId: string, examId: string): Promise<
             }, "isCorrect" | "explanation">[];
             summary: string;
             bibliography: string;
-            difficulty: string;
+            difficultyLevel: number;
+            cognitiveCompetence: boolean;
+            previousEnarmPresence: boolean;
+            hint: string;
             caseText: string;
             caseImageUrl: string | null;
             specialty: string;

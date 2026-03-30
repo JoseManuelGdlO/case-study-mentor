@@ -32,7 +32,10 @@ export declare function listCases(query: {
             imageUrl: string | undefined;
             summary: string;
             bibliography: string;
-            difficulty: string;
+            difficultyLevel: number;
+            cognitiveCompetence: boolean;
+            previousEnarmPresence: boolean;
+            hint: string;
             orderIndex: number;
             options: {
                 id: string;
@@ -75,7 +78,10 @@ export declare function getCaseById(id: string): Promise<{
             imageUrl: string | undefined;
             summary: string;
             bibliography: string;
-            difficulty: string;
+            difficultyLevel: number;
+            cognitiveCompetence: boolean;
+            previousEnarmPresence: boolean;
+            hint: string;
             orderIndex: number;
             options: {
                 id: string;
@@ -115,7 +121,10 @@ export declare function createCase(input: CreateCase): Promise<{
             imageUrl: string | undefined;
             summary: string;
             bibliography: string;
-            difficulty: string;
+            difficultyLevel: number;
+            cognitiveCompetence: boolean;
+            previousEnarmPresence: boolean;
+            hint: string;
             orderIndex: number;
             options: {
                 id: string;
@@ -155,7 +164,10 @@ export declare function updateCase(id: string, input: UpdateCase): Promise<{
             imageUrl: string | undefined;
             summary: string;
             bibliography: string;
-            difficulty: string;
+            difficultyLevel: number;
+            cognitiveCompetence: boolean;
+            previousEnarmPresence: boolean;
+            hint: string;
             orderIndex: number;
             options: {
                 id: string;

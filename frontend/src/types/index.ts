@@ -1,7 +1,8 @@
 export type ExamMode = 'simulation' | 'study';
 export type ExamLanguage = 'es' | 'en';
 export type ExamStatus = 'in_progress' | 'completed' | 'not_started';
-export type Difficulty = 'low' | 'medium' | 'high';
+/** 1 = Baja, 2 = Media, 3 = Alta */
+export type DifficultyLevel = 1 | 2 | 3;
 export type CaseStatus = 'draft' | 'published' | 'archived';
 
 export interface Category {
@@ -32,7 +33,10 @@ export interface Question {
   options: AnswerOption[];
   summary: string;
   bibliography: string;
-  difficulty: Difficulty;
+  difficultyLevel: DifficultyLevel;
+  cognitiveCompetence: boolean;
+  previousEnarmPresence: boolean;
+  hint: string;
 }
 
 export interface LabResult {

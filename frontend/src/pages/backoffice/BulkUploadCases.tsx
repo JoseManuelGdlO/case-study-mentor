@@ -28,7 +28,10 @@ interface ParsedCase {
   explanationD: string;
   summary: string;
   bibliography: string;
-  difficulty: string;
+  difficultyLevel: 1 | 2 | 3;
+  cognitiveCompetence: boolean;
+  previousEnarmPresence: boolean;
+  hint: string;
   labName?: string;
   labValue?: string;
   labUnit?: string;
@@ -41,7 +44,11 @@ const TEMPLATE_HEADERS = [
   'Pregunta', 'Opción A', 'Opción B', 'Opción C', 'Opción D',
   'Respuesta Correcta (A/B/C/D)', 'Explicación A', 'Explicación B',
   'Explicación C', 'Explicación D', 'Resumen', 'Bibliografía',
-  'Dificultad (low/medium/high)', 'Lab - Estudio', 'Lab - Valor',
+  'Dificultad (1/2/3 o low/medium/high)',
+  'Competencia cognitiva (0/1)',
+  'Presencia ENARM previo (0/1)',
+  'Pista',
+  'Lab - Estudio', 'Lab - Valor',
   'Lab - Unidad', 'Lab - Rango Normal',
 ];
 
@@ -62,7 +69,10 @@ const SAMPLE_DATA = [
     'Explicación opción D (ejemplo)',
     'Resumen de ejemplo — sustituir o borrar fila',
     'Bibliografía de ejemplo — sustituir o borrar fila',
-    'medium',
+    '2',
+    '0',
+    '0',
+    '',
     '', '', '', '',
   ],
 ];
@@ -87,12 +97,13 @@ function downloadTemplate() {
     ['4. El sistema agrupará automáticamente las preguntas del mismo caso por Tema + Caso Clínico.'],
     ['5. La Respuesta Correcta debe ser A, B, C o D.'],
     ['6. El Idioma debe ser "es" (español) o "en" (inglés).'],
-    ['7. La Dificultad debe ser "low", "medium" o "high".'],
-    ['8. Los campos de laboratorio son opcionales. Si un caso no tiene labs, deja esas columnas vacías.'],
-    ['9. Para agregar múltiples labs al mismo caso, agrega filas adicionales con los mismos datos del caso pero diferentes valores de lab.'],
+    ['7. Dificultad: 1=Baja, 2=Media, 3=Alta (también se aceptan low/medium/high). Vacío = Media.'],
+    ['8. Competencia cognitiva y Presencia ENARM previo: 0=No, 1=Sí (vacío = No). Pista: texto opcional.'],
+    ['9. Los campos de laboratorio son opcionales. Si un caso no tiene labs, deja esas columnas vacías.'],
+    ['10. Para agregar múltiples labs al mismo caso, agrega filas adicionales con los mismos datos del caso pero diferentes valores de lab.'],
     [''],
     ['Campos obligatorios: Especialidad, Área, Tema, Idioma, Caso Clínico, Pregunta, Opciones A-D, Respuesta Correcta, Explicaciones A-D'],
-    ['Campos opcionales: Resumen, Bibliografía, Labs'],
+    ['Campos opcionales: Resumen, Bibliografía, Dificultad/metadatos de pregunta, Pista, Labs'],
   ];
   const wsInstr = XLSX.utils.aoa_to_sheet(instrData);
   wsInstr['!cols'] = [{ wch: 100 }];
@@ -100,6 +111,23 @@ function downloadTemplate() {
 
   XLSX.writeFile(wb, 'Plantilla_Casos_Clinicos_ENARM.xlsx');
   toast.success('Plantilla descargada correctamente');
+}
+
+function parseDifficultyCell(raw: string): { ok: boolean; level: 1 | 2 | 3 } {
+  const t = raw.trim().toLowerCase();
+  if (!t) return { ok: true, level: 2 };
+  if (t === '1' || t === 'baja' || t === 'low') return { ok: true, level: 1 };
+  if (t === '3' || t === 'alta' || t === 'high') return { ok: true, level: 3 };
+  if (t === '2' || t === 'media' || t === 'medium') return { ok: true, level: 2 };
+  return { ok: false, level: 2 };
+}
+
+function parseBoolCell(raw: string): boolean {
+  const t = raw.trim().toLowerCase();
+  if (!t) return false;
+  if (t === '1' || t === 'sí' || t === 'si' || t === 'true' || t === 'yes' || t === 's') return true;
+  if (t === '0' || t === 'no' || t === 'false' || t === 'n') return false;
+  return false;
 }
 
 function validateRow(row: any, index: number): ParsedCase {
@@ -117,7 +145,9 @@ function validateRow(row: any, index: number): ParsedCase {
   const optionC = val('Opción C');
   const optionD = val('Opción D');
   const correctAnswer = val('Respuesta Correcta (A/B/C/D)').toUpperCase();
-  const difficulty = val('Dificultad (low/medium/high)') || 'medium';
+  const diffRaw =
+    val('Dificultad (1/2/3 o low/medium/high)') || val('Dificultad (low/medium/high)');
+  const diffParsed = parseDifficultyCell(diffRaw);
 
   if (!specialty) errors.push('Especialidad requerida');
   if (!area) errors.push('Área requerida');
@@ -127,7 +157,21 @@ function validateRow(row: any, index: number): ParsedCase {
   if (!questionText) errors.push('Pregunta requerida');
   if (!optionA || !optionB || !optionC || !optionD) errors.push('Todas las opciones A-D son requeridas');
   if (!['A', 'B', 'C', 'D'].includes(correctAnswer)) errors.push('Respuesta correcta debe ser A, B, C o D');
-  if (!['low', 'medium', 'high'].includes(difficulty)) errors.push('Dificultad debe ser low, medium o high');
+  if (!diffParsed.ok) errors.push('Dificultad inválida: use 1, 2, 3 o low/medium/high');
+
+  const cognitiveRaw =
+    val('Competencia cognitiva (0/1)') || val('Competencia cognitiva') || val('CompetenciaCognitiva');
+  const enarmRaw =
+    val('Presencia ENARM previo (0/1)') ||
+    val('Presencia ENARM previo') ||
+    val('PresenciaEnARM') ||
+    val('Presencia en ENARM previo');
+  if (cognitiveRaw && !/^(0|1|no|s[ií]|si|yes|true|false)$/i.test(cognitiveRaw.trim())) {
+    errors.push('Competencia cognitiva debe ser 0 o 1');
+  }
+  if (enarmRaw && !/^(0|1|no|s[ií]|si|yes|true|false)$/i.test(enarmRaw.trim())) {
+    errors.push('Presencia ENARM previo debe ser 0 o 1');
+  }
 
   return {
     row: index + 2,
@@ -139,7 +183,10 @@ function validateRow(row: any, index: number): ParsedCase {
     explanationD: val('Explicación D'),
     summary: val('Resumen'),
     bibliography: val('Bibliografía'),
-    difficulty,
+    difficultyLevel: diffParsed.level,
+    cognitiveCompetence: parseBoolCell(cognitiveRaw),
+    previousEnarmPresence: parseBoolCell(enarmRaw),
+    hint: val('Pista'),
     labName: val('Lab - Estudio') || undefined,
     labValue: val('Lab - Valor') || undefined,
     labUnit: val('Lab - Unidad') || undefined,
@@ -336,12 +383,17 @@ const BulkUploadCases = () => {
                         <Badge variant="outline" className="font-mono">{c.correctAnswer}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={
-                          c.difficulty === 'high' ? 'border-destructive/30 text-destructive' :
-                          c.difficulty === 'medium' ? 'border-warning/30 text-warning' :
-                          'border-success/30 text-success'
-                        }>
-                          {c.difficulty === 'high' ? 'Alta' : c.difficulty === 'medium' ? 'Media' : 'Baja'}
+                        <Badge
+                          variant="outline"
+                          className={
+                            c.difficultyLevel === 3
+                              ? 'border-destructive/30 text-destructive'
+                              : c.difficultyLevel === 2
+                                ? 'border-warning/30 text-warning'
+                                : 'border-success/30 text-success'
+                          }
+                        >
+                          {c.difficultyLevel === 3 ? 'Alta' : c.difficultyLevel === 2 ? 'Media' : 'Baja'}
                         </Badge>
                       </TableCell>
                       <TableCell>

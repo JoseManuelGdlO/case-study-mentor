@@ -21,13 +21,18 @@ interface LabForm {
   normalRange: string;
 }
 
+type DifficultyLevelForm = 1 | 2 | 3;
+
 interface QuestionForm {
   text: string;
   imageUrl: string;
   options: { label: string; text: string; imageUrl: string; isCorrect: boolean; explanation: string }[];
   summary: string;
   bibliography: string;
-  difficulty: string;
+  difficultyLevel: DifficultyLevelForm;
+  cognitiveCompetence: boolean;
+  previousEnarmPresence: boolean;
+  hint: string;
 }
 
 const emptyLab = (): LabForm => ({ name: '', value: '', unit: '', normalRange: '' });
@@ -43,7 +48,10 @@ const emptyQuestion = (): QuestionForm => ({
   ],
   summary: '',
   bibliography: '',
-  difficulty: 'medium',
+  difficultyLevel: 2,
+  cognitiveCompetence: false,
+  previousEnarmPresence: false,
+  hint: '',
 });
 
 function mapCaseToForm(c: ClinicalCase): {
@@ -87,7 +95,13 @@ function mapCaseToForm(c: ClinicalCase): {
             })),
             summary: q.summary,
             bibliography: q.bibliography,
-            difficulty: q.difficulty,
+            difficultyLevel:
+              q.difficultyLevel === 1 || q.difficultyLevel === 2 || q.difficultyLevel === 3
+                ? q.difficultyLevel
+                : 2,
+            cognitiveCompetence: Boolean(q.cognitiveCompetence),
+            previousEnarmPresence: Boolean(q.previousEnarmPresence),
+            hint: q.hint ?? '',
           }))
         : [emptyQuestion()],
   };
@@ -256,7 +270,10 @@ const CaseEditor = () => {
         imageUrl: q.imageUrl.trim() || null,
         summary: q.summary.trim(),
         bibliography: q.bibliography.trim(),
-        difficulty: q.difficulty as 'low' | 'medium' | 'high',
+        difficultyLevel: q.difficultyLevel,
+        cognitiveCompetence: q.cognitiveCompetence,
+        previousEnarmPresence: q.previousEnarmPresence,
+        hint: q.hint.trim(),
         orderIndex: qi,
         options: q.options.map((o) => ({
           label: o.label,
@@ -532,14 +549,17 @@ const CaseEditor = () => {
             <CardTitle className="flex items-center gap-2">
               Pregunta {qi + 1}
               <Badge variant="outline" className="ml-2">
-                <Select value={q.difficulty} onValueChange={(v) => updateQuestion(qi, 'difficulty', v)}>
+                <Select
+                  value={String(q.difficultyLevel)}
+                  onValueChange={(v) => updateQuestion(qi, 'difficultyLevel', Number(v) as DifficultyLevelForm)}
+                >
                   <SelectTrigger className="border-0 h-auto p-0 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Baja</SelectItem>
-                    <SelectItem value="medium">Media</SelectItem>
-                    <SelectItem value="high">Alta</SelectItem>
+                    <SelectItem value="1">Dificultad: Baja</SelectItem>
+                    <SelectItem value="2">Dificultad: Media</SelectItem>
+                    <SelectItem value="3">Dificultad: Alta</SelectItem>
                   </SelectContent>
                 </Select>
               </Badge>
@@ -551,6 +571,37 @@ const CaseEditor = () => {
             )}
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id={`cc-${qi}`}
+                  checked={q.cognitiveCompetence}
+                  onCheckedChange={(v) => updateQuestion(qi, 'cognitiveCompetence', Boolean(v))}
+                />
+                <Label htmlFor={`cc-${qi}`} className="text-sm font-normal cursor-pointer">
+                  Competencia cognitiva (Sí)
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id={`enarm-${qi}`}
+                  checked={q.previousEnarmPresence}
+                  onCheckedChange={(v) => updateQuestion(qi, 'previousEnarmPresence', Boolean(v))}
+                />
+                <Label htmlFor={`enarm-${qi}`} className="text-sm font-normal cursor-pointer">
+                  Presencia en ENARM previo
+                </Label>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Pista (opcional)</Label>
+              <Textarea
+                placeholder="Texto de ayuda para el estudiante, sin revelar la respuesta correcta"
+                className="min-h-[72px]"
+                value={q.hint}
+                onChange={(e) => updateQuestion(qi, 'hint', e.target.value)}
+              />
+            </div>
             <div className="space-y-2">
               <Label>Texto de la pregunta</Label>
               <Textarea

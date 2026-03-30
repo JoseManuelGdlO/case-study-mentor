@@ -27,7 +27,10 @@ function serializeCase(row: {
     imageUrl: string | null;
     summary: string;
     bibliography: string;
-    difficulty: string;
+    difficultyLevel: number;
+    cognitiveCompetence: boolean;
+    previousEnarmPresence: boolean;
+    hint: string;
     orderIndex: number;
     options: { id: string; label: string; text: string; imageUrl: string | null; isCorrect: boolean; explanation: string }[];
   }[];
@@ -58,7 +61,10 @@ function serializeCase(row: {
         imageUrl: q.imageUrl ?? undefined,
         summary: q.summary,
         bibliography: q.bibliography,
-        difficulty: q.difficulty,
+        difficultyLevel: q.difficultyLevel,
+        cognitiveCompetence: q.cognitiveCompetence,
+        previousEnarmPresence: q.previousEnarmPresence,
+        hint: q.hint,
         orderIndex: q.orderIndex,
         options: q.options.map((o) => ({
           id: o.id,
@@ -154,7 +160,10 @@ export async function createCase(input: CreateCase) {
             imageUrl: q.imageUrl ?? null,
             summary: q.summary,
             bibliography: q.bibliography,
-            difficulty: q.difficulty,
+            difficultyLevel: q.difficultyLevel,
+            cognitiveCompetence: q.cognitiveCompetence,
+            previousEnarmPresence: q.previousEnarmPresence,
+            hint: q.hint,
             orderIndex: q.orderIndex ?? qi,
             options: {
               create: q.options.map((o) => ({
@@ -230,7 +239,10 @@ export async function updateCase(id: string, input: UpdateCase) {
             imageUrl: q.imageUrl ?? null,
             summary: q.summary,
             bibliography: q.bibliography,
-            difficulty: q.difficulty,
+            difficultyLevel: q.difficultyLevel,
+            cognitiveCompetence: q.cognitiveCompetence,
+            previousEnarmPresence: q.previousEnarmPresence,
+            hint: q.hint,
             orderIndex: q.orderIndex ?? qi,
             options: {
               create: q.options.map((o) => ({

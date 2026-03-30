@@ -7,7 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import type { Exam, ExamFlatQuestion } from '@/types';
 import { apiJson } from '@/lib/api';
 import { getUploadUrl } from '@/lib/api';
-import { Clock, ChevronLeft, ChevronRight, Flag, AlertTriangle } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, Flag, AlertTriangle, Lightbulb, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import LabResultsAccordion from '@/components/LabResultsAccordion';
 import {
   AlertDialog,
@@ -40,6 +41,7 @@ const ExamSimulation = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [seconds, setSeconds] = useState(0);
+  const [hintOpen, setHintOpen] = useState(false);
 
   const reload = useCallback(async () => {
     if (!examId) return;
@@ -69,6 +71,10 @@ const ExamSimulation = () => {
   const flat = useMemo(() => enrichFlat(exam?.flatQuestions ?? []), [exam]);
   const question = flat[currentIndex];
   const total = flat.length;
+
+  useEffect(() => {
+    setHintOpen(false);
+  }, [question?.id]);
   const progress = total ? Math.round(((currentIndex + 1) / total) * 100) : 0;
   const formatTime = (s: number) =>
     `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -178,6 +184,20 @@ const ExamSimulation = () => {
           <Card className="border-0 shadow-md">
             <CardContent className="p-6">
               <h2 className="text-lg font-semibold text-foreground mb-4">{question.text}</h2>
+              {question.hint?.trim() ? (
+                <Collapsible open={hintOpen} onOpenChange={setHintOpen} className="mb-4">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" size="sm" type="button" className="gap-2 w-full sm:w-auto">
+                      <Lightbulb className="w-4 h-4" />
+                      {hintOpen ? 'Ocultar pista' : 'Ver pista'}
+                      <ChevronDown className={`w-4 h-4 transition-transform ${hintOpen ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3 text-sm text-muted-foreground rounded-lg border border-border bg-muted/30 p-4">
+                    {question.hint}
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : null}
               {question.imageUrl ? (
                 <img
                   src={getUploadUrl(question.imageUrl)}
