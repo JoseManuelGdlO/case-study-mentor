@@ -178,6 +178,13 @@ const ExamStudy = () => {
           <Card className="border-0 shadow-md">
             <CardContent className="p-6">
               <h2 className="text-lg font-semibold text-foreground mb-4">{question.text}</h2>
+              {question.imageUrl ? (
+                <img
+                  src={getUploadUrl(question.imageUrl)}
+                  alt=""
+                  className="mb-4 rounded-lg max-w-full max-h-64 border object-contain"
+                />
+              ) : null}
               <div className="space-y-3">
                 {question.options.map((opt) => {
                   const isSelected = selectedAnswer === opt.id;
@@ -224,8 +231,15 @@ const ExamStudy = () => {
                           opt.label
                         )}
                       </span>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0 flex flex-col gap-2">
                         <span className="text-foreground">{opt.text}</span>
+                        {opt.imageUrl ? (
+                          <img
+                            src={getUploadUrl(opt.imageUrl)}
+                            alt=""
+                            className="rounded-lg max-w-full max-h-48 border object-contain"
+                          />
+                        ) : null}
                         {revealed && (isSelected || isCorrect) && opt.explanation && (
                           <p className="text-sm text-muted-foreground mt-2 italic">{opt.explanation}</p>
                         )}

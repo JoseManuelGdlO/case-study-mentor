@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
@@ -22,6 +21,7 @@ type BackofficeUserRow = {
   id: string;
   name: string;
   email: string;
+  authProvider: 'email' | 'google';
   roles: AppRole[];
   plan: string;
   status: string;
@@ -30,8 +30,9 @@ type BackofficeUserRow = {
   examsCompleted: number;
 };
 
-const roleLabel = (r: AppRole) =>
-  r === 'admin' ? 'Administrador' : r === 'editor' ? 'Editor' : 'Estudiante';
+function rolesSignature(roles: AppRole[]): string {
+  return [...roles].sort().join(',');
+}
 
 const UserManagement = () => {
   const [users, setUsers] = useState<BackofficeUserRow[]>([]);
@@ -47,6 +48,8 @@ const UserManagement = () => {
   const [createLastName, setCreateLastName] = useState('');
   const [createRole, setCreateRole] = useState<AppRole>('user');
   const [creating, setCreating] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, { email: string; role: AppRole }>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
   const limit = 20;
 
   useEffect(() => {
@@ -84,21 +87,41 @@ const UserManagement = () => {
     setPage(1);
   }, [searchDebounced, roleFilter]);
 
-  const updateRoles = async (userId: string, roles: AppRole[], previous: AppRole[]) => {
-    if (roles.length === 0) {
-      toast.error('El usuario debe tener al menos un rol');
+  useEffect(() => {
+    setDrafts(
+      Object.fromEntries(users.map((u) => [u.id, { email: u.email, role: primaryRole(u.roles) }]))
+    );
+  }, [users]);
+
+  const saveUser = async (u: BackofficeUserRow) => {
+    const d = drafts[u.id];
+    if (!d) return;
+    const emailTrim = d.email.trim();
+    if (!emailTrim) {
+      toast.error('El correo no puede estar vacío');
       return;
     }
-    if (roles.length === 1 && primaryRole(previous) === roles[0]) return;
+    const emailChanged = u.authProvider === 'email' && emailTrim !== u.email;
+    const rolesChanged = rolesSignature(u.roles) !== rolesSignature([d.role]);
+    if (!emailChanged && !rolesChanged) {
+      toast.info('Sin cambios');
+      return;
+    }
+    const payload: { email?: string; roles?: AppRole[] } = {};
+    if (emailChanged) payload.email = emailTrim;
+    if (rolesChanged) payload.roles = [d.role];
+    setSavingId(u.id);
     try {
-      await apiJson(`/api/backoffice/users/${userId}/role`, {
-        method: 'PUT',
-        body: JSON.stringify({ roles }),
+      await apiJson(`/api/backoffice/users/${u.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
       });
-      toast.success('Roles actualizados');
+      toast.success('Usuario actualizado');
       await load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Error');
+      toast.error(e instanceof Error ? e.message : 'Error al guardar');
+    } finally {
+      setSavingId(null);
     }
   };
 
@@ -248,41 +271,48 @@ const UserManagement = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Roles</TableHead>
+                  <TableHead>Correo</TableHead>
+                  <TableHead>Rol</TableHead>
                   <TableHead>Plan</TableHead>
                   <TableHead>Registro</TableHead>
                   <TableHead>Última actividad</TableHead>
                   <TableHead>Exámenes</TableHead>
-                  <TableHead>Rol</TableHead>
+                  <TableHead className="w-[120px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.map((u) => (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">{u.name || '—'}</TableCell>
-                    <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {u.roles.map((r) => (
-                          <Badge key={r} variant={r === 'admin' ? 'default' : 'secondary'}>
-                            {roleLabel(r)}
-                          </Badge>
-                        ))}
-                      </div>
+                    <TableCell className="min-w-[200px]">
+                      <Input
+                        type="email"
+                        autoComplete="off"
+                        value={drafts[u.id]?.email ?? u.email}
+                        disabled={u.authProvider !== 'email'}
+                        title={
+                          u.authProvider !== 'email'
+                            ? 'Las cuentas de Google no se pueden editar aquí'
+                            : undefined
+                        }
+                        onChange={(e) =>
+                          setDrafts((prev) => {
+                            const cur = prev[u.id] ?? { email: u.email, role: primaryRole(u.roles) };
+                            return { ...prev, [u.id]: { ...cur, email: e.target.value } };
+                          })
+                        }
+                        className="h-8 text-sm"
+                      />
                     </TableCell>
-                    <TableCell className="text-sm capitalize">{u.plan}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {new Date(u.registeredAt).toLocaleDateString('es-MX')}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {new Date(u.lastAccess).toLocaleDateString('es-MX')}
-                    </TableCell>
-                    <TableCell className="text-center">{u.examsCompleted}</TableCell>
                     <TableCell>
                       <Select
-                        value={primaryRole(u.roles)}
-                        onValueChange={(v) => updateRoles(u.id, [v as AppRole], u.roles)}
+                        value={drafts[u.id]?.role ?? primaryRole(u.roles)}
+                        onValueChange={(v) =>
+                          setDrafts((prev) => {
+                            const cur = prev[u.id] ?? { email: u.email, role: primaryRole(u.roles) };
+                            return { ...prev, [u.id]: { ...cur, role: v as AppRole } };
+                          })
+                        }
                       >
                         <SelectTrigger className="w-[160px] h-8 text-xs">
                           <SelectValue />
@@ -293,6 +323,25 @@ const UserManagement = () => {
                           <SelectItem value="admin">Administrador</SelectItem>
                         </SelectContent>
                       </Select>
+                    </TableCell>
+                    <TableCell className="text-sm capitalize">{u.plan}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {new Date(u.registeredAt).toLocaleDateString('es-MX')}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {new Date(u.lastAccess).toLocaleDateString('es-MX')}
+                    </TableCell>
+                    <TableCell className="text-center">{u.examsCompleted}</TableCell>
+                    <TableCell>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={savingId === u.id}
+                        onClick={() => void saveUser(u)}
+                      >
+                        {savingId === u.id ? 'Guardando…' : 'Guardar'}
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -178,6 +178,13 @@ const ExamSimulation = () => {
           <Card className="border-0 shadow-md">
             <CardContent className="p-6">
               <h2 className="text-lg font-semibold text-foreground mb-4">{question.text}</h2>
+              {question.imageUrl ? (
+                <img
+                  src={getUploadUrl(question.imageUrl)}
+                  alt=""
+                  className="mb-4 rounded-lg max-w-full max-h-64 border object-contain"
+                />
+              ) : null}
               <div className="space-y-3">
                 {question.options.map((opt) => {
                   const selected = answers[question.id] === opt.id;
@@ -197,7 +204,16 @@ const ExamSimulation = () => {
                       >
                         {opt.label}
                       </span>
-                      <span className="text-foreground pt-1">{opt.text}</span>
+                      <div className="flex flex-col gap-2 flex-1 min-w-0">
+                        <span className="text-foreground pt-1">{opt.text}</span>
+                        {opt.imageUrl ? (
+                          <img
+                            src={getUploadUrl(opt.imageUrl)}
+                            alt=""
+                            className="rounded-lg max-w-full max-h-48 border object-contain"
+                          />
+                        ) : null}
+                      </div>
                     </button>
                   );
                 })}

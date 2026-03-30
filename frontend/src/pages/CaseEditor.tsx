@@ -24,7 +24,7 @@ interface LabForm {
 interface QuestionForm {
   text: string;
   imageUrl: string;
-  options: { label: string; text: string; isCorrect: boolean; explanation: string }[];
+  options: { label: string; text: string; imageUrl: string; isCorrect: boolean; explanation: string }[];
   summary: string;
   bibliography: string;
   difficulty: string;
@@ -36,10 +36,10 @@ const emptyQuestion = (): QuestionForm => ({
   text: '',
   imageUrl: '',
   options: [
-    { label: 'A', text: '', isCorrect: false, explanation: '' },
-    { label: 'B', text: '', isCorrect: false, explanation: '' },
-    { label: 'C', text: '', isCorrect: false, explanation: '' },
-    { label: 'D', text: '', isCorrect: false, explanation: '' },
+    { label: 'A', text: '', imageUrl: '', isCorrect: false, explanation: '' },
+    { label: 'B', text: '', imageUrl: '', isCorrect: false, explanation: '' },
+    { label: 'C', text: '', imageUrl: '', isCorrect: false, explanation: '' },
+    { label: 'D', text: '', imageUrl: '', isCorrect: false, explanation: '' },
   ],
   summary: '',
   bibliography: '',
@@ -81,6 +81,7 @@ function mapCaseToForm(c: ClinicalCase): {
             options: q.options.map((o) => ({
               label: o.label,
               text: o.text,
+              imageUrl: o.imageUrl ?? '',
               isCorrect: Boolean(o.isCorrect),
               explanation: o.explanation ?? '',
             })),
@@ -209,6 +210,32 @@ const CaseEditor = () => {
     }
   };
 
+  const onQuestionImagePick = async (qi: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const url = await uploadImageFile(file);
+      updateQuestion(qi, 'imageUrl', url);
+      toast.success('Imagen de la pregunta subida');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al subir');
+    }
+  };
+
+  const onOptionImagePick = async (qi: number, oi: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const url = await uploadImageFile(file);
+      updateOption(qi, oi, 'imageUrl', url);
+      toast.success('Imagen de la opción subida');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al subir');
+    }
+  };
+
   const buildPayload = useCallback(() => {
     return {
       specialtyId,
@@ -234,7 +261,7 @@ const CaseEditor = () => {
         options: q.options.map((o) => ({
           label: o.label,
           text: o.text.trim(),
-          imageUrl: null as string | null,
+          imageUrl: o.imageUrl.trim() || null,
           isCorrect: o.isCorrect,
           explanation: o.explanation.trim(),
         })),
@@ -533,12 +560,34 @@ const CaseEditor = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label>URL imagen (opcional)</Label>
-              <Input
-                placeholder="/uploads/… o URL absoluta"
-                value={q.imageUrl}
-                onChange={(e) => updateQuestion(qi, 'imageUrl', e.target.value)}
+              <Label>Imagen de la pregunta (opcional)</Label>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id={`question-img-${qi}`}
+                onChange={(e) => void onQuestionImagePick(qi, e)}
               />
+              {q.imageUrl ? (
+                <div className="space-y-2">
+                  <img
+                    src={getUploadUrl(q.imageUrl)}
+                    alt={`Pregunta ${qi + 1}`}
+                    className="max-h-40 rounded-lg border object-contain"
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={() => updateQuestion(qi, 'imageUrl', '')}>
+                    Quitar imagen
+                  </Button>
+                </div>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => document.getElementById(`question-img-${qi}`)?.click()}
+              >
+                <ImagePlus className="w-4 h-4" /> Subir imagen de la pregunta
+              </Button>
             </div>
 
             <Separator />
@@ -566,6 +615,42 @@ const CaseEditor = () => {
                       <Checkbox checked={opt.isCorrect} onCheckedChange={(v) => updateOption(qi, oi, 'isCorrect', v)} />
                       <Label className="text-xs text-muted-foreground whitespace-nowrap">Correcta</Label>
                     </div>
+                  </div>
+                  <div className="space-y-2 pl-11">
+                    <Label className="text-xs text-muted-foreground">Imagen de la opción (opcional)</Label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      id={`option-img-${qi}-${oi}`}
+                      onChange={(e) => void onOptionImagePick(qi, oi, e)}
+                    />
+                    {opt.imageUrl ? (
+                      <div className="space-y-2">
+                        <img
+                          src={getUploadUrl(opt.imageUrl)}
+                          alt={`Opción ${opt.label}`}
+                          className="max-h-32 rounded-lg border object-contain"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateOption(qi, oi, 'imageUrl', '')}
+                        >
+                          Quitar imagen
+                        </Button>
+                      </div>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => document.getElementById(`option-img-${qi}-${oi}`)?.click()}
+                    >
+                      <ImagePlus className="w-4 h-4" /> Subir imagen
+                    </Button>
                   </div>
                   <Textarea
                     placeholder="Explicación de esta opción..."

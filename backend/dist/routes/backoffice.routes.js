@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { requireAdmin, requireCaseEditor } from '../middleware/roles.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
-import { areaCreateSchema, backofficeUserCreateSchema, backofficeUsersQuerySchema, examDateCreateSchema, examDateUpdateSchema, phraseCreateSchema, phraseUpdateSchema, planCreateSchema, planUpdateSchema, specialtyCreateSchema, specialtyUpdateSchema, userRoleUpdateSchema, } from '../schemas/backoffice.schema.js';
+import { areaCreateSchema, backofficeUserCreateSchema, backofficeUsersQuerySchema, examDateCreateSchema, examDateUpdateSchema, phraseCreateSchema, phraseUpdateSchema, planCreateSchema, planUpdateSchema, specialtyCreateSchema, specialtyUpdateSchema, userRoleUpdateSchema, backofficeUserUpdateSchema, } from '../schemas/backoffice.schema.js';
 import { prisma } from '../config/database.js';
 import { createUserByAdmin } from '../services/auth.service.js';
 import { effectivePlanFromProfile } from '../services/profile.service.js';
@@ -304,6 +304,7 @@ backofficeRouter.get('/users', requireAdmin(), validateQuery(backofficeUsersQuer
                     updatedAt: true,
                     subscriptionTier: true,
                     subscriptionExpiresAt: true,
+                    authProvider: true,
                     roles: true,
                 },
             }),
@@ -312,6 +313,7 @@ backofficeRouter.get('/users', requireAdmin(), validateQuery(backofficeUsersQuer
             id: p.id,
             name: `${p.firstName} ${p.lastName}`.trim(),
             email: p.email,
+            authProvider: p.authProvider,
             roles: p.roles.map((r) => r.role),
             plan: effectivePlanFromProfile(p).plan,
             status: 'active',
@@ -320,6 +322,68 @@ backofficeRouter.get('/users', requireAdmin(), validateQuery(backofficeUsersQuer
             examsCompleted: 0,
         }));
         res.json({ data, total, page, totalPages: totalPages(total, limit) });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.patch('/users/:id', requireAdmin(), validateBody(backofficeUserUpdateSchema), async (req, res, next) => {
+    try {
+        const userId = paramString(req.params.id);
+        const body = req.body;
+        const profile = await prisma.profile.findUnique({
+            where: { id: userId },
+            include: { roles: true },
+        });
+        if (!profile) {
+            const err = new Error('Usuario no encontrado');
+            err.status = 404;
+            throw err;
+        }
+        const newEmail = body.email?.trim();
+        if (newEmail !== undefined && newEmail !== profile.email) {
+            if (profile.authProvider !== 'email') {
+                const err = new Error('Solo se puede cambiar el correo de cuentas registradas con email y contraseña');
+                err.status = 400;
+                throw err;
+            }
+            const taken = await prisma.profile.findFirst({
+                where: { email: newEmail, NOT: { id: userId } },
+            });
+            if (taken) {
+                const err = new Error('Ese correo ya está en uso');
+                err.status = 409;
+                throw err;
+            }
+        }
+        const roleList = body.roles;
+        const prevRolesSorted = [...profile.roles.map((r) => r.role)].sort().join(',');
+        const nextRolesSorted = roleList !== undefined ? [...new Set(roleList)].sort().join(',') : prevRolesSorted;
+        await prisma.$transaction(async (tx) => {
+            if (newEmail !== undefined && newEmail !== profile.email) {
+                await tx.profile.update({
+                    where: { id: userId },
+                    data: { email: newEmail },
+                });
+            }
+            if (roleList !== undefined && prevRolesSorted !== nextRolesSorted) {
+                await tx.userRole.deleteMany({ where: { userId } });
+                await tx.userRole.createMany({
+                    data: [...new Set(roleList)].map((role) => ({ userId, role })),
+                });
+            }
+        });
+        const p = await prisma.profile.findUnique({
+            where: { id: userId },
+            include: { roles: true },
+        });
+        res.json({
+            data: {
+                id: p?.id,
+                email: p?.email,
+                roles: p?.roles?.map((r) => r.role) ?? [],
+            },
+        });
     }
     catch (e) {
         next(e);

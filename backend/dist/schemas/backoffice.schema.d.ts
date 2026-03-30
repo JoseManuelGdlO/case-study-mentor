@@ -137,6 +137,23 @@ export declare const userRoleUpdateSchema: z.ZodObject<{
 }, {
     roles: ("admin" | "editor" | "user")[];
 }>;
+/** Admin: actualizar correo y/o rol(es). Al menos uno de los dos. */
+export declare const backofficeUserUpdateSchema: z.ZodEffects<z.ZodObject<{
+    email: z.ZodOptional<z.ZodString>;
+    roles: z.ZodOptional<z.ZodArray<z.ZodEnum<["admin", "editor", "user"]>, "many">>;
+}, "strip", z.ZodTypeAny, {
+    email?: string | undefined;
+    roles?: ("admin" | "editor" | "user")[] | undefined;
+}, {
+    email?: string | undefined;
+    roles?: ("admin" | "editor" | "user")[] | undefined;
+}>, {
+    email?: string | undefined;
+    roles?: ("admin" | "editor" | "user")[] | undefined;
+}, {
+    email?: string | undefined;
+    roles?: ("admin" | "editor" | "user")[] | undefined;
+}>;
 export declare const backofficeUserCreateSchema: z.ZodObject<{
     email: z.ZodString;
     password: z.ZodString;

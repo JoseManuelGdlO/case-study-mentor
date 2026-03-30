@@ -15,6 +15,10 @@
 #
 # Proxy mismo origen: build del frontend con VITE_API_URL vacío; CORS_ORIGIN = URL pública.
 # Orígenes separados: VITE_API_URL=https://api.tu-dominio.com y CORS_ORIGIN=https://app.tu-dominio.com
+#
+# Imágenes subidas (persistencia): el backend escribe en /app/uploads (UPLOAD_DIR=uploads).
+# Por defecto se monta ./data/uploads (relativo al repo) para desarrollo.
+# En el VPS: sudo mkdir -p /images y en .env junto a este compose define HOST_UPLOADS_BIND=/images
 
 services:
   backend:
@@ -45,7 +49,7 @@ services:
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_SECURE: ${SMTP_SECURE:-}
     volumes:
-      - backend_uploads:/app/uploads
+      - ${HOST_UPLOADS_BIND:-./data/uploads}:/app/uploads
 
   frontend:
     build:
@@ -57,6 +61,3 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-
-volumes:
-  backend_uploads:

@@ -5,3 +5,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Subidas locales (bind mount ./data/uploads)
+data/uploads/*
+!data/uploads/.gitkeep
