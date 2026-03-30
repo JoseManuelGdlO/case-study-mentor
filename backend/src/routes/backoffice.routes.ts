@@ -433,3 +433,30 @@ backofficeRouter.get('/stats', async (_req, res, next) => {
     next(e);
   }
 });
+
+backofficeRouter.get('/subscription-cancellation-feedback', async (_req, res, next) => {
+  try {
+    const rows = await prisma.subscriptionCancellationFeedback.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      include: {
+        user: { select: { email: true, firstName: true, lastName: true } },
+      },
+    });
+    res.json({
+      data: {
+        items: rows.map((r) => ({
+          id: r.id,
+          createdAt: r.createdAt.toISOString(),
+          provider: r.provider,
+          reason: r.reason,
+          details: r.details,
+          userEmail: r.user.email,
+          userName: `${r.user.firstName} ${r.user.lastName}`.trim(),
+        })),
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+});

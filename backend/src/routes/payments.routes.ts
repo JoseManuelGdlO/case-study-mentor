@@ -2,10 +2,12 @@ import { Router } from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
+import { PaymentProvider, type SubscriptionCancelReason } from '@prisma/client';
 import {
   checkoutTierSchema,
   paypalCaptureSchema,
   paypalSubscriptionConfirmSchema,
+  subscriptionCancelFeedbackSchema,
 } from '../schemas/payment.schema.js';
 import * as paypalBillingService from '../services/paypal-billing.service.js';
 import * as paymentService from '../services/payment.service.js';
@@ -104,15 +106,21 @@ paymentsRouter.post(
   }
 );
 
-paymentsRouter.post('/stripe/cancel-subscription', authenticate, async (req, res, next) => {
-  try {
-    if (!req.user) throw new Error('No user');
-    await paymentService.cancelStripeSubscription(req.user.id);
-    res.json({ data: { ok: true } });
-  } catch (e) {
-    next(e);
+paymentsRouter.post(
+  '/stripe/cancel-subscription',
+  authenticate,
+  validateBody(subscriptionCancelFeedbackSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) throw new Error('No user');
+      const { reason, details } = req.body as { reason: SubscriptionCancelReason; details?: string | null };
+      await paymentService.cancelStripeSubscription(req.user.id, { reason, details });
+      res.json({ data: { ok: true } });
+    } catch (e) {
+      next(e);
+    }
   }
-});
+);
 
 paymentsRouter.post('/paypal/create-order', authenticate, validateBody(checkoutTierSchema), async (req, res, next) => {
   try {
@@ -157,15 +165,25 @@ paymentsRouter.post(
   }
 );
 
-paymentsRouter.post('/paypal/cancel-subscription', authenticate, async (req, res, next) => {
-  try {
-    if (!req.user) throw new Error('No user');
-    await paypalBillingService.cancelPayPalSubscriptionForUser(req.user.id);
-    res.json({ data: { ok: true } });
-  } catch (e) {
-    next(e);
+paymentsRouter.post(
+  '/paypal/cancel-subscription',
+  authenticate,
+  validateBody(subscriptionCancelFeedbackSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) throw new Error('No user');
+      const { reason, details } = req.body as { reason: SubscriptionCancelReason; details?: string | null };
+      await paypalBillingService.cancelPayPalSubscriptionForUser(req.user.id);
+      await paymentService.recordSubscriptionCancellationFeedback(req.user.id, PaymentProvider.paypal, {
+        reason,
+        details,
+      });
+      res.json({ data: { ok: true } });
+    } catch (e) {
+      next(e);
+    }
   }
-});
+);
 
 paymentsRouter.post('/paypal/capture', authenticate, validateBody(paypalCaptureSchema), async (req, res, next) => {
   try {

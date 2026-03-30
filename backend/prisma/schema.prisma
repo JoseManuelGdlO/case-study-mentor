@@ -31,6 +31,17 @@ enum AuthProvider {
   google
 }
 
+enum SubscriptionCancelReason {
+  too_expensive
+  not_using_enough
+  exam_finished_or_paused
+  found_alternative
+  technical_issues
+  content_not_expected
+  prefer_not_to_say
+  other
+}
+
 model Profile {
   id                    String            @id @default(uuid())
   email                 String            @unique
@@ -55,9 +66,25 @@ model Profile {
   roles    UserRole[]
   exams    Exam[]
   answers  UserAnswer[]
-  payments Payment[]
+  payments                           Payment[]
+  subscriptionCancellationFeedbacks SubscriptionCancellationFeedback[]
 
   @@map("profiles")
+}
+
+model SubscriptionCancellationFeedback {
+  id        String                   @id @default(uuid())
+  userId    String                   @map("user_id")
+  provider  PaymentProvider
+  reason    SubscriptionCancelReason
+  details   String?                  @db.Text
+  createdAt DateTime                 @default(now()) @map("created_at")
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("subscription_cancellation_feedback")
 }
 
 model Payment {

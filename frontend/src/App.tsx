@@ -31,6 +31,7 @@ import SystemStats from "./pages/backoffice/SystemStats";
 import PhrasesManagement from "./pages/backoffice/PhrasesManagement";
 import ExamDatesManagement from "./pages/backoffice/ExamDatesManagement";
 import BulkUploadCases from "./pages/backoffice/BulkUploadCases";
+import SubscriptionCancellationFeedback from "./pages/backoffice/SubscriptionCancellationFeedback";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import TermsOfService from "./pages/TermsOfService";
@@ -176,6 +177,14 @@ const App = () => (
                   element={
                     <AdminRoute>
                       <ExamDatesManagement />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="subscription-cancellation-feedback"
+                  element={
+                    <AdminRoute>
+                      <SubscriptionCancellationFeedback />
                     </AdminRoute>
                   }
                 />

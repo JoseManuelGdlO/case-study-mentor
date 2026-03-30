@@ -3,6 +3,7 @@ import {
   PaymentProvider,
   PaymentStatus,
   type Prisma,
+  type SubscriptionCancelReason,
   type SubscriptionTier,
 } from '@prisma/client';
 import { prisma } from '../config/database.js';
@@ -338,7 +339,26 @@ async function handleStripeInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
   });
 }
 
-export async function cancelStripeSubscription(userId: string): Promise<void> {
+export async function recordSubscriptionCancellationFeedback(
+  userId: string,
+  provider: PaymentProvider,
+  feedback: { reason: SubscriptionCancelReason; details?: string | null }
+): Promise<void> {
+  const details = feedback.details?.trim();
+  await prisma.subscriptionCancellationFeedback.create({
+    data: {
+      userId,
+      provider,
+      reason: feedback.reason,
+      details: details || null,
+    },
+  });
+}
+
+export async function cancelStripeSubscription(
+  userId: string,
+  feedback: { reason: SubscriptionCancelReason; details?: string | null }
+): Promise<void> {
   const stripe = getStripe();
   const profile = await prisma.profile.findUnique({
     where: { id: userId },
@@ -359,6 +379,7 @@ export async function cancelStripeSubscription(userId: string): Promise<void> {
     where: { id: userId },
     data: { subscriptionCancelAtPeriodEnd: true },
   });
+  await recordSubscriptionCancellationFeedback(userId, PaymentProvider.stripe, feedback);
 }
 
 export async function processStripeWebhook(rawBody: Buffer, signature: string | undefined): Promise<void> {
