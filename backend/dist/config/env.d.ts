@@ -24,6 +24,11 @@ declare const envSchema: z.ZodObject<{
     SMTP_FROM: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
     /** true si usas puerto 465 con SSL */
     SMTP_SECURE: z.ZodEffects<z.ZodOptional<z.ZodBoolean>, boolean | undefined, unknown>;
+    /**
+     * false = sin express-rate-limit (solo para pruebas de carga locales/staging).
+     * En producción debe ser true; de lo contrario el servidor queda sin protección frente a abuso.
+     */
+    RATE_LIMIT_ENABLED: z.ZodEffects<z.ZodBoolean, boolean, unknown>;
 }, "strip", z.ZodTypeAny, {
     NODE_ENV: "development" | "production" | "test";
     PORT: number;
@@ -34,6 +39,7 @@ declare const envSchema: z.ZodObject<{
     GOOGLE_CLIENT_ID: string;
     CORS_ORIGIN: string;
     UPLOAD_DIR: string;
+    RATE_LIMIT_ENABLED: boolean;
     FRONTEND_URL?: string | undefined;
     STRIPE_SECRET_KEY?: string | undefined;
     STRIPE_WEBHOOK_SECRET?: string | undefined;
@@ -68,6 +74,7 @@ declare const envSchema: z.ZodObject<{
     SMTP_PASS?: unknown;
     SMTP_FROM?: unknown;
     SMTP_SECURE?: unknown;
+    RATE_LIMIT_ENABLED?: unknown;
 }>;
 export type Env = z.infer<typeof envSchema>;
 export declare const env: {
@@ -80,6 +87,7 @@ export declare const env: {
     GOOGLE_CLIENT_ID: string;
     CORS_ORIGIN: string;
     UPLOAD_DIR: string;
+    RATE_LIMIT_ENABLED: boolean;
     FRONTEND_URL?: string | undefined;
     STRIPE_SECRET_KEY?: string | undefined;
     STRIPE_WEBHOOK_SECRET?: string | undefined;

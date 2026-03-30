@@ -100,9 +100,15 @@ app.get('/api/health', async (_req, res) => {
 const generalLimiter = rateLimit({ windowMs: 60_000, max: 100, standardHeaders: true, legacyHeaders: false });
 const authLimiter = rateLimit({ windowMs: 60_000, max: 5, standardHeaders: true, legacyHeaders: false });
 
-app.use(generalLimiter);
+if (env.RATE_LIMIT_ENABLED) {
+  app.use(generalLimiter);
+}
 
-app.use('/api/auth', authLimiter, authRouter);
+if (env.RATE_LIMIT_ENABLED) {
+  app.use('/api/auth', authLimiter, authRouter);
+} else {
+  app.use('/api/auth', authRouter);
+}
 app.use('/api/cases', casesRouter);
 app.use('/api/exams', examsRouter);
 app.use('/api/profile', profileRouter);

@@ -33,6 +33,18 @@ const envSchema = z.object({
     SMTP_FROM: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
     /** true si usas puerto 465 con SSL */
     SMTP_SECURE: z.preprocess((v) => (v === '' || v === undefined ? undefined : v === true || v === 'true' || v === '1'), z.boolean().optional()),
+    /**
+     * false = sin express-rate-limit (solo para pruebas de carga locales/staging).
+     * En producción debe ser true; de lo contrario el servidor queda sin protección frente a abuso.
+     */
+    RATE_LIMIT_ENABLED: z.preprocess((v) => {
+        if (v === '' || v === undefined)
+            return true;
+        const s = String(v).toLowerCase();
+        if (s === 'false' || s === '0' || s === 'no')
+            return false;
+        return true;
+    }, z.boolean()),
 });
 function loadEnv() {
     const parsed = envSchema.safeParse(process.env);

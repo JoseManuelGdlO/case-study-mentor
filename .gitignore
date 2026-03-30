@@ -5,6 +5,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+load-tests/users.json
 
 # Subidas locales (bind mount ./data/uploads)
 data/uploads/*

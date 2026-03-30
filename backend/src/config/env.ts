@@ -39,6 +39,19 @@ const envSchema = z.object({
     (v) => (v === '' || v === undefined ? undefined : v === true || v === 'true' || v === '1'),
     z.boolean().optional()
   ),
+  /**
+   * false = sin express-rate-limit (solo para pruebas de carga locales/staging).
+   * En producción debe ser true; de lo contrario el servidor queda sin protección frente a abuso.
+   */
+  RATE_LIMIT_ENABLED: z.preprocess(
+    (v) => {
+      if (v === '' || v === undefined) return true;
+      const s = String(v).toLowerCase();
+      if (s === 'false' || s === '0' || s === 'no') return false;
+      return true;
+    },
+    z.boolean()
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;
