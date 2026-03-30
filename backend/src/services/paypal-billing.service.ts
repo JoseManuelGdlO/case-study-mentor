@@ -38,7 +38,7 @@ export async function ensurePayPalBillingPlan(planRow: {
     body: JSON.stringify({
       name: planRow.name,
       type: 'SERVICE',
-      category: 'EDUCATION_AND_TRAINING',
+      category: 'TRAINING_SERVICES',
     }),
   });
   if (!prodRes.ok) {
