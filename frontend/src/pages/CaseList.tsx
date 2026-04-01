@@ -5,12 +5,83 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Category, ClinicalCase, PaginatedResponse, PaginationMeta } from '@/types';
-import { Plus, Search, Eye, Pencil, Trash2, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, Upload, ChevronLeft, ChevronRight, Columns3 } from 'lucide-react';
 import { apiJson, apiFetch } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+
+type ColumnId =
+  | 'topic'
+  | 'description'
+  | 'uploadedAt'
+  | 'uploadedBy'
+  | 'specialty'
+  | 'area'
+  | 'language'
+  | 'questions'
+  | 'status'
+  | 'actions';
+
+type ColumnConfig = {
+  id: ColumnId;
+  label: string;
+  hideable: boolean;
+  headerClassName?: string;
+  cellClassName?: string;
+};
+
+const COLUMN_STORAGE_KEY = 'enarmx:backoffice:cases-table:column-visibility';
+const COLUMNS: ColumnConfig[] = [
+  { id: 'topic', label: 'Tema', hideable: true },
+  { id: 'description', label: 'Descripcion', hideable: true },
+  { id: 'uploadedAt', label: 'Fecha de subida', hideable: true },
+  { id: 'uploadedBy', label: 'Usuario subidor', hideable: true },
+  { id: 'specialty', label: 'Especialidad', hideable: true },
+  { id: 'area', label: 'Área', hideable: true },
+  { id: 'language', label: 'Idioma', hideable: true },
+  { id: 'questions', label: 'Preguntas', hideable: true },
+  { id: 'status', label: 'Estado', hideable: true },
+  { id: 'actions', label: 'Acciones', hideable: false, headerClassName: 'text-right', cellClassName: 'text-right' },
+];
+
+const DEFAULT_COLUMN_VISIBILITY: Record<ColumnId, boolean> = {
+  topic: true,
+  description: true,
+  uploadedAt: true,
+  uploadedBy: true,
+  specialty: true,
+  area: true,
+  language: true,
+  questions: true,
+  status: true,
+  actions: true,
+};
+
+const readColumnVisibility = (): Record<ColumnId, boolean> => {
+  if (typeof window === 'undefined') return DEFAULT_COLUMN_VISIBILITY;
+  try {
+    const raw = window.localStorage.getItem(COLUMN_STORAGE_KEY);
+    if (!raw) return DEFAULT_COLUMN_VISIBILITY;
+    const parsed = JSON.parse(raw) as Partial<Record<ColumnId, boolean>>;
+    return {
+      ...DEFAULT_COLUMN_VISIBILITY,
+      ...parsed,
+      actions: true,
+    };
+  } catch {
+    return DEFAULT_COLUMN_VISIBILITY;
+  }
+};
 
 const CaseList = () => {
   const navigate = useNavigate();
@@ -32,6 +103,7 @@ const CaseList = () => {
     hasNext: false,
     hasPrev: false,
   });
+  const [columnVisibility, setColumnVisibility] = useState<Record<ColumnId, boolean>>(readColumnVisibility);
 
   const loadCases = useCallback(async () => {
     const qs = new URLSearchParams();
@@ -85,6 +157,14 @@ const CaseList = () => {
     setPage(1);
   }, [filterStatus, filterSpecialty, limit]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(columnVisibility));
+    } catch {
+      // ignore storage write errors
+    }
+  }, [columnVisibility]);
+
   const filtered = useMemo(() => {
     if (!search.trim()) return cases;
     const q = search.toLowerCase();
@@ -128,6 +208,19 @@ const CaseList = () => {
       month: '2-digit',
       year: 'numeric',
     }).format(date);
+  };
+  const visibleColumns = useMemo(
+    () => COLUMNS.filter((column) => columnVisibility[column.id]),
+    [columnVisibility]
+  );
+  const toggleColumn = (columnId: ColumnId, checked: boolean) => {
+    setColumnVisibility((prev) => {
+      if (columnId === 'actions') return prev;
+      return {
+        ...prev,
+        [columnId]: checked,
+      };
+    });
   };
 
   return (
@@ -194,6 +287,26 @@ const CaseList = () => {
               <SelectItem value="50">50 por página</SelectItem>
             </SelectContent>
           </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Columns3 className="w-4 h-4" /> Columnas
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Mostrar columnas</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {COLUMNS.filter((column) => column.hideable).map((column) => (
+                <DropdownMenuCheckboxItem
+                  key={column.id}
+                  checked={columnVisibility[column.id]}
+                  onCheckedChange={(checked) => toggleColumn(column.id, checked === true)}
+                >
+                  {column.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </CardContent>
       </Card>
 
@@ -204,64 +317,87 @@ const CaseList = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Tema</TableHead>
-                <TableHead>Descripcion</TableHead>
-                <TableHead>Fecha de subida</TableHead>
-                <TableHead>Usuario subidor</TableHead>
-                <TableHead>Especialidad</TableHead>
-                <TableHead>Área</TableHead>
-                <TableHead>Idioma</TableHead>
-                <TableHead>Preguntas</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+                {visibleColumns.map((column) => (
+                  <TableHead key={column.id} className={column.headerClassName}>
+                    {column.label}
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((c) => (
                 <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50">
-                  <TableCell className="font-medium">{c.topic}</TableCell>
-                  <TableCell>{getShortDescription(c.text)}</TableCell>
-                  <TableCell>{formatUploadDate(c.createdAt)}</TableCell>
-                  <TableCell>{c.createdBy?.name || c.createdBy?.email || 'No disponible'}</TableCell>
-                  <TableCell>{c.specialty}</TableCell>
-                  <TableCell>{c.area}</TableCell>
-                  <TableCell>{c.language === 'es' ? '🇲🇽' : '🇺🇸'}</TableCell>
-                  <TableCell>{c.questions.length}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={statusColors[c.status]}>
-                      {statusLabels[c.status]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-1 justify-end">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => navigate(`/backoffice/cases/${c.id}`)}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => navigate(`/backoffice/cases/${c.id}`)}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      {isAdmin && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive"
-                          onClick={() => deleteCase(c.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
+                  {visibleColumns.map((column) => {
+                    if (column.id === 'topic') {
+                      return (
+                        <TableCell key={column.id} className="font-medium">
+                          {c.topic}
+                        </TableCell>
+                      );
+                    }
+                    if (column.id === 'description') {
+                      return <TableCell key={column.id}>{getShortDescription(c.text)}</TableCell>;
+                    }
+                    if (column.id === 'uploadedAt') {
+                      return <TableCell key={column.id}>{formatUploadDate(c.createdAt)}</TableCell>;
+                    }
+                    if (column.id === 'uploadedBy') {
+                      return <TableCell key={column.id}>{c.createdBy?.name || c.createdBy?.email || 'No disponible'}</TableCell>;
+                    }
+                    if (column.id === 'specialty') {
+                      return <TableCell key={column.id}>{c.specialty}</TableCell>;
+                    }
+                    if (column.id === 'area') {
+                      return <TableCell key={column.id}>{c.area}</TableCell>;
+                    }
+                    if (column.id === 'language') {
+                      return <TableCell key={column.id}>{c.language === 'es' ? '🇲🇽' : '🇺🇸'}</TableCell>;
+                    }
+                    if (column.id === 'questions') {
+                      return <TableCell key={column.id}>{c.questions.length}</TableCell>;
+                    }
+                    if (column.id === 'status') {
+                      return (
+                        <TableCell key={column.id}>
+                          <Badge variant="outline" className={statusColors[c.status]}>
+                            {statusLabels[c.status]}
+                          </Badge>
+                        </TableCell>
+                      );
+                    }
+                    return (
+                      <TableCell key={column.id} className={column.cellClassName}>
+                        <div className="flex gap-1 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => navigate(`/backoffice/cases/${c.id}`)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => navigate(`/backoffice/cases/${c.id}`)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => deleteCase(c.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableBody>
