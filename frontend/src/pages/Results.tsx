@@ -158,8 +158,8 @@ const Results = () => {
                   </div>
                 ))}
               </div>
-              <Button variant="outline" onClick={() => navigate('/dashboard')}>
-                Ir al plan en Dashboard
+              <Button variant="outline" onClick={() => navigate('/dashboard/study-plan')}>
+                Iniciar plan ahora
               </Button>
             </CardContent>
           </Card>

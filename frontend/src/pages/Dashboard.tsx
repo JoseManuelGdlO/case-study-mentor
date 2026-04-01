@@ -277,7 +277,11 @@ const Dashboard = () => {
                 <Button size="sm" onClick={() => navigate('/dashboard/subscription')}>
                   Desbloquear completo
                 </Button>
-              ) : null}
+              ) : (
+                <Button size="sm" onClick={() => navigate('/dashboard/study-plan')}>
+                  Iniciar sesion
+                </Button>
+              )}
             </div>
             {studyPlanImpact ? (
               <p className="text-xs text-muted-foreground">

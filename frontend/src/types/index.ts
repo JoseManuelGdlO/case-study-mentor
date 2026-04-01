@@ -171,7 +171,22 @@ export interface StudyPlanTask {
   targetCount: number;
   completedCount: number;
   completed: boolean;
-  payload?: unknown;
+  payload?: {
+    flashcards?: { id: string; question: string; answer: string; hint?: string | null }[];
+    cases?: {
+      id: string;
+      topic: string;
+      specialty: string;
+      area: string;
+      text: string;
+      question: {
+        id: string;
+        text: string;
+        options: { id: string; label: string; text: string; isCorrect: boolean; explanation: string }[];
+      } | null;
+    }[];
+    questions?: { id: string; text: string; hint: string; topic: string; specialty: string; area: string }[];
+  };
 }
 
 export interface StudyPlan {

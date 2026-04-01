@@ -53,7 +53,7 @@ export async function getTodayStudyPlan(userId) {
         return { data: null };
     const premium = isPaidPlan(profile.subscriptionTier, profile.subscriptionExpiresAt);
     const plan = existing ?? (await createStudyPlanForToday(userId, premium, dayStart));
-    const payload = serializePlan(plan, premium);
+    const payload = await serializePlan(plan, premium);
     await cacheService.set(key, payload, STUDY_PLAN_TTL);
     return { data: payload };
 }
@@ -75,7 +75,7 @@ export async function regenerateTodayStudyPlan(userId) {
     });
     const plan = await createStudyPlanForToday(userId, premium, dayStart);
     await invalidateStudyPlanCaches(userId);
-    return { data: serializePlan(plan, premium) };
+    return { data: await serializePlan(plan, premium) };
 }
 export async function completeStudyPlanTask(userId, planId, taskId, body) {
     const plan = await prisma.studyPlan.findFirst({
@@ -334,10 +334,20 @@ async function selectMiniCaseIds(specialtyId, areaId, count) {
     });
     return rows.slice(0, count).map((r) => r.id);
 }
-function serializePlan(plan, premium) {
+async function serializePlan(plan, premium) {
     const totalTarget = plan.tasks.reduce((s, t) => s + t.targetCount, 0);
     const totalDone = plan.tasks.reduce((s, t) => s + Math.min(t.completedCount, t.targetCount), 0);
     const completionPercent = totalTarget > 0 ? Math.round((totalDone / totalTarget) * 100) : 0;
+    const tasks = await Promise.all(plan.tasks.map(async (t) => ({
+        id: t.id,
+        type: t.taskType,
+        title: t.title,
+        description: t.description,
+        targetCount: t.targetCount,
+        completedCount: t.completedCount,
+        payload: await enrichTaskPayload(t.taskType, t.payload),
+        completed: t.completedCount >= t.targetCount,
+    })));
     return {
         id: plan.id,
         date: plan.date.toISOString(),
@@ -350,16 +360,86 @@ function serializePlan(plan, premium) {
             scoreDelta: plan.estimatedScoreDelta,
             percentileDelta: plan.estimatedPercentileDelta,
         },
-        tasks: plan.tasks.map((t) => ({
-            id: t.id,
-            type: t.taskType,
-            title: t.title,
-            description: t.description,
-            targetCount: t.targetCount,
-            completedCount: t.completedCount,
-            payload: t.payload,
-            completed: t.completedCount >= t.targetCount,
-        })),
+        tasks,
     };
+}
+async function enrichTaskPayload(taskType, payload) {
+    if (!payload || typeof payload !== 'object')
+        return payload;
+    const data = payload;
+    if (taskType === 'flashcard_set') {
+        const ids = Array.isArray(data.flashcardIds) ? data.flashcardIds.filter((v) => typeof v === 'string') : [];
+        if (ids.length === 0)
+            return { flashcards: [] };
+        const flashcards = await prisma.flashcard.findMany({
+            where: { id: { in: ids }, isActive: true },
+            select: { id: true, question: true, answer: true, hint: true },
+        });
+        return { flashcards };
+    }
+    if (taskType === 'mini_case') {
+        const ids = Array.isArray(data.caseIds) ? data.caseIds.filter((v) => typeof v === 'string') : [];
+        if (ids.length === 0)
+            return { cases: [] };
+        const cases = await prisma.clinicalCase.findMany({
+            where: { id: { in: ids }, status: 'published' },
+            select: {
+                id: true,
+                topic: true,
+                text: true,
+                specialty: { select: { name: true } },
+                area: { select: { name: true } },
+                questions: {
+                    take: 1,
+                    orderBy: { orderIndex: 'asc' },
+                    select: {
+                        id: true,
+                        text: true,
+                        options: {
+                            orderBy: { label: 'asc' },
+                            select: { id: true, label: true, text: true, isCorrect: true, explanation: true },
+                        },
+                    },
+                },
+            },
+        });
+        return {
+            cases: cases.map((c) => ({
+                id: c.id,
+                topic: c.topic,
+                specialty: c.specialty.name,
+                area: c.area.name,
+                text: c.text,
+                question: c.questions[0] ?? null,
+            })),
+        };
+    }
+    if (taskType === 'question_set') {
+        const ids = Array.isArray(data.questionIds) ? data.questionIds.filter((v) => typeof v === 'string') : [];
+        if (ids.length === 0)
+            return { questions: [] };
+        const questions = await prisma.question.findMany({
+            where: { id: { in: ids } },
+            select: {
+                id: true,
+                text: true,
+                hint: true,
+                clinicalCase: {
+                    select: { topic: true, specialty: { select: { name: true } }, area: { select: { name: true } } },
+                },
+            },
+        });
+        return {
+            questions: questions.map((q) => ({
+                id: q.id,
+                text: q.text,
+                hint: q.hint,
+                topic: q.clinicalCase.topic,
+                specialty: q.clinicalCase.specialty.name,
+                area: q.clinicalCase.area.name,
+            })),
+        };
+    }
+    return payload;
 }
 //# sourceMappingURL=study-plan.service.js.map
