@@ -31,6 +31,7 @@ const NewExam = () => {
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
   const [questionCount, setQuestionCount] = useState(10);
   const [questionFilter, setQuestionFilter] = useState<QuestionFilter>('all');
+  const [adaptiveMode, setAdaptiveMode] = useState(false);
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
@@ -100,30 +101,57 @@ const NewExam = () => {
         title: 'Modo de examen',
         subtitle: 'Elige cómo quieres practicar',
         content: (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-              type="button"
-              onClick={() => setMode('study')}
-              className={`p-6 rounded-xl border-2 text-left transition-all ${mode === 'study' ? 'border-primary bg-accent shadow-md' : 'border-border hover:border-primary/50'}`}
-            >
-              <BookOpen className="w-8 h-8 text-primary mb-3" />
-              <h3 className="font-bold text-lg text-foreground mb-1">📚 Modo Estudio</h3>
-              <p className="text-sm text-muted-foreground">
-                Recibe feedback inmediato en cada pregunta con explicaciones detalladas y bibliografía.
-              </p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('simulation')}
-              className={`p-6 rounded-xl border-2 text-left transition-all ${mode === 'simulation' ? 'border-primary bg-accent shadow-md' : 'border-border hover:border-primary/50'}`}
-            >
-              <Timer className="w-8 h-8 text-secondary mb-3" />
-              <h3 className="font-bold text-lg text-foreground mb-1">🎯 Modo Simulación</h3>
-              <p className="text-sm text-muted-foreground">
-                Simula el examen real: sin feedback hasta terminar, con temporizador incluido.
-              </p>
-            </button>
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setMode('study')}
+                className={`p-6 rounded-xl border-2 text-left transition-all ${mode === 'study' ? 'border-primary bg-accent shadow-md' : 'border-border hover:border-primary/50'}`}
+              >
+                <BookOpen className="w-8 h-8 text-primary mb-3" />
+                <h3 className="font-bold text-lg text-foreground mb-1">📚 Modo Estudio</h3>
+                <p className="text-sm text-muted-foreground">
+                  Recibe feedback inmediato en cada pregunta con explicaciones detalladas y bibliografía.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('simulation')}
+                className={`p-6 rounded-xl border-2 text-left transition-all ${mode === 'simulation' ? 'border-primary bg-accent shadow-md' : 'border-border hover:border-primary/50'}`}
+              >
+                <Timer className="w-8 h-8 text-secondary mb-3" />
+                <h3 className="font-bold text-lg text-foreground mb-1">🎯 Modo Simulación</h3>
+                <p className="text-sm text-muted-foreground">
+                  Simula el examen real: sin feedback hasta terminar, con temporizador incluido.
+                </p>
+              </button>
+            </div>
+            <div className="mt-4 rounded-xl border border-border p-4 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-foreground">Modo adaptativo ENARM</p>
+                  <p className="text-sm text-muted-foreground">
+                    Ajusta la dificultad por tu rendimiento y habilita predicción de percentil/probabilidad.
+                  </p>
+                </div>
+                <Checkbox
+                  checked={adaptiveMode}
+                  onCheckedChange={(checked) => {
+                    if (isFreeUser && checked) {
+                      toast.error('El modo adaptativo está disponible con suscripción activa');
+                      return;
+                    }
+                    setAdaptiveMode(Boolean(checked));
+                  }}
+                />
+              </div>
+              {isFreeUser && (
+                <p className="text-xs text-warning">
+                  Disponible en plan de pago. Suscríbete para desbloquear simulador adaptativo.
+                </p>
+              )}
+            </div>
+          </>
         ),
       },
       {
@@ -278,6 +306,7 @@ const NewExam = () => {
               {[
                 { label: 'Idioma', value: language === 'es' ? '🇲🇽 Español' : '🇺🇸 English' },
                 { label: 'Modo', value: mode === 'study' ? '📚 Estudio' : '🎯 Simulación' },
+                { label: 'Simulador', value: adaptiveMode ? 'Adaptativo activado' : 'Estándar' },
                 {
                   label: 'Especialidades',
                   value: categories.filter((c) => selectedCategories.includes(c.id)).map((c) => c.name).join(', ') || '—',
@@ -305,6 +334,7 @@ const NewExam = () => {
       mode,
       selectedCategories,
       questionFilter,
+      adaptiveMode,
       questionCount,
       isFreeUser,
       navigate,
@@ -328,6 +358,8 @@ const NewExam = () => {
           areaIds: selectedSubcategories.length > 0 ? selectedSubcategories : [],
           questionCount,
           questionFilter,
+          adaptiveMode,
+          predictionSpecialtyId: selectedCategories[0],
         }),
       });
       navigate(`/exam/${json.data.id}/${mode}`);

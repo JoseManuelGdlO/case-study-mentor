@@ -37,6 +37,7 @@ const emptyStats: UserStats = {
   studyStreak: 0,
   byCategory: [],
   weeklyProgress: [],
+  prediction: null,
 };
 
 const Dashboard = () => {
@@ -216,6 +217,22 @@ const Dashboard = () => {
           ))}
         </div>
       </div>
+
+      {!isFreeUser && stats.prediction && (
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Prediccion de plaza ({stats.prediction.specialty})</p>
+              <p className="text-2xl font-bold text-foreground">
+                {Math.round(stats.prediction.placementProbability)}% probabilidad · P{Math.round(stats.prediction.estimatedPercentile)}
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => navigate(`/results/${stats.prediction?.examId}`)}>
+              Ver ultimo simulador
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {inProgress.length > 1 && (
         <div>

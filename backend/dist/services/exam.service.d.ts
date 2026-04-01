@@ -7,6 +7,7 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
         config: {
             language: "es" | "en";
             mode: "simulation" | "study";
+            adaptiveMode: boolean;
             categories: string[];
             subcategories: string[];
             questionCount: number;
@@ -34,6 +35,12 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
         currentQuestionIndex: number;
         status: "not_started" | "in_progress" | "completed";
         score: number | null;
+        prediction: {
+            specialty: string;
+            estimatedPercentile: number;
+            placementProbability: number;
+            version: string;
+        } | null;
         startedAt: string;
         completedAt: string | null;
         timeSpentSeconds: number;
@@ -78,6 +85,7 @@ export declare function listExams(userId: string, page: number, limit: number): 
         config: {
             language: "es" | "en";
             mode: "simulation" | "study";
+            adaptiveMode: boolean;
             categories: string[];
             subcategories: string[];
             questionCount: number;
@@ -101,6 +109,7 @@ export declare function getExamById(userId: string, examId: string): Promise<{
         config: {
             language: "es" | "en";
             mode: "simulation" | "study";
+            adaptiveMode: boolean;
             categories: string[];
             subcategories: string[];
             questionCount: number;
@@ -128,6 +137,12 @@ export declare function getExamById(userId: string, examId: string): Promise<{
         currentQuestionIndex: number;
         status: "not_started" | "in_progress" | "completed";
         score: number | null;
+        prediction: {
+            specialty: string;
+            estimatedPercentile: number;
+            placementProbability: number;
+            version: string;
+        } | null;
         startedAt: string;
         completedAt: string | null;
         timeSpentSeconds: number;
@@ -169,6 +184,7 @@ export declare function getExamById(userId: string, examId: string): Promise<{
 export declare function submitAnswer(userId: string, examId: string, body: {
     questionId: string;
     selectedOptionId: string | null;
+    responseTimeSeconds?: number;
 }): Promise<{
     data: {
         saved: boolean;
@@ -188,6 +204,7 @@ export declare function completeExam(userId: string, examId: string, timeSpentSe
         config: {
             language: "es" | "en";
             mode: "simulation" | "study";
+            adaptiveMode: boolean;
             categories: string[];
             subcategories: string[];
             questionCount: number;
@@ -215,6 +232,12 @@ export declare function completeExam(userId: string, examId: string, timeSpentSe
         currentQuestionIndex: number;
         status: "not_started" | "in_progress" | "completed";
         score: number | null;
+        prediction: {
+            specialty: string;
+            estimatedPercentile: number;
+            placementProbability: number;
+            version: string;
+        } | null;
         startedAt: string;
         completedAt: string | null;
         timeSpentSeconds: number;
@@ -259,6 +282,7 @@ export declare function getExamResults(userId: string, examId: string): Promise<
         config: {
             language: "es" | "en";
             mode: "simulation" | "study";
+            adaptiveMode: boolean;
             categories: string[];
             subcategories: string[];
             questionCount: number;
@@ -286,6 +310,12 @@ export declare function getExamResults(userId: string, examId: string): Promise<
         currentQuestionIndex: number;
         status: "not_started" | "in_progress" | "completed";
         score: number | null;
+        prediction: {
+            specialty: string;
+            estimatedPercentile: number;
+            placementProbability: number;
+            version: string;
+        } | null;
         startedAt: string;
         completedAt: string | null;
         timeSpentSeconds: number;
@@ -322,6 +352,46 @@ export declare function getExamResults(userId: string, examId: string): Promise<
                 normalRange: string;
             }[];
         }[];
+    };
+}>;
+export declare function getNextQuestion(userId: string, examId: string): Promise<{
+    data: {
+        examId: string;
+        currentQuestionIndex: number;
+        question: {
+            id: string;
+            globalOrder: number;
+            text: string;
+            imageUrl: string | undefined;
+            options: Omit<{
+                id: string;
+                label: string;
+                text: string;
+                imageUrl: string | undefined;
+                isCorrect: boolean;
+                explanation: string;
+            }, "isCorrect" | "explanation">[];
+            summary: string;
+            bibliography: string;
+            difficultyLevel: number;
+            cognitiveCompetence: boolean;
+            previousEnarmPresence: boolean;
+            hint: string;
+            caseText: string;
+            caseImageUrl: string | null;
+            specialty: string;
+            area: string;
+            topic: string;
+            caseId: string;
+            labResults: {
+                id: string;
+                name: string;
+                value: string;
+                unit: string;
+                normalRange: string;
+            }[];
+        };
+        totalQuestions: number;
     };
 }>;
 export {};

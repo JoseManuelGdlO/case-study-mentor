@@ -68,6 +68,7 @@ const Results = () => {
   }
 
   const byCategory = stats?.byCategory ?? [];
+  const prediction = exam.prediction ?? stats?.prediction ?? null;
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -110,6 +111,29 @@ const Results = () => {
                   <Progress value={cat.percent} className="h-2" />
                 </div>
               ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {prediction && (
+          <Card className="border-0 shadow-md">
+            <CardHeader>
+              <CardTitle>Prediccion ENARM para {prediction.specialty}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm text-muted-foreground">Probabilidad de plaza</p>
+                  <p className="text-2xl font-bold text-foreground">{Math.round(prediction.placementProbability)}%</p>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm text-muted-foreground">Percentil estimado</p>
+                  <p className="text-2xl font-bold text-foreground">P{Math.round(prediction.estimatedPercentile)}</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Estimacion basada en tu desempeno actual y tendencia reciente. Version: {prediction.version}
+              </p>
             </CardContent>
           </Card>
         )}

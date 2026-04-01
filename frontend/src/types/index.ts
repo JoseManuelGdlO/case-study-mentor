@@ -95,6 +95,7 @@ export interface ClinicalCase {
 export interface ExamConfig {
   language: ExamLanguage;
   mode: ExamMode;
+  adaptiveMode?: boolean;
   categories: string[];
   subcategories: string[];
   questionCount: number;
@@ -132,6 +133,12 @@ export interface Exam {
   currentQuestionIndex: number;
   status: ExamStatus;
   score: number | null;
+  prediction?: {
+    specialty: string;
+    estimatedPercentile: number;
+    placementProbability: number;
+    version: string;
+  } | null;
   startedAt: string;
   completedAt: string | null;
   timeSpentSeconds: number;
@@ -146,6 +153,14 @@ export interface UserStats {
   studyStreak: number;
   byCategory: { category: string; total: number; correct: number; percent: number }[];
   weeklyProgress: { week: string; score: number }[];
+  prediction?: {
+    examId: string;
+    completedAt: string | null;
+    specialty: string;
+    estimatedPercentile: number;
+    placementProbability: number;
+    version: string;
+  } | null;
 }
 
 /** Frases motivacionales activas (API `/api/content/banner`). */

@@ -135,6 +135,11 @@ const ExamSimulation = () => {
           <span className="text-sm text-muted-foreground">
             Pregunta <strong className="text-foreground">{currentIndex + 1}</strong> de <strong className="text-foreground">{total}</strong>
           </span>
+          {exam.config.adaptiveMode ? (
+            <Badge variant="default" className="text-xs">
+              Simulador adaptativo activo
+            </Badge>
+          ) : null}
           <Badge variant="secondary" className="text-xs">
             Caso: pregunta {(question.caseQuestionIndex ?? 0) + 1} de {question.caseQuestionTotal ?? 1}
           </Badge>

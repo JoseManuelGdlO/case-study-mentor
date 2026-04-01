@@ -17,6 +17,14 @@ export declare function getUserStats(userId: string): Promise<{
             week: string;
             score: number;
         }[];
+        prediction: {
+            examId: string;
+            completedAt: string | null;
+            specialty: string;
+            estimatedPercentile: number;
+            placementProbability: number;
+            version: string;
+        } | null;
     };
 }>;
 export declare function invalidateUserStats(userId: string): Promise<void>;

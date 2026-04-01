@@ -29,6 +29,8 @@ declare const envSchema: z.ZodObject<{
      * En producción debe ser true; de lo contrario el servidor queda sin protección frente a abuso.
      */
     RATE_LIMIT_ENABLED: z.ZodEffects<z.ZodBoolean, boolean, unknown>;
+    /** Rollout gradual para simulador adaptativo/prediccion premium (0-100). */
+    ADAPTIVE_ROLLOUT_PERCENT: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     NODE_ENV: "development" | "production" | "test";
     PORT: number;
@@ -40,6 +42,7 @@ declare const envSchema: z.ZodObject<{
     CORS_ORIGIN: string;
     UPLOAD_DIR: string;
     RATE_LIMIT_ENABLED: boolean;
+    ADAPTIVE_ROLLOUT_PERCENT: number;
     FRONTEND_URL?: string | undefined;
     STRIPE_SECRET_KEY?: string | undefined;
     STRIPE_WEBHOOK_SECRET?: string | undefined;
@@ -75,6 +78,7 @@ declare const envSchema: z.ZodObject<{
     SMTP_FROM?: unknown;
     SMTP_SECURE?: unknown;
     RATE_LIMIT_ENABLED?: unknown;
+    ADAPTIVE_ROLLOUT_PERCENT?: number | undefined;
 }>;
 export type Env = z.infer<typeof envSchema>;
 export declare const env: {
@@ -88,6 +92,7 @@ export declare const env: {
     CORS_ORIGIN: string;
     UPLOAD_DIR: string;
     RATE_LIMIT_ENABLED: boolean;
+    ADAPTIVE_ROLLOUT_PERCENT: number;
     FRONTEND_URL?: string | undefined;
     STRIPE_SECRET_KEY?: string | undefined;
     STRIPE_WEBHOOK_SECRET?: string | undefined;

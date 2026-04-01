@@ -17,6 +17,17 @@ examsRouter.post('/generate', authenticate, validateBody(generateExamSchema), as
         next(e);
     }
 });
+examsRouter.post('/start', authenticate, validateBody(generateExamSchema), async (req, res, next) => {
+    try {
+        if (!req.user)
+            throw new Error('No user');
+        const result = await examService.generateExam(req.user.id, req.body);
+        res.status(201).json(result);
+    }
+    catch (e) {
+        next(e);
+    }
+});
 examsRouter.get('/', authenticate, async (req, res, next) => {
     try {
         if (!req.user)
@@ -35,6 +46,17 @@ examsRouter.get('/:id/results', authenticate, async (req, res, next) => {
         if (!req.user)
             throw new Error('No user');
         const result = await examService.getExamResults(req.user.id, paramString(req.params.id));
+        res.json(result);
+    }
+    catch (e) {
+        next(e);
+    }
+});
+examsRouter.get('/:id/next-question', authenticate, async (req, res, next) => {
+    try {
+        if (!req.user)
+            throw new Error('No user');
+        const result = await examService.getNextQuestion(req.user.id, paramString(req.params.id));
         res.json(result);
     }
     catch (e) {

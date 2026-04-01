@@ -69,6 +69,7 @@ export async function getUserStats(userId) {
         studyStreak,
         byCategory,
         weeklyProgress,
+        prediction: await getLatestPredictionSnapshot(userId),
     };
     await cacheService.set(key, payload, STATS_TTL);
     return { data: payload };
@@ -97,5 +98,33 @@ function buildWeeklyProgress(exams) {
 }
 export async function invalidateUserStats(userId) {
     await cacheService.invalidate(`cache:stats:${userId}`);
+}
+async function getLatestPredictionSnapshot(userId) {
+    const latest = await prisma.exam.findFirst({
+        where: { userId, status: 'completed', predictedPercentile: { not: null } },
+        orderBy: { completedAt: 'desc' },
+        select: {
+            id: true,
+            completedAt: true,
+            predictedPercentile: true,
+            predictedPlacementProbability: true,
+            predictionSpecialty: true,
+            predictionVersion: true,
+        },
+    });
+    if (!latest ||
+        latest.predictedPercentile == null ||
+        latest.predictedPlacementProbability == null ||
+        !latest.predictionSpecialty) {
+        return null;
+    }
+    return {
+        examId: latest.id,
+        completedAt: latest.completedAt?.toISOString() ?? null,
+        specialty: latest.predictionSpecialty,
+        estimatedPercentile: latest.predictedPercentile,
+        placementProbability: latest.predictedPlacementProbability,
+        version: latest.predictionVersion ?? 'heuristic-v1',
+    };
 }
 //# sourceMappingURL=stats.service.js.map

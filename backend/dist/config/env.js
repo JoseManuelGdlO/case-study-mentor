@@ -45,6 +45,8 @@ const envSchema = z.object({
             return false;
         return true;
     }, z.boolean()),
+    /** Rollout gradual para simulador adaptativo/prediccion premium (0-100). */
+    ADAPTIVE_ROLLOUT_PERCENT: z.coerce.number().min(0).max(100).default(100),
 });
 function loadEnv() {
     const parsed = envSchema.safeParse(process.env);

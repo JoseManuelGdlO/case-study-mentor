@@ -131,6 +131,7 @@ model Specialty {
   areas           Area[]
   cases           ClinicalCase[]
   examSpecialties ExamSpecialty[]
+  predictionCalibrations PredictionCalibration[]
 
   @@map("specialties")
 }
@@ -228,12 +229,17 @@ model Exam {
   id               String    @id @default(uuid())
   userId           String    @map("user_id")
   mode             String
+  adaptiveMode     Boolean   @default(false) @map("adaptive_mode")
   language         String    @default("es")
   questionCount    Int       @map("question_count")
   questionFilter   String    @default("all") @map("question_filter")
   status           String    @default("not_started")
   currentIndex     Int       @default(0) @map("current_question_index")
   score            Float?
+  predictionSpecialty          String?  @map("prediction_specialty")
+  predictionVersion            String?  @map("prediction_version")
+  predictedPercentile          Float?   @map("predicted_percentile")
+  predictedPlacementProbability Float?  @map("predicted_placement_probability")
   startedAt        DateTime? @map("started_at")
   completedAt      DateTime? @map("completed_at")
   timeSpentSeconds Int       @default(0) @map("time_spent_seconds")
@@ -304,6 +310,8 @@ model UserAnswer {
   selectedOptionId String?  @map("selected_option_id")
   isCorrect        Boolean? @map("is_correct")
   answeredAt       DateTime @default(now()) @map("answered_at")
+  responseTimeSeconds Int?  @map("response_time_seconds")
+  questionDifficulty  Int?  @map("question_difficulty")
 
   user     Profile       @relation(fields: [userId], references: [id], onDelete: Cascade)
   exam     Exam          @relation(fields: [examId], references: [id], onDelete: Cascade)
@@ -312,6 +320,24 @@ model UserAnswer {
 
   @@unique([examId, questionId])
   @@map("user_answers")
+}
+
+model PredictionCalibration {
+  id                 String   @id @default(uuid())
+  specialtyId        String   @map("specialty_id")
+  version            String   @default("v1")
+  minScore           Float    @map("min_score")
+  maxScore           Float    @map("max_score")
+  percentileEstimate Float    @map("percentile_estimate")
+  probabilityEstimate Float   @map("probability_estimate")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  specialty Specialty @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+
+  @@index([specialtyId, version])
+  @@index([specialtyId, minScore, maxScore])
+  @@map("prediction_calibrations")
 }
 
 model MotivationalPhrase {
