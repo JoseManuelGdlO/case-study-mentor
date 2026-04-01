@@ -176,17 +176,17 @@ export declare const backofficeUserCreateSchema: z.ZodObject<{
 export declare const backofficeUsersQuerySchema: z.ZodObject<{
     search: z.ZodOptional<z.ZodString>;
     role: z.ZodOptional<z.ZodEnum<["admin", "editor", "user"]>>;
-    page: z.ZodOptional<z.ZodString>;
-    limit: z.ZodOptional<z.ZodString>;
+    page: z.ZodOptional<z.ZodNumber>;
+    limit: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     search?: string | undefined;
     role?: "admin" | "editor" | "user" | undefined;
-    limit?: string | undefined;
-    page?: string | undefined;
+    limit?: number | undefined;
+    page?: number | undefined;
 }, {
     search?: string | undefined;
     role?: "admin" | "editor" | "user" | undefined;
-    limit?: string | undefined;
-    page?: string | undefined;
+    limit?: number | undefined;
+    page?: number | undefined;
 }>;
 //# sourceMappingURL=backoffice.schema.d.ts.map

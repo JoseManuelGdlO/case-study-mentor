@@ -1,11 +1,25 @@
-export function paginationParams(page?: string, limit?: string): { skip: number; take: number; page: number; limit: number } {
-  const p = Math.max(1, parseInt(page ?? '1', 10) || 1);
-  const l = Math.min(100, Math.max(1, parseInt(limit ?? '20', 10) || 20));
+type PaginationInput = string | number | undefined;
+
+export function paginationParams(page?: PaginationInput, limit?: PaginationInput): { skip: number; take: number; page: number; limit: number } {
+  const p = Math.max(1, parseInt(String(page ?? '1'), 10) || 1);
+  const l = Math.min(100, Math.max(1, parseInt(String(limit ?? '20'), 10) || 20));
   return { skip: (p - 1) * l, take: l, page: p, limit: l };
 }
 
 export function totalPages(total: number, limit: number): number {
   return Math.max(1, Math.ceil(total / limit));
+}
+
+export function paginationMeta(total: number, page: number, limit: number) {
+  const pages = totalPages(total, limit);
+  return {
+    page,
+    limit,
+    total,
+    totalPages: pages,
+    hasNext: page < pages,
+    hasPrev: page > 1,
+  };
 }
 
 export function shuffleInPlace<T>(arr: T[]): T[] {

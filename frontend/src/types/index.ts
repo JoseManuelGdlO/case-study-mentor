@@ -5,6 +5,23 @@ export type ExamStatus = 'in_progress' | 'completed' | 'not_started';
 export type DifficultyLevel = 1 | 2 | 3;
 export type CaseStatus = 'draft' | 'published' | 'archived';
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  totalPages: number;
+  meta?: PaginationMeta;
+}
+
 export interface Category {
   id: string;
   name: string;

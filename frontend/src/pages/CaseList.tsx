@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Category, ClinicalCase } from '@/types';
-import { Plus, Search, Eye, Pencil, Trash2, Upload } from 'lucide-react';
+import type { Category, ClinicalCase, PaginatedResponse, PaginationMeta } from '@/types';
+import { Plus, Search, Eye, Pencil, Trash2, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiJson, apiFetch } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -22,20 +22,40 @@ const CaseList = () => {
   const [filterSpecialty, setFilterSpecialty] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1,
+    hasNext: false,
+    hasPrev: false,
+  });
 
   const loadCases = useCallback(async () => {
     const qs = new URLSearchParams();
-    qs.set('page', '1');
-    qs.set('limit', '200');
+    qs.set('page', String(page));
+    qs.set('limit', String(limit));
     if (filterStatus !== 'all') qs.set('status', filterStatus);
     if (filterSpecialty !== 'all') qs.set('specialty', filterSpecialty);
     try {
-      const json = await apiJson<{ data: ClinicalCase[] }>(`/api/cases?${qs.toString()}`);
+      const json = await apiJson<PaginatedResponse<ClinicalCase>>(`/api/cases?${qs.toString()}`);
       setCases(json.data);
+      setPagination(
+        json.meta ?? {
+          page: json.page,
+          limit,
+          total: json.total,
+          totalPages: json.totalPages,
+          hasNext: json.page < json.totalPages,
+          hasPrev: json.page > 1,
+        }
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Error al cargar casos');
     }
-  }, [filterStatus, filterSpecialty]);
+  }, [filterStatus, filterSpecialty, page, limit]);
 
   useEffect(() => {
     let c = false;
@@ -60,6 +80,10 @@ const CaseList = () => {
       c = true;
     };
   }, [loadCases]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterStatus, filterSpecialty, limit]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return cases;
@@ -160,6 +184,16 @@ const CaseList = () => {
               <SelectItem value="archived">Archivados</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={String(limit)} onValueChange={(v) => setLimit(Number(v))}>
+            <SelectTrigger className="w-[170px]">
+              <SelectValue placeholder="Por página" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 por página</SelectItem>
+              <SelectItem value="20">20 por página</SelectItem>
+              <SelectItem value="50">50 por página</SelectItem>
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
 
@@ -234,6 +268,20 @@ const CaseList = () => {
           </Table>
         )}
       </Card>
+
+      {pagination.totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="outline" size="icon" disabled={!pagination.hasPrev} onClick={() => setPage((p) => p - 1)}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Página {pagination.page} de {pagination.totalPages}
+          </span>
+          <Button variant="outline" size="icon" disabled={!pagination.hasNext} onClick={() => setPage((p) => p + 1)}>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

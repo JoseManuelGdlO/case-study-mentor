@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Search, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiJson } from '@/lib/api';
+import type { PaginatedResponse } from '@/types';
 
 type AppRole = 'admin' | 'editor' | 'user';
 
@@ -37,6 +38,8 @@ function rolesSignature(roles: AppRole[]): string {
 const UserManagement = () => {
   const [users, setUsers] = useState<BackofficeUserRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrev, setHasPrev] = useState(false);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
@@ -65,13 +68,13 @@ const UserManagement = () => {
       qs.set('limit', String(limit));
       if (searchDebounced) qs.set('search', searchDebounced);
       if (roleFilter !== 'all') qs.set('role', roleFilter);
-      const json = await apiJson<{
-        data: BackofficeUserRow[];
-        totalPages: number;
-        page: number;
-      }>(`/api/backoffice/users?${qs.toString()}`);
+      const json = await apiJson<PaginatedResponse<BackofficeUserRow>>(`/api/backoffice/users?${qs.toString()}`);
       setUsers(json.data);
-      setTotalPages(Math.max(1, json.totalPages));
+      const resolvedTotalPages = Math.max(1, json.meta?.totalPages ?? json.totalPages);
+      const resolvedPage = json.meta?.page ?? json.page;
+      setTotalPages(resolvedTotalPages);
+      setHasNext(json.meta?.hasNext ?? resolvedPage < resolvedTotalPages);
+      setHasPrev(json.meta?.hasPrev ?? resolvedPage > 1);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Error al cargar usuarios');
     } finally {
@@ -353,13 +356,13 @@ const UserManagement = () => {
 
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
-          <Button variant="outline" size="icon" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+          <Button variant="outline" size="icon" disabled={!hasPrev} onClick={() => setPage((p) => p - 1)}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <span className="text-sm text-muted-foreground">
             Página {page} de {totalPages}
           </span>
-          <Button variant="outline" size="icon" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+          <Button variant="outline" size="icon" disabled={!hasNext} onClick={() => setPage((p) => p + 1)}>
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>

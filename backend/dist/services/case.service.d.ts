@@ -6,8 +6,8 @@ export declare function listCases(query: {
     specialty?: string;
     area?: string;
     status?: string;
-    page?: string;
-    limit?: string;
+    page?: string | number;
+    limit?: string | number;
 }): Promise<{
     data: {
         id: string;
@@ -63,6 +63,14 @@ export declare function listCases(query: {
     total: number;
     page: number;
     totalPages: number;
+    meta: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+    };
 }>;
 export declare function getCaseById(id: string): Promise<{
     data: {

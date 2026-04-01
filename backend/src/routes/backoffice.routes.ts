@@ -20,7 +20,7 @@ import {
 import { prisma } from '../config/database.js';
 import { createUserByAdmin } from '../services/auth.service.js';
 import { effectivePlanFromProfile } from '../services/profile.service.js';
-import { paginationParams, totalPages } from '../utils/helpers.js';
+import { paginationMeta, paginationParams, totalPages } from '../utils/helpers.js';
 import { cacheService } from '../services/cache.service.js';
 import { invalidateSpecialtyCache } from '../services/specialty.service.js';
 import { paramString } from '../utils/params.js';
@@ -361,8 +361,8 @@ backofficeRouter.get(
       const q = req.query as {
         search?: string;
         role?: 'admin' | 'editor' | 'user';
-        page?: string;
-        limit?: string;
+        page?: string | number;
+        limit?: string | number;
       };
       const { skip, take, page, limit } = paginationParams(q.page, q.limit);
       const where = {
@@ -414,7 +414,8 @@ backofficeRouter.get(
         lastAccess: p.updatedAt.toISOString(),
         examsCompleted: 0,
       }));
-      res.json({ data, total, page, totalPages: totalPages(total, limit) });
+      const meta = paginationMeta(total, page, limit);
+      res.json({ data, total, page, totalPages: meta.totalPages, meta });
     } catch (e) {
       next(e);
     }

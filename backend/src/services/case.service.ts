@@ -1,5 +1,5 @@
 import { prisma } from '../config/database.js';
-import { paginationParams, totalPages } from '../utils/helpers.js';
+import { paginationMeta, paginationParams } from '../utils/helpers.js';
 import type { z } from 'zod';
 import type { createCaseSchema, updateCaseSchema } from '../schemas/case.schema.js';
 import { cacheService, CACHE_KEYS } from './cache.service.js';
@@ -103,8 +103,8 @@ export async function listCases(query: {
   specialty?: string;
   area?: string;
   status?: string;
-  page?: string;
-  limit?: string;
+  page?: string | number;
+  limit?: string | number;
 }) {
   const { skip, take, page, limit } = paginationParams(query.page, query.limit);
   const where = {
@@ -129,11 +129,13 @@ export async function listCases(query: {
       },
     }),
   ]);
+  const meta = paginationMeta(total, page, limit);
   return {
     data: rows.map(serializeCase),
     total,
     page,
-    totalPages: totalPages(total, limit),
+    totalPages: meta.totalPages,
+    meta,
   };
 }
 

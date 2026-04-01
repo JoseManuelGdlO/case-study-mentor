@@ -310,19 +310,19 @@ export declare const listCasesQuerySchema: z.ZodObject<{
     specialty: z.ZodOptional<z.ZodString>;
     area: z.ZodOptional<z.ZodString>;
     status: z.ZodOptional<z.ZodEnum<["draft", "published", "archived"]>>;
-    page: z.ZodOptional<z.ZodString>;
-    limit: z.ZodOptional<z.ZodString>;
+    page: z.ZodOptional<z.ZodNumber>;
+    limit: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     status?: "draft" | "published" | "archived" | undefined;
     specialty?: string | undefined;
     area?: string | undefined;
-    limit?: string | undefined;
-    page?: string | undefined;
+    limit?: number | undefined;
+    page?: number | undefined;
 }, {
     status?: "draft" | "published" | "archived" | undefined;
     specialty?: string | undefined;
     area?: string | undefined;
-    limit?: string | undefined;
-    page?: string | undefined;
+    limit?: number | undefined;
+    page?: number | undefined;
 }>;
 //# sourceMappingURL=case.schema.d.ts.map

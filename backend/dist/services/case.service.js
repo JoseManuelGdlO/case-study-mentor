@@ -1,5 +1,5 @@
 import { prisma } from '../config/database.js';
-import { paginationParams, totalPages } from '../utils/helpers.js';
+import { paginationMeta, paginationParams } from '../utils/helpers.js';
 import { cacheService } from './cache.service.js';
 function serializeCase(row) {
     return {
@@ -85,11 +85,13 @@ export async function listCases(query) {
             },
         }),
     ]);
+    const meta = paginationMeta(total, page, limit);
     return {
         data: rows.map(serializeCase),
         total,
         page,
-        totalPages: totalPages(total, limit),
+        totalPages: meta.totalPages,
+        meta,
     };
 }
 export async function getCaseById(id) {

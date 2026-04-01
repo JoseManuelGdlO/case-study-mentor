@@ -22,7 +22,13 @@ casesRouter.get(
   validateQuery(listCasesQuerySchema),
   async (req, res, next) => {
     try {
-      const result = await caseService.listCases(req.query as Record<string, string>);
+      const result = await caseService.listCases(req.query as {
+        specialty?: string;
+        area?: string;
+        status?: string;
+        page?: number;
+        limit?: number;
+      });
       res.json(result);
     } catch (e) {
       next(e);

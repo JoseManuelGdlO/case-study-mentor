@@ -68,6 +68,6 @@ export const backofficeUserCreateSchema = z.object({
 export const backofficeUsersQuerySchema = z.object({
   search: z.string().optional(),
   role: z.enum(['admin', 'editor', 'user']).optional(),
-  page: z.string().optional(),
-  limit: z.string().optional(),
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
 });

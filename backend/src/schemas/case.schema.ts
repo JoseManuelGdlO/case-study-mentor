@@ -51,6 +51,6 @@ export const listCasesQuerySchema = z.object({
   specialty: z.string().uuid().optional(),
   area: z.string().uuid().optional(),
   status: z.enum(['draft', 'published', 'archived']).optional(),
-  page: z.string().optional(),
-  limit: z.string().optional(),
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
 });
