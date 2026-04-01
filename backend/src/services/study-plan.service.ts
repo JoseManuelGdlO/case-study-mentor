@@ -1,4 +1,4 @@
-import { SubscriptionTier } from '@prisma/client';
+import { Prisma, SubscriptionTier } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { cacheService, CACHE_KEYS } from './cache.service.js';
@@ -43,10 +43,7 @@ export async function getTodayStudyPlan(userId: string) {
     }),
     prisma.studyPlan.findFirst({
       where: { userId, date: { gte: dayStart, lt: dayEnd } },
-      include: {
-        tasks: { orderBy: { sortOrder: 'asc' } },
-        executions: true,
-      },
+      include: { tasks: { orderBy: { sortOrder: 'asc' } }, executions: true },
     }),
   ]);
   if (!profile) {
@@ -57,8 +54,16 @@ export async function getTodayStudyPlan(userId: string) {
   if (!inRollout(userId)) return { data: null };
 
   const premium = isPaidPlan(profile.subscriptionTier, profile.subscriptionExpiresAt);
-  const plan = existing ?? (await createStudyPlanForToday(userId, premium, dayStart));
-  const payload = await serializePlan(plan, premium);
+  const plan =
+    existing ??
+    (await createStudyPlanForToday(userId, premium, dayStart));
+  const planWithTasks = existing
+    ? existing
+    : await prisma.studyPlan.findFirstOrThrow({
+        where: { id: plan.id },
+        include: { tasks: { orderBy: { sortOrder: 'asc' } } },
+      });
+  const payload = await serializePlan(planWithTasks, premium);
   await cacheService.set(key, payload, STUDY_PLAN_TTL);
   return { data: payload };
 }
@@ -82,8 +87,12 @@ export async function regenerateTodayStudyPlan(userId: string) {
   });
 
   const plan = await createStudyPlanForToday(userId, premium, dayStart);
+  const planWithTasks = await prisma.studyPlan.findFirstOrThrow({
+    where: { id: plan.id },
+    include: { tasks: { orderBy: { sortOrder: 'asc' } } },
+  });
   await invalidateStudyPlanCaches(userId);
-  return { data: await serializePlan(plan, premium) };
+  return { data: await serializePlan(planWithTasks, premium) };
 }
 
 export async function completeStudyPlanTask(
@@ -240,6 +249,73 @@ async function createStudyPlanForToday(userId: string, premium: boolean, date: D
   const questionIds = await selectQuestionIds(specialtyId, areaId, questionCount);
   const flashcardIds = await selectFlashcardIds(specialtyId, areaId, flashcardCount);
   const miniCaseIds = await selectMiniCaseIds(specialtyId, areaId, miniCaseCount);
+  const taskCreates: Prisma.StudyPlanTaskCreateWithoutStudyPlanInput[] = [];
+
+  const pushTask = (task: {
+    taskType: 'question_set' | 'flashcard_set' | 'mini_case';
+    title: string;
+    description: string;
+    targetCount: number;
+    completedCount: number;
+    payload: Prisma.InputJsonValue;
+    sortOrder: number;
+  }) => {
+    taskCreates.push({
+      taskType: task.taskType,
+      title: task.title,
+      description: task.description,
+      targetCount: task.targetCount,
+      completedCount: task.completedCount,
+      payload: task.payload,
+      sortOrder: task.sortOrder,
+    });
+  };
+
+  if (questionIds.length > 0) {
+    pushTask({
+      taskType: 'question_set',
+      title: premium ? 'Bloque de 10 preguntas' : 'Bloque corto de preguntas',
+      description: 'Responde preguntas enfocadas a tus areas de mejora.',
+      targetCount: questionIds.length,
+      completedCount: 0,
+      payload: { questionIds },
+      sortOrder: 1,
+    });
+  }
+  if (flashcardIds.length > 0) {
+    pushTask({
+      taskType: 'flashcard_set',
+      title: premium ? 'Repaso con 5 flashcards' : 'Repaso con flashcards',
+      description: 'Consolida conceptos clave antes del siguiente simulador.',
+      targetCount: flashcardIds.length,
+      completedCount: 0,
+      payload: { flashcardIds },
+      sortOrder: 2,
+    });
+  }
+  if (miniCaseIds.length > 0) {
+    pushTask({
+      taskType: 'mini_case',
+      title: 'Mini-caso clinico',
+      description: 'Aplica razonamiento clinico en un caso breve.',
+      targetCount: 1,
+      completedCount: 0,
+      payload: { caseIds: miniCaseIds },
+      sortOrder: 3,
+    });
+  }
+
+  if (taskCreates.length === 0) {
+    pushTask({
+      taskType: 'question_set',
+      title: 'Bloque recomendado pendiente',
+      description: 'No hay contenido disponible para tu area actual. Regenera el plan o agrega contenido en backoffice.',
+      targetCount: 0,
+      completedCount: 0,
+      payload: { questions: [] as string[] },
+      sortOrder: 1,
+    });
+  }
 
   return prisma.studyPlan.create({
     data: {
@@ -251,39 +327,7 @@ async function createStudyPlanForToday(userId: string, premium: boolean, date: D
       estimatedScoreDelta: premium ? 2.5 : 1.2,
       estimatedPercentileDelta: premium ? 4.2 : 1.8,
       tasks: {
-        create: [
-          {
-            taskType: 'question_set',
-            title: premium ? 'Bloque de 10 preguntas' : 'Bloque corto de preguntas',
-            description: 'Responde preguntas enfocadas a tus areas de mejora.',
-            targetCount: questionCount,
-            completedCount: 0,
-            payload: { questionIds },
-            sortOrder: 1,
-          },
-          {
-            taskType: 'flashcard_set',
-            title: premium ? 'Repaso con 5 flashcards' : 'Repaso con flashcards',
-            description: 'Consolida conceptos clave antes del siguiente simulador.',
-            targetCount: flashcardCount,
-            completedCount: 0,
-            payload: { flashcardIds },
-            sortOrder: 2,
-          },
-          ...(miniCaseCount > 0
-            ? [
-                {
-                  taskType: 'mini_case' as const,
-                  title: 'Mini-caso clinico',
-                  description: 'Aplica razonamiento clinico en un caso breve.',
-                  targetCount: 1,
-                  completedCount: 0,
-                  payload: { caseIds: miniCaseIds },
-                  sortOrder: 3,
-                },
-              ]
-            : []),
-        ],
+        create: taskCreates,
       },
       executions: { create: [] },
     },

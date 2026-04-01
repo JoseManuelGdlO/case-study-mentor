@@ -14,6 +14,7 @@ const StudyPlanSession = () => {
   const [flashIdx, setFlashIdx] = useState(0);
   const [flashMastered, setFlashMastered] = useState(0);
   const [miniCaseCorrect, setMiniCaseCorrect] = useState(false);
+  const [miniCaseSelectedOptionId, setMiniCaseSelectedOptionId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,10 +32,13 @@ const StudyPlanSession = () => {
   }, []);
 
   const flashTask = plan?.tasks.find((t) => t.type === 'flashcard_set');
+  const questionTask = plan?.tasks.find((t) => t.type === 'question_set');
   const miniCaseTask = plan?.tasks.find((t) => t.type === 'mini_case');
+  const questionItems = questionTask?.payload?.questions ?? [];
   const flashcards = flashTask?.payload?.flashcards ?? [];
   const currentFlash = flashcards[flashIdx];
   const miniCase = miniCaseTask?.payload?.cases?.[0];
+  const selectedMiniCaseOption = miniCase?.question?.options.find((o) => o.id === miniCaseSelectedOptionId) ?? null;
 
   const completion = useMemo(() => {
     if (!plan) return 0;
@@ -48,6 +52,17 @@ const StudyPlanSession = () => {
       body: JSON.stringify({ completedCount, score, timeSpentSeconds: 300 }),
     });
     setPlan(res.data);
+  }
+
+  async function regeneratePlan() {
+    const res = await apiJson<{ data: StudyPlan | null }>('/api/study-plan/today/regenerate', {
+      method: 'POST',
+    });
+    setPlan(res.data);
+    setFlashIdx(0);
+    setFlashMastered(0);
+    setMiniCaseCorrect(false);
+    setMiniCaseSelectedOptionId(null);
   }
 
   if (loading) {
@@ -123,6 +138,25 @@ const StudyPlanSession = () => {
         </Card>
       )}
 
+      {questionTask && questionItems.length > 0 && (
+        <Card className="border-0 shadow-md">
+          <CardHeader>
+            <CardTitle>Bloque de preguntas recomendado</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {questionItems.slice(0, 8).map((q) => (
+              <div key={q.id} className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">{q.specialty} · {q.area} · {q.topic}</p>
+                <p className="text-sm">{q.text}</p>
+              </div>
+            ))}
+            <Button onClick={() => completeTask(questionTask.id, questionTask.targetCount, 100)}>
+              Marcar bloque completado
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {miniCaseTask && miniCase && (
         <Card className="border-0 shadow-md">
           <CardHeader>
@@ -140,17 +174,60 @@ const StudyPlanSession = () => {
                   <button
                     key={o.id}
                     type="button"
-                    className={`w-full text-left border rounded-lg p-3 ${miniCaseCorrect && o.isCorrect ? 'border-green-500' : 'border-border'}`}
-                    onClick={() => setMiniCaseCorrect(o.isCorrect)}
+                    className={`w-full text-left border rounded-lg p-3 transition-colors ${
+                      miniCaseSelectedOptionId === o.id
+                        ? o.isCorrect
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-red-500 bg-red-50'
+                        : miniCaseSelectedOptionId && o.isCorrect
+                          ? 'border-green-500'
+                          : 'border-border'
+                    }`}
+                    onClick={() => {
+                      setMiniCaseSelectedOptionId(o.id);
+                      setMiniCaseCorrect(o.isCorrect);
+                    }}
                   >
                     {o.label}. {o.text}
                   </button>
                 ))}
+                {selectedMiniCaseOption ? (
+                  <div
+                    className={`rounded-lg border p-3 text-sm ${
+                      selectedMiniCaseOption.isCorrect
+                        ? 'border-green-500/40 bg-green-50 text-green-800'
+                        : 'border-red-500/40 bg-red-50 text-red-800'
+                    }`}
+                  >
+                    {selectedMiniCaseOption.isCorrect ? 'Correcto.' : 'Incorrecto.'}{' '}
+                    {selectedMiniCaseOption.explanation || 'Revisa la fisiopatologia y criterios diagnosticos del caso.'}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Selecciona una respuesta para ver retroalimentacion.</p>
+                )}
               </div>
             ) : null}
-            <Button onClick={() => completeTask(miniCaseTask.id, 1, miniCaseCorrect ? 100 : 0)}>
+            <Button
+              disabled={!miniCaseSelectedOptionId}
+              onClick={() => completeTask(miniCaseTask.id, 1, miniCaseCorrect ? 100 : 0)}
+            >
               Marcar mini-caso completado
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {(!questionItems.length && !flashcards.length && !miniCase) && (
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-5 space-y-3">
+            <p className="text-muted-foreground">
+              Tu plan de hoy no tiene contenido disponible para tu combinacion de especialidad/area.
+              Puedes regenerarlo o cargar mas contenido en backoffice (flashcards/casos publicados).
+            </p>
+            <div className="flex gap-2">
+              <Button onClick={() => void regeneratePlan()}>Regenerar plan</Button>
+              <Button variant="outline" onClick={() => navigate('/dashboard')}>Volver al dashboard</Button>
+            </div>
           </CardContent>
         </Card>
       )}
