@@ -3,9 +3,21 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Trophy, BarChart3, Home, RotateCcw, CheckCircle2, XCircle } from 'lucide-react';
+import { Trophy, BarChart3, Home, RotateCcw, CheckCircle2, XCircle, Share2, MessageCircle, Facebook, Instagram } from 'lucide-react';
 import type { Exam, StudyPlan, UserStats } from '@/types';
 import { apiJson } from '@/lib/api';
+import { toast } from 'sonner';
+import {
+  buildPlatformUrl,
+  buildPredictionShareText,
+  buildResultShareText,
+  copyText,
+  generateShareImage,
+  openShareUrl,
+  shareImageOrDownload,
+  shareWithFallback,
+  type SharePlatform,
+} from '@/utils/share';
 
 const Results = () => {
   const { examId } = useParams();
@@ -72,6 +84,55 @@ const Results = () => {
 
   const byCategory = stats?.byCategory ?? [];
   const prediction = exam.prediction ?? stats?.prediction ?? null;
+  const examUrl = typeof window !== 'undefined' ? `${window.location.origin}/results/${exam.id}` : undefined;
+
+  const resultText = buildResultShareText({
+    score,
+    correct,
+    totalAnswered,
+    examUrl,
+  });
+
+  const predictionText = prediction
+    ? buildPredictionShareText({
+        specialty: prediction.specialty,
+        placementProbability: prediction.placementProbability,
+        estimatedPercentile: prediction.estimatedPercentile,
+        examUrl,
+      })
+    : '';
+
+  const shareToPlatform = async (platform: SharePlatform, text: string) => {
+    if (platform === 'instagram') {
+      await copyText(text);
+      const image = await generateShareImage({
+        title: 'Resultado ENARM',
+        subtitle: prediction ? `Prediccion: ${prediction.specialty}` : 'Nuevo simulador completado',
+        highlightA: `${score}% calificacion`,
+        highlightB: prediction
+          ? `${Math.round(prediction.placementProbability)}% probabilidad`
+          : `${correct}/${totalAnswered} correctas`,
+        footer: 'Texto copiado. Ahora comparte la imagen en Instagram.',
+      });
+      await shareImageOrDownload(image, `resultado-enarm-${exam.id}.png`, text);
+      toast.success('Imagen lista para Instagram y texto copiado');
+      return;
+    }
+
+    const shareUrl = buildPlatformUrl(platform, text, examUrl);
+    if (!shareUrl) return;
+    openShareUrl(shareUrl);
+  };
+
+  const handleQuickShare = async (text: string, label: string) => {
+    try {
+      const method = await shareWithFallback('Case Study Mentor', text, examUrl);
+      if (method === 'native') toast.success(`${label} compartido`);
+      else toast.success(`${label} copiado al portapapeles`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo compartir');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -91,6 +152,20 @@ const Results = () => {
               <div>
                 <span className="text-2xl font-bold text-white block">{totalAnswered}</span>Contestadas
               </div>
+            </div>
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              <Button size="sm" variant="secondary" className="gap-2" onClick={() => handleQuickShare(resultText, 'Resultado')}>
+                <Share2 className="w-4 h-4" /> Compartir resultado
+              </Button>
+              <Button size="sm" variant="secondary" className="gap-2" onClick={() => shareToPlatform('whatsapp', resultText)}>
+                <MessageCircle className="w-4 h-4" /> WhatsApp
+              </Button>
+              <Button size="sm" variant="secondary" className="gap-2" onClick={() => shareToPlatform('facebook', resultText)}>
+                <Facebook className="w-4 h-4" /> Facebook
+              </Button>
+              <Button size="sm" variant="secondary" className="gap-2" onClick={() => shareToPlatform('instagram', resultText)}>
+                <Instagram className="w-4 h-4" /> Instagram
+              </Button>
             </div>
           </div>
         </Card>
@@ -137,6 +212,20 @@ const Results = () => {
               <p className="text-xs text-muted-foreground">
                 Estimacion basada en tu desempeno actual y tendencia reciente. Version: {prediction.version}
               </p>
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button size="sm" variant="outline" className="gap-2" onClick={() => handleQuickShare(predictionText, 'Prediccion')}>
+                  <Share2 className="w-4 h-4" /> Compartir prediccion
+                </Button>
+                <Button size="sm" variant="outline" className="gap-2" onClick={() => shareToPlatform('whatsapp', predictionText)}>
+                  <MessageCircle className="w-4 h-4" /> WhatsApp
+                </Button>
+                <Button size="sm" variant="outline" className="gap-2" onClick={() => shareToPlatform('facebook', predictionText)}>
+                  <Facebook className="w-4 h-4" /> Facebook
+                </Button>
+                <Button size="sm" variant="outline" className="gap-2" onClick={() => shareToPlatform('instagram', predictionText)}>
+                  <Instagram className="w-4 h-4" /> Instagram
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
