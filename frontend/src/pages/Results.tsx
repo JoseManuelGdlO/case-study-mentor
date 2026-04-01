@@ -34,6 +34,15 @@ const Results = () => {
   const shareTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
+    return () => {
+      if (shareTimerRef.current != null) {
+        window.clearInterval(shareTimerRef.current);
+        shareTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!examId) return;
     let c = false;
     (async () => {
@@ -184,8 +193,6 @@ const Results = () => {
     clearShareTimer();
     setShareStatus({ active: false, label: '', progress: 0 });
   };
-
-  useEffect(() => () => clearShareTimer(), []);
 
   return (
     <div className="min-h-screen bg-background p-6">
