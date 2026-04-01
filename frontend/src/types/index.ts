@@ -185,7 +185,15 @@ export interface StudyPlanTask {
         options: { id: string; label: string; text: string; isCorrect: boolean; explanation: string }[];
       } | null;
     }[];
-    questions?: { id: string; text: string; hint: string; topic: string; specialty: string; area: string }[];
+    questions?: {
+      id: string;
+      text: string;
+      hint: string;
+      topic: string;
+      specialty: string;
+      area: string;
+      options?: { id: string; label: string; text: string; isCorrect: boolean; explanation?: string | null }[];
+    }[];
   };
 }
 

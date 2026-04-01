@@ -15,6 +15,8 @@ const StudyPlanSession = () => {
   const [flashMastered, setFlashMastered] = useState(0);
   const [miniCaseCorrect, setMiniCaseCorrect] = useState(false);
   const [miniCaseSelectedOptionId, setMiniCaseSelectedOptionId] = useState<string | null>(null);
+  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
+  const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +41,12 @@ const StudyPlanSession = () => {
   const currentFlash = flashcards[flashIdx];
   const miniCase = miniCaseTask?.payload?.cases?.[0];
   const selectedMiniCaseOption = miniCase?.question?.options.find((o) => o.id === miniCaseSelectedOptionId) ?? null;
+  const answeredQuestions = questionItems.filter((q) => questionAnswers[q.id]).length;
+  const correctQuestions = questionItems.filter((q) => {
+    const selectedOptionId = questionAnswers[q.id];
+    if (!selectedOptionId) return false;
+    return (q.options ?? []).some((o) => o.id === selectedOptionId && o.isCorrect);
+  }).length;
 
   const completion = useMemo(() => {
     if (!plan) return 0;
@@ -63,7 +71,15 @@ const StudyPlanSession = () => {
     setFlashMastered(0);
     setMiniCaseCorrect(false);
     setMiniCaseSelectedOptionId(null);
+    setActiveQuestionId(null);
+    setQuestionAnswers({});
   }
+
+  useEffect(() => {
+    if (questionItems.length > 0 && !activeQuestionId) {
+      setActiveQuestionId(questionItems[0].id);
+    }
+  }, [activeQuestionId, questionItems]);
 
   if (loading) {
     return <div className="max-w-4xl mx-auto text-muted-foreground">Cargando sesion de estudio...</div>;
@@ -84,6 +100,10 @@ const StudyPlanSession = () => {
         <CardContent className="p-5 space-y-2">
           <p className="text-sm text-muted-foreground">Sesion de plan diario</p>
           <p className="text-xl font-bold text-foreground">{plan.targetMinutes} min · {completion}% completado</p>
+          <p className="text-sm text-muted-foreground">
+            Este plan toma tu rendimiento reciente (aciertos, errores y temas con menor dominio) y prioriza lo que mas impacto
+            puede tener en tu puntaje ENARM de forma practica para hoy.
+          </p>
           <Progress value={completion} className="h-2" />
         </CardContent>
       </Card>
@@ -97,8 +117,8 @@ const StudyPlanSession = () => {
             <div className="rounded-lg border p-3">
               <p className="font-medium">1) Bloque de preguntas</p>
               <p className="text-muted-foreground">
-                Practicas preguntas enfocadas en tus areas de mejora. Leelo como entrenamiento rapido para fijar conceptos y
-                detectar temas que aun cuestan trabajo.
+                Se conforma con preguntas de tus areas mas debiles y temas de alto peso. Te ayuda a practicar decision clinica
+                y detectar huecos puntuales antes del siguiente simulador.
               </p>
             </div>
           ) : null}
@@ -106,7 +126,7 @@ const StudyPlanSession = () => {
             <div className="rounded-lg border p-3">
               <p className="font-medium">2) Flashcards</p>
               <p className="text-muted-foreground">
-                Refuerzas memoria activa. Marca una tarjeta como dominada cuando realmente puedas recordar la respuesta sin ayuda.
+                Refuerzan memoria activa de conceptos clave que sueles fallar o tardas mas en recordar.
               </p>
             </div>
           ) : null}
@@ -114,8 +134,8 @@ const StudyPlanSession = () => {
             <div className="rounded-lg border p-3">
               <p className="font-medium">3) Mini-caso clinico</p>
               <p className="text-muted-foreground">
-                Simulas una decision clinica real. Selecciona una opcion para recibir retroalimentacion inmediata y revisar la
-                explicacion del por que.
+                Integra razonamiento clinico completo (contexto + decision). Recibes retroalimentacion inmediata para corregir
+                criterio diagnostico/terapeutico.
               </p>
             </div>
           ) : null}
@@ -175,16 +195,76 @@ const StudyPlanSession = () => {
       {questionTask && questionItems.length > 0 && (
         <Card className="border-0 shadow-md">
           <CardHeader>
-            <CardTitle>Bloque de preguntas recomendado</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              Bloque de preguntas recomendado
+              <Badge variant="outline">{answeredQuestions}/{questionItems.length}</Badge>
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {questionItems.slice(0, 8).map((q) => (
-              <div key={q.id} className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">{q.specialty} · {q.area} · {q.topic}</p>
-                <p className="text-sm">{q.text}</p>
-              </div>
-            ))}
-            <Button onClick={() => completeTask(questionTask.id, questionTask.targetCount, 100)}>
+          <CardContent className="space-y-3">
+            {questionItems.map((q) => {
+              const selectedOptionId = questionAnswers[q.id];
+              const selectedOption = (q.options ?? []).find((o) => o.id === selectedOptionId);
+              const isOpen = activeQuestionId === q.id;
+              return (
+                <div key={q.id} className="rounded-lg border p-3 space-y-3">
+                  <button
+                    type="button"
+                    className="w-full text-left"
+                    onClick={() => setActiveQuestionId((prev) => (prev === q.id ? null : q.id))}
+                  >
+                    <p className="text-xs text-muted-foreground">{q.specialty} · {q.area} · {q.topic}</p>
+                    <p className="text-sm font-medium">{q.text}</p>
+                  </button>
+
+                  {isOpen && (
+                    <div className="space-y-2">
+                      {(q.options ?? []).map((o) => (
+                        <button
+                          key={o.id}
+                          type="button"
+                          className={`w-full text-left border rounded-lg p-3 transition-colors ${
+                            selectedOptionId === o.id
+                              ? o.isCorrect
+                                ? 'border-green-500 bg-green-50'
+                                : 'border-red-500 bg-red-50'
+                              : selectedOptionId && o.isCorrect
+                                ? 'border-green-500'
+                                : 'border-border'
+                          }`}
+                          onClick={() => setQuestionAnswers((prev) => ({ ...prev, [q.id]: o.id }))}
+                        >
+                          {o.label}. {o.text}
+                        </button>
+                      ))}
+                      {selectedOption ? (
+                        <div
+                          className={`rounded-lg border p-3 text-sm ${
+                            selectedOption.isCorrect
+                              ? 'border-green-500/40 bg-green-50 text-green-800'
+                              : 'border-red-500/40 bg-red-50 text-red-800'
+                          }`}
+                        >
+                          {selectedOption.isCorrect ? 'Correcto.' : 'Incorrecto.'}{' '}
+                          {selectedOption.explanation || q.hint || 'Revisa los datos clinicos clave para responder.'}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Selecciona una respuesta para ver retroalimentacion.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <Button
+              disabled={questionItems.length === 0 || answeredQuestions < questionItems.length}
+              onClick={() =>
+                completeTask(
+                  questionTask.id,
+                  questionTask.targetCount,
+                  Math.round((correctQuestions / Math.max(1, questionItems.length)) * 100)
+                )
+              }
+            >
               Marcar bloque completado
             </Button>
           </CardContent>

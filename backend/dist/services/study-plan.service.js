@@ -456,6 +456,10 @@ async function enrichTaskPayload(taskType, payload) {
                 id: true,
                 text: true,
                 hint: true,
+                options: {
+                    orderBy: { label: 'asc' },
+                    select: { id: true, label: true, text: true, isCorrect: true, explanation: true },
+                },
                 clinicalCase: {
                     select: { topic: true, specialty: { select: { name: true } }, area: { select: { name: true } } },
                 },
@@ -466,6 +470,7 @@ async function enrichTaskPayload(taskType, payload) {
                 id: q.id,
                 text: q.text,
                 hint: q.hint,
+                options: q.options,
                 topic: q.clinicalCase.topic,
                 specialty: q.clinicalCase.specialty.name,
                 area: q.clinicalCase.area.name,

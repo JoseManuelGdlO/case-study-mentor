@@ -234,6 +234,9 @@ const Dashboard = () => {
               <p className="text-2xl font-bold text-foreground">
                 {Math.round(stats.prediction.placementProbability)}% probabilidad · P{Math.round(stats.prediction.estimatedPercentile)}
               </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Estimacion basada en tus ultimos simuladores: indica que tan competitivo vas para entrar a esa especialidad.
+              </p>
             </div>
             <Button variant="outline" onClick={() => navigate(`/results/${stats.prediction?.examId}`)}>
               Ver ultimo simulador
@@ -250,6 +253,9 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">Tu plan de hoy</p>
                 <p className="text-xl font-bold text-foreground">
                   {studyPlan.targetMinutes} min · {studyPlan.completionPercent}% completado
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Bloque diario personalizado con preguntas, flashcards y mini-caso para convertir tus errores recientes en mejora real.
                 </p>
               </div>
               {studyPlan.isFreeLimited && (
