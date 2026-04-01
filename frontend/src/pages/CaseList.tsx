@@ -91,6 +91,20 @@ const CaseList = () => {
     draft: 'Borrador',
     archived: 'Archivado',
   };
+  const getShortDescription = (text: string) => {
+    const normalized = text.trim().replace(/\s+/g, ' ');
+    if (!normalized) return '-';
+    return normalized.split(' ').slice(0, 5).join(' ');
+  };
+  const formatUploadDate = (dateValue: string) => {
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return '-';
+    return new Intl.DateTimeFormat('es-MX', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(date);
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
@@ -157,6 +171,9 @@ const CaseList = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Tema</TableHead>
+                <TableHead>Descripcion</TableHead>
+                <TableHead>Fecha de subida</TableHead>
+                <TableHead>Usuario subidor</TableHead>
                 <TableHead>Especialidad</TableHead>
                 <TableHead>Área</TableHead>
                 <TableHead>Idioma</TableHead>
@@ -169,6 +186,9 @@ const CaseList = () => {
               {filtered.map((c) => (
                 <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50">
                   <TableCell className="font-medium">{c.topic}</TableCell>
+                  <TableCell>{getShortDescription(c.text)}</TableCell>
+                  <TableCell>{formatUploadDate(c.createdAt)}</TableCell>
+                  <TableCell>No disponible</TableCell>
                   <TableCell>{c.specialty}</TableCell>
                   <TableCell>{c.area}</TableCell>
                   <TableCell>{c.language === 'es' ? '🇲🇽' : '🇺🇸'}</TableCell>
