@@ -22,8 +22,22 @@ function parseCustomId(raw) {
 }
 /** Crea producto + plan en PayPal si la fila aún no tiene `paypalPlanId`, y lo activa. */
 export async function ensurePayPalBillingPlan(planRow) {
-    if (planRow.paypalPlanId)
-        return planRow.paypalPlanId;
+    const storedId = planRow.paypalPlanId;
+    if (storedId) {
+        const check = await paypalFetch(`/v1/billing/plans/${encodeURIComponent(storedId)}`, { method: 'GET' });
+        if (check.ok)
+            return storedId;
+        if (check.status === 404) {
+            await prisma.subscriptionPlan.update({
+                where: { id: planRow.id },
+                data: { paypalPlanId: null },
+            });
+        }
+        else {
+            const t = await check.text();
+            throw serviceError(`PayPal verificar plan falló: ${t}`, 502);
+        }
+    }
     const priceStr = planRow.price.toFixed(2);
     const prodRes = await paypalFetch('/v1/catalogs/products', {
         method: 'POST',

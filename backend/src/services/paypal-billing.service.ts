@@ -29,7 +29,20 @@ export async function ensurePayPalBillingPlan(planRow: {
   duration: number;
   paypalPlanId: string | null;
 }): Promise<string> {
-  if (planRow.paypalPlanId) return planRow.paypalPlanId;
+  const storedId = planRow.paypalPlanId;
+  if (storedId) {
+    const check = await paypalFetch(`/v1/billing/plans/${encodeURIComponent(storedId)}`, { method: 'GET' });
+    if (check.ok) return storedId;
+    if (check.status === 404) {
+      await prisma.subscriptionPlan.update({
+        where: { id: planRow.id },
+        data: { paypalPlanId: null },
+      });
+    } else {
+      const t = await check.text();
+      throw serviceError(`PayPal verificar plan falló: ${t}`, 502);
+    }
+  }
 
   const priceStr = planRow.price.toFixed(2);
 
