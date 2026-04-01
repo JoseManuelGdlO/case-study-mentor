@@ -15,6 +15,8 @@ import type {
   ExamConfig,
   ExamStatus,
   MotivationalPhrase,
+  StudyPlan,
+  StudyPlanImpact,
   UserStats,
 } from '@/types';
 
@@ -49,6 +51,8 @@ const Dashboard = () => {
   const [stats, setStats] = useState<UserStats>(emptyStats);
   const [phrases, setPhrases] = useState<MotivationalPhrase[]>([]);
   const [activeExamDate, setActiveExamDate] = useState<DashboardExamDate | null>(null);
+  const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
+  const [studyPlanImpact, setStudyPlanImpact] = useState<StudyPlanImpact | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,11 +75,15 @@ const Dashboard = () => {
         }
       }
       try {
-        if (!isFreeUser) {
-          const statsJson = await apiJson<{ data: UserStats }>('/api/stats');
-          if (!cancelled) setStats(statsJson.data);
-        } else if (!cancelled) {
-          setStats(emptyStats);
+        const [statsJson, planJson, impactJson] = await Promise.all([
+          !isFreeUser ? apiJson<{ data: UserStats }>('/api/stats') : Promise.resolve(null),
+          apiJson<{ data: StudyPlan | null }>('/api/study-plan/today').catch(() => null),
+          apiJson<{ data: StudyPlanImpact }>('/api/study-plan/impact').catch(() => null),
+        ]);
+        if (!cancelled) {
+          setStats(statsJson?.data ?? emptyStats);
+          setStudyPlan(planJson?.data ?? null);
+          setStudyPlanImpact(impactJson?.data ?? null);
         }
       } catch {
         if (!cancelled) setStats(emptyStats);
@@ -230,6 +238,52 @@ const Dashboard = () => {
             <Button variant="outline" onClick={() => navigate(`/results/${stats.prediction?.examId}`)}>
               Ver ultimo simulador
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {studyPlan && (
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-5 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Tu plan de hoy</p>
+                <p className="text-xl font-bold text-foreground">
+                  {studyPlan.targetMinutes} min · {studyPlan.completionPercent}% completado
+                </p>
+              </div>
+              {studyPlan.isFreeLimited && (
+                <Badge variant="outline" className="text-warning border-warning/40">
+                  Version limitada
+                </Badge>
+              )}
+            </div>
+            <Progress value={studyPlan.completionPercent} className="h-2" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {studyPlan.tasks.map((task) => (
+                <div key={task.id} className="rounded-lg border p-3">
+                  <p className="font-medium text-sm text-foreground">{task.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {task.completedCount}/{task.targetCount}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Si completas 14 dias: +{studyPlan.estimatedImpact14Days.scoreDelta} puntos y +{studyPlan.estimatedImpact14Days.percentileDelta} percentil (estimado)
+              </p>
+              {studyPlan.isFreeLimited ? (
+                <Button size="sm" onClick={() => navigate('/dashboard/subscription')}>
+                  Desbloquear completo
+                </Button>
+              ) : null}
+            </div>
+            {studyPlanImpact ? (
+              <p className="text-xs text-muted-foreground">
+                Ultimos 14 dias: {studyPlanImpact.last14Days.completedPlans}/{studyPlanImpact.last14Days.totalPlans} planes completados.
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       )}

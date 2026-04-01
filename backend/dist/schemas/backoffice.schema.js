@@ -14,6 +14,15 @@ export const phraseCreateSchema = z.object({
     isActive: z.boolean().optional(),
 });
 export const phraseUpdateSchema = phraseCreateSchema.partial();
+export const flashcardCreateSchema = z.object({
+    question: z.string().min(1),
+    answer: z.string().min(1),
+    hint: z.string().optional(),
+    isActive: z.boolean().optional(),
+    specialtyIds: z.array(z.string().uuid()).default([]),
+    areaIds: z.array(z.string().uuid()).default([]),
+});
+export const flashcardUpdateSchema = flashcardCreateSchema.partial();
 export const examDateCreateSchema = z.object({
     name: z.string().min(1),
     date: z.string().datetime(),

@@ -4,6 +4,7 @@ import { shuffleInPlace } from '../utils/helpers.js';
 import type { z } from 'zod';
 import type { generateExamSchema } from '../schemas/exam.schema.js';
 import { predictPlacement } from './prediction.service.js';
+import { invalidateStudyPlanCaches } from './study-plan.service.js';
 
 type GenerateInput = z.infer<typeof generateExamSchema>;
 
@@ -525,6 +526,8 @@ export async function completeExam(userId: string, examId: string, timeSpentSeco
       ...(timeSpentSeconds != null ? { timeSpentSeconds } : {}),
     },
   });
+
+  await invalidateStudyPlanCaches(userId);
 
   return getExamById(userId, examId);
 }

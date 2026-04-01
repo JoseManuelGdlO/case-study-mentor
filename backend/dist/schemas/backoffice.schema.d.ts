@@ -39,12 +39,56 @@ export declare const phraseUpdateSchema: z.ZodObject<{
     isActive: z.ZodOptional<z.ZodOptional<z.ZodBoolean>>;
 }, "strip", z.ZodTypeAny, {
     text?: string | undefined;
-    author?: string | undefined;
     isActive?: boolean | undefined;
+    author?: string | undefined;
 }, {
     text?: string | undefined;
-    author?: string | undefined;
     isActive?: boolean | undefined;
+    author?: string | undefined;
+}>;
+export declare const flashcardCreateSchema: z.ZodObject<{
+    question: z.ZodString;
+    answer: z.ZodString;
+    hint: z.ZodOptional<z.ZodString>;
+    isActive: z.ZodOptional<z.ZodBoolean>;
+    specialtyIds: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+    areaIds: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+}, "strip", z.ZodTypeAny, {
+    question: string;
+    answer: string;
+    specialtyIds: string[];
+    areaIds: string[];
+    hint?: string | undefined;
+    isActive?: boolean | undefined;
+}, {
+    question: string;
+    answer: string;
+    hint?: string | undefined;
+    isActive?: boolean | undefined;
+    specialtyIds?: string[] | undefined;
+    areaIds?: string[] | undefined;
+}>;
+export declare const flashcardUpdateSchema: z.ZodObject<{
+    question: z.ZodOptional<z.ZodString>;
+    answer: z.ZodOptional<z.ZodString>;
+    hint: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    isActive: z.ZodOptional<z.ZodOptional<z.ZodBoolean>>;
+    specialtyIds: z.ZodOptional<z.ZodDefault<z.ZodArray<z.ZodString, "many">>>;
+    areaIds: z.ZodOptional<z.ZodDefault<z.ZodArray<z.ZodString, "many">>>;
+}, "strip", z.ZodTypeAny, {
+    question?: string | undefined;
+    hint?: string | undefined;
+    answer?: string | undefined;
+    isActive?: boolean | undefined;
+    specialtyIds?: string[] | undefined;
+    areaIds?: string[] | undefined;
+}, {
+    question?: string | undefined;
+    hint?: string | undefined;
+    answer?: string | undefined;
+    isActive?: boolean | undefined;
+    specialtyIds?: string[] | undefined;
+    areaIds?: string[] | undefined;
 }>;
 export declare const examDateCreateSchema: z.ZodObject<{
     name: z.ZodString;

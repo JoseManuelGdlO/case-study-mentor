@@ -5,6 +5,8 @@ export const CACHE_KEYS = {
   examDates: 'cache:exam-dates',
   phrases: 'cache:phrases',
   stats: (userId: string) => `cache:stats:${userId}`,
+  studyPlanToday: (userId: string) => `cache:study-plan:today:${userId}`,
+  studyPlanImpact: (userId: string) => `cache:study-plan:impact:${userId}`,
 } as const;
 
 export class CacheService {

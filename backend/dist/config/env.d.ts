@@ -31,6 +31,8 @@ declare const envSchema: z.ZodObject<{
     RATE_LIMIT_ENABLED: z.ZodEffects<z.ZodBoolean, boolean, unknown>;
     /** Rollout gradual para simulador adaptativo/prediccion premium (0-100). */
     ADAPTIVE_ROLLOUT_PERCENT: z.ZodDefault<z.ZodNumber>;
+    /** Rollout gradual para planificador diario (0-100). */
+    STUDY_PLAN_ROLLOUT_PERCENT: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     NODE_ENV: "development" | "production" | "test";
     PORT: number;
@@ -43,6 +45,7 @@ declare const envSchema: z.ZodObject<{
     UPLOAD_DIR: string;
     RATE_LIMIT_ENABLED: boolean;
     ADAPTIVE_ROLLOUT_PERCENT: number;
+    STUDY_PLAN_ROLLOUT_PERCENT: number;
     FRONTEND_URL?: string | undefined;
     STRIPE_SECRET_KEY?: string | undefined;
     STRIPE_WEBHOOK_SECRET?: string | undefined;
@@ -79,6 +82,7 @@ declare const envSchema: z.ZodObject<{
     SMTP_SECURE?: unknown;
     RATE_LIMIT_ENABLED?: unknown;
     ADAPTIVE_ROLLOUT_PERCENT?: number | undefined;
+    STUDY_PLAN_ROLLOUT_PERCENT?: number | undefined;
 }>;
 export type Env = z.infer<typeof envSchema>;
 export declare const env: {
@@ -93,6 +97,7 @@ export declare const env: {
     UPLOAD_DIR: string;
     RATE_LIMIT_ENABLED: boolean;
     ADAPTIVE_ROLLOUT_PERCENT: number;
+    STUDY_PLAN_ROLLOUT_PERCENT: number;
     FRONTEND_URL?: string | undefined;
     STRIPE_SECRET_KEY?: string | undefined;
     STRIPE_WEBHOOK_SECRET?: string | undefined;

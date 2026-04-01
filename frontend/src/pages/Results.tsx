@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, BarChart3, Home, RotateCcw, CheckCircle2, XCircle } from 'lucide-react';
-import type { Exam, UserStats } from '@/types';
+import type { Exam, StudyPlan, UserStats } from '@/types';
 import { apiJson } from '@/lib/api';
 
 const Results = () => {
@@ -12,6 +12,7 @@ const Results = () => {
   const navigate = useNavigate();
   const [exam, setExam] = useState<Exam | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,9 +24,11 @@ const Results = () => {
           apiJson<{ data: Exam }>(`/api/exams/${examId}/results`),
           apiJson<{ data: UserStats }>('/api/stats').catch(() => null),
         ]);
+        const studyRes = await apiJson<{ data: StudyPlan | null }>('/api/study-plan/today').catch(() => null);
         if (!c) {
           setExam(examRes.data);
           if (statsRes) setStats(statsRes.data);
+          setStudyPlan(studyRes?.data ?? null);
         }
       } catch (e) {
         if (!c) setErr(e instanceof Error ? e.message : 'Error');
@@ -134,6 +137,30 @@ const Results = () => {
               <p className="text-xs text-muted-foreground">
                 Estimacion basada en tu desempeno actual y tendencia reciente. Version: {prediction.version}
               </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {studyPlan && (
+          <Card className="border-0 shadow-md">
+            <CardHeader>
+              <CardTitle>Plan sugerido para hoy</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Duracion objetivo: {studyPlan.targetMinutes} min. Si sostienes este ritmo 14 dias, podrias mejorar +{studyPlan.estimatedImpact14Days.scoreDelta} puntos y +{studyPlan.estimatedImpact14Days.percentileDelta} percentil.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {studyPlan.tasks.map((task) => (
+                  <div key={task.id} className="rounded-lg border p-3">
+                    <p className="text-sm font-medium">{task.title}</p>
+                    <p className="text-xs text-muted-foreground">{task.targetCount} objetivos</p>
+                  </div>
+                ))}
+              </div>
+              <Button variant="outline" onClick={() => navigate('/dashboard')}>
+                Ir al plan en Dashboard
+              </Button>
             </CardContent>
           </Card>
         )}

@@ -163,6 +163,46 @@ export interface UserStats {
   } | null;
 }
 
+export interface StudyPlanTask {
+  id: string;
+  type: 'question_set' | 'flashcard_set' | 'mini_case';
+  title: string;
+  description?: string | null;
+  targetCount: number;
+  completedCount: number;
+  completed: boolean;
+  payload?: unknown;
+}
+
+export interface StudyPlan {
+  id: string;
+  date: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+  isFreeLimited: boolean;
+  premium: boolean;
+  targetMinutes: number;
+  completionPercent: number;
+  estimatedImpact14Days: {
+    scoreDelta: number;
+    percentileDelta: number;
+  };
+  tasks: StudyPlanTask[];
+}
+
+export interface StudyPlanImpact {
+  last14Days: {
+    totalPlans: number;
+    completedPlans: number;
+    completionRate: number;
+    scoreDelta: number;
+    percentileDelta: number;
+  };
+  estimate: {
+    scoreDelta: number;
+    percentileDelta: number;
+  };
+}
+
 /** Frases motivacionales activas (API `/api/content/banner`). */
 export interface MotivationalPhrase {
   id: string;

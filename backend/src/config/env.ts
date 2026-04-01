@@ -54,6 +54,8 @@ const envSchema = z.object({
   ),
   /** Rollout gradual para simulador adaptativo/prediccion premium (0-100). */
   ADAPTIVE_ROLLOUT_PERCENT: z.coerce.number().min(0).max(100).default(100),
+  /** Rollout gradual para planificador diario (0-100). */
+  STUDY_PLAN_ROLLOUT_PERCENT: z.coerce.number().min(0).max(100).default(100),
 });
 
 export type Env = z.infer<typeof envSchema>;

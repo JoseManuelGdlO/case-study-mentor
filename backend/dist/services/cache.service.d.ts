@@ -3,6 +3,8 @@ export declare const CACHE_KEYS: {
     readonly examDates: "cache:exam-dates";
     readonly phrases: "cache:phrases";
     readonly stats: (userId: string) => string;
+    readonly studyPlanToday: (userId: string) => string;
+    readonly studyPlanImpact: (userId: string) => string;
 };
 export declare class CacheService {
     get<T>(key: string): Promise<T | null>;

@@ -8,6 +8,8 @@ import {
   backofficeUsersQuerySchema,
   examDateCreateSchema,
   examDateUpdateSchema,
+  flashcardCreateSchema,
+  flashcardUpdateSchema,
   phraseCreateSchema,
   phraseUpdateSchema,
   planCreateSchema,
@@ -187,6 +189,138 @@ backofficeRouter.delete('/phrases/:id', requireAdmin(), async (req, res, next) =
   try {
     await prisma.motivationalPhrase.delete({ where: { id: paramString(req.params.id) } });
     await cacheService.invalidate('cache:phrases*');
+    res.json({ data: { ok: true } });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/* --- Flashcards --- */
+backofficeRouter.get('/flashcards', requireAdmin(), async (req, res, next) => {
+  try {
+    const { skip, take, page, limit } = paginationParams(
+      req.query.page as string,
+      req.query.limit as string
+    );
+    const [total, data] = await Promise.all([
+      prisma.flashcard.count(),
+      prisma.flashcard.findMany({
+        skip,
+        take,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          specialties: { include: { specialty: true } },
+          areas: { include: { area: true } },
+        },
+      }),
+    ]);
+    res.json({
+      data: data.map((f) => ({
+        id: f.id,
+        question: f.question,
+        answer: f.answer,
+        hint: f.hint,
+        isActive: f.isActive,
+        specialtyIds: f.specialties.map((s) => s.specialtyId),
+        areaIds: f.areas.map((a) => a.areaId),
+        updatedAt: f.updatedAt.toISOString(),
+      })),
+      total,
+      page,
+      totalPages: totalPages(total, limit),
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+backofficeRouter.post(
+  '/flashcards',
+  requireAdmin(),
+  validateBody(flashcardCreateSchema),
+  async (req, res, next) => {
+    try {
+      const b = req.body as {
+        question: string;
+        answer: string;
+        hint?: string;
+        isActive?: boolean;
+        specialtyIds: string[];
+        areaIds: string[];
+      };
+      const row = await prisma.flashcard.create({
+        data: {
+          question: b.question,
+          answer: b.answer,
+          hint: b.hint,
+          isActive: b.isActive ?? true,
+          specialties: { create: b.specialtyIds.map((specialtyId) => ({ specialtyId })) },
+          areas: { create: b.areaIds.map((areaId) => ({ areaId })) },
+        },
+      });
+      res.status(201).json({ data: row });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+backofficeRouter.put(
+  '/flashcards/:id',
+  requireAdmin(),
+  validateBody(flashcardUpdateSchema),
+  async (req, res, next) => {
+    try {
+      const flashcardId = paramString(req.params.id);
+      const b = req.body as {
+        question?: string;
+        answer?: string;
+        hint?: string;
+        isActive?: boolean;
+        specialtyIds?: string[];
+        areaIds?: string[];
+      };
+      await prisma.$transaction(async (tx) => {
+        await tx.flashcard.update({
+          where: { id: flashcardId },
+          data: {
+            ...(b.question != null ? { question: b.question } : {}),
+            ...(b.answer != null ? { answer: b.answer } : {}),
+            ...(b.hint !== undefined ? { hint: b.hint } : {}),
+            ...(b.isActive != null ? { isActive: b.isActive } : {}),
+          },
+        });
+        if (b.specialtyIds) {
+          await tx.flashcardSpecialty.deleteMany({ where: { flashcardId } });
+          if (b.specialtyIds.length > 0) {
+            await tx.flashcardSpecialty.createMany({
+              data: b.specialtyIds.map((specialtyId) => ({ flashcardId, specialtyId })),
+            });
+          }
+        }
+        if (b.areaIds) {
+          await tx.flashcardArea.deleteMany({ where: { flashcardId } });
+          if (b.areaIds.length > 0) {
+            await tx.flashcardArea.createMany({
+              data: b.areaIds.map((areaId) => ({ flashcardId, areaId })),
+            });
+          }
+        }
+      });
+      const row = await prisma.flashcard.findUnique({
+        where: { id: flashcardId },
+        include: { specialties: true, areas: true },
+      });
+      res.json({ data: row });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+backofficeRouter.delete('/flashcards/:id', requireAdmin(), async (req, res, next) => {
+  try {
+    await prisma.flashcard.delete({ where: { id: paramString(req.params.id) } });
     res.json({ data: { ok: true } });
   } catch (e) {
     next(e);

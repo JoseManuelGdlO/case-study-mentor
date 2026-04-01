@@ -2,6 +2,7 @@ import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { shuffleInPlace } from '../utils/helpers.js';
 import { predictPlacement } from './prediction.service.js';
+import { invalidateStudyPlanCaches } from './study-plan.service.js';
 export async function generateExam(userId, input) {
     const { language, mode, specialtyIds, areaIds, questionCount, questionFilter, adaptiveMode, predictionSpecialtyId, } = input;
     const caseWhere = {
@@ -444,6 +445,7 @@ export async function completeExam(userId, examId, timeSpentSeconds) {
             ...(timeSpentSeconds != null ? { timeSpentSeconds } : {}),
         },
     });
+    await invalidateStudyPlanCaches(userId);
     return getExamById(userId, examId);
 }
 export async function getExamResults(userId, examId) {

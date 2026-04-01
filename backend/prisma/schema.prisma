@@ -42,6 +42,19 @@ enum SubscriptionCancelReason {
   other
 }
 
+enum StudyPlanStatus {
+  pending
+  in_progress
+  completed
+  skipped
+}
+
+enum StudyPlanTaskType {
+  question_set
+  flashcard_set
+  mini_case
+}
+
 model Profile {
   id                    String            @id @default(uuid())
   email                 String            @unique
@@ -66,6 +79,8 @@ model Profile {
   roles    UserRole[]
   exams    Exam[]
   answers  UserAnswer[]
+  studyPlans StudyPlan[]
+  studyPlanExecutions StudyPlanExecution[]
   payments                           Payment[]
   subscriptionCancellationFeedbacks SubscriptionCancellationFeedback[]
   createdClinicalCases              ClinicalCase[] @relation("ClinicalCaseCreatedBy")
@@ -132,6 +147,7 @@ model Specialty {
   cases           ClinicalCase[]
   examSpecialties ExamSpecialty[]
   predictionCalibrations PredictionCalibration[]
+  flashcardLinks FlashcardSpecialty[]
 
   @@map("specialties")
 }
@@ -144,6 +160,7 @@ model Area {
   specialty Specialty   @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
   cases     ClinicalCase[]
   examAreas ExamArea[]
+  flashcardLinks FlashcardArea[]
 
   @@unique([specialtyId, name])
   @@map("areas")
@@ -199,7 +216,7 @@ model Question {
   difficultyLevel       Int      @default(2) @map("difficulty_level")
   cognitiveCompetence   Boolean  @default(false) @map("cognitive_competence")
   previousEnarmPresence Boolean  @default(false) @map("previous_enarm_presence")
-  hint                  String   @default("") @db.Text
+  hint                  String   @db.Text
   orderIndex            Int      @default(0) @map("order_index")
 
   clinicalCase ClinicalCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
@@ -338,6 +355,105 @@ model PredictionCalibration {
   @@index([specialtyId, version])
   @@index([specialtyId, minScore, maxScore])
   @@map("prediction_calibrations")
+}
+
+model Flashcard {
+  id        String   @id @default(uuid())
+  question  String   @db.Text
+  answer    String   @db.Text
+  hint      String?  @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  specialties FlashcardSpecialty[]
+  areas       FlashcardArea[]
+
+  @@map("flashcards")
+}
+
+model FlashcardSpecialty {
+  flashcardId String @map("flashcard_id")
+  specialtyId String @map("specialty_id")
+
+  flashcard Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+  specialty Specialty @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+
+  @@id([flashcardId, specialtyId])
+  @@map("flashcard_specialties")
+}
+
+model FlashcardArea {
+  flashcardId String @map("flashcard_id")
+  areaId      String @map("area_id")
+
+  flashcard Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+  area      Area      @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  @@id([flashcardId, areaId])
+  @@map("flashcard_areas")
+}
+
+model StudyPlan {
+  id                        String         @id @default(uuid())
+  userId                    String         @map("user_id")
+  date                      DateTime
+  status                    StudyPlanStatus @default(pending)
+  isFreeLimited             Boolean        @default(false) @map("is_free_limited")
+  targetMinutes             Int            @default(30) @map("target_minutes")
+  estimatedScoreDelta       Float          @default(0) @map("estimated_score_delta")
+  estimatedPercentileDelta  Float          @default(0) @map("estimated_percentile_delta")
+  createdAt                 DateTime       @default(now()) @map("created_at")
+  updatedAt                 DateTime       @updatedAt @map("updated_at")
+
+  user       Profile              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks      StudyPlanTask[]
+  executions StudyPlanExecution[]
+
+  @@unique([userId, date])
+  @@index([userId, status])
+  @@map("study_plans")
+}
+
+model StudyPlanTask {
+  id             String           @id @default(uuid())
+  studyPlanId    String           @map("study_plan_id")
+  taskType       StudyPlanTaskType @map("task_type")
+  title          String
+  description    String?          @db.Text
+  targetCount    Int              @default(0) @map("target_count")
+  completedCount Int              @default(0) @map("completed_count")
+  payload        Json?
+  sortOrder      Int              @default(0) @map("sort_order")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  studyPlan  StudyPlan             @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
+  executions StudyPlanExecution[]
+
+  @@index([studyPlanId, taskType])
+  @@map("study_plan_tasks")
+}
+
+model StudyPlanExecution {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  studyPlanId      String   @map("study_plan_id")
+  studyPlanTaskId  String   @map("study_plan_task_id")
+  completed        Boolean  @default(false)
+  score            Float?
+  timeSpentSeconds Int      @default(0) @map("time_spent_seconds")
+  completedAt      DateTime? @map("completed_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user      Profile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studyPlan StudyPlan    @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
+  task      StudyPlanTask @relation(fields: [studyPlanTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, studyPlanId, studyPlanTaskId])
+  @@index([userId, completedAt])
+  @@map("study_plan_executions")
 }
 
 model MotivationalPhrase {
