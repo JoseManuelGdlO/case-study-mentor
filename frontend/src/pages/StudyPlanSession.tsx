@@ -88,6 +88,40 @@ const StudyPlanSession = () => {
         </CardContent>
       </Card>
 
+      <Card className="border-0 shadow-md">
+        <CardHeader>
+          <CardTitle>Como usar esta sesion</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          {questionTask && questionItems.length > 0 ? (
+            <div className="rounded-lg border p-3">
+              <p className="font-medium">1) Bloque de preguntas</p>
+              <p className="text-muted-foreground">
+                Practicas preguntas enfocadas en tus areas de mejora. Leelo como entrenamiento rapido para fijar conceptos y
+                detectar temas que aun cuestan trabajo.
+              </p>
+            </div>
+          ) : null}
+          {flashTask && flashcards.length > 0 ? (
+            <div className="rounded-lg border p-3">
+              <p className="font-medium">2) Flashcards</p>
+              <p className="text-muted-foreground">
+                Refuerzas memoria activa. Marca una tarjeta como dominada cuando realmente puedas recordar la respuesta sin ayuda.
+              </p>
+            </div>
+          ) : null}
+          {miniCaseTask && miniCase ? (
+            <div className="rounded-lg border p-3">
+              <p className="font-medium">3) Mini-caso clinico</p>
+              <p className="text-muted-foreground">
+                Simulas una decision clinica real. Selecciona una opcion para recibir retroalimentacion inmediata y revisar la
+                explicacion del por que.
+              </p>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
       {flashTask && flashcards.length > 0 && (
         <Card className="border-0 shadow-md">
           <CardHeader>
