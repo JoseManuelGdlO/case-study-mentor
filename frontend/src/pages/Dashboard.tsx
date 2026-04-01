@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,6 +65,12 @@ const Dashboard = () => {
   const [activeExamDate, setActiveExamDate] = useState<DashboardExamDate | null>(null);
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [studyPlanImpact, setStudyPlanImpact] = useState<StudyPlanImpact | null>(null);
+  const [shareStatus, setShareStatus] = useState<{ active: boolean; label: string; progress: number }>({
+    active: false,
+    label: '',
+    progress: 0,
+  });
+  const shareTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,33 +127,81 @@ const Dashboard = () => {
 
   const shareToPlatform = async (platform: SharePlatform, text: string, examId?: string, score?: number) => {
     const examUrl = examId ? `${appBaseUrl}/results/${examId}` : `${appBaseUrl}/dashboard`;
-    if (platform === 'instagram') {
-      await copyText(text);
-      const image = await generateShareImage({
-        title: 'Progreso ENARM',
-        subtitle: examId ? 'Resultado de simulador' : 'Prediccion de plaza',
-        highlightA: score != null ? `${Math.round(score)}% calificacion` : 'Sigue avanzando',
-        highlightB: examId ? 'Nuevo examen completado' : 'Prediccion actualizada',
-        footer: 'Texto copiado. Publica la imagen en Instagram.',
-      });
-      await shareImageOrDownload(image, examId ? `resultado-enarm-${examId}.png` : 'prediccion-enarm.png', text);
-      toast.success('Imagen lista para Instagram y texto copiado');
-      return;
+    startShareProgress(platform === 'instagram' ? 'Preparando imagen para compartir...' : 'Abriendo opcion de compartir...');
+    try {
+      if (platform === 'instagram') {
+        await copyText(text);
+        const image = await generateShareImage({
+          title: 'Progreso ENARM',
+          subtitle: examId ? 'Resultado de simulador' : 'Prediccion de plaza',
+          highlightA: score != null ? `${Math.round(score)}% calificacion` : 'Sigue avanzando',
+          highlightB: examId ? 'Nuevo examen completado' : 'Prediccion actualizada',
+          footer: 'Texto copiado. Publica la imagen en Instagram.',
+        });
+        await shareImageOrDownload(image, examId ? `resultado-enarm-${examId}.png` : 'prediccion-enarm.png', text);
+        finishShareProgress();
+        toast.success('Imagen lista para Instagram y texto copiado');
+        return;
+      }
+      const shareUrl = buildPlatformUrl(platform, text, examUrl);
+      if (!shareUrl) {
+        failShareProgress();
+        return;
+      }
+      openShareUrl(shareUrl);
+      finishShareProgress();
+    } catch (error) {
+      failShareProgress();
+      toast.error(error instanceof Error ? error.message : 'No se pudo compartir');
     }
-    const shareUrl = buildPlatformUrl(platform, text, examUrl);
-    if (!shareUrl) return;
-    openShareUrl(shareUrl);
   };
 
   const handleQuickShare = async (text: string, examId?: string) => {
     const url = examId ? `${appBaseUrl}/results/${examId}` : `${appBaseUrl}/dashboard`;
+    startShareProgress('Compartiendo...');
     try {
       const method = await shareWithFallback('Case Study Mentor', text, url);
+      finishShareProgress();
       toast.success(method === 'native' ? 'Compartido correctamente' : 'Texto copiado al portapapeles');
     } catch (error) {
+      failShareProgress();
       toast.error(error instanceof Error ? error.message : 'No se pudo compartir');
     }
   };
+
+  const clearShareTimer = () => {
+    if (shareTimerRef.current != null) {
+      window.clearInterval(shareTimerRef.current);
+      shareTimerRef.current = null;
+    }
+  };
+
+  const startShareProgress = (label: string) => {
+    clearShareTimer();
+    setShareStatus({ active: true, label, progress: 18 });
+    shareTimerRef.current = window.setInterval(() => {
+      setShareStatus((prev) => {
+        if (!prev.active) return prev;
+        const next = Math.min(prev.progress + 14, 92);
+        return { ...prev, progress: next };
+      });
+    }, 180);
+  };
+
+  const finishShareProgress = () => {
+    clearShareTimer();
+    setShareStatus((prev) => ({ ...prev, progress: 100 }));
+    window.setTimeout(() => {
+      setShareStatus({ active: false, label: '', progress: 0 });
+    }, 450);
+  };
+
+  const failShareProgress = () => {
+    clearShareTimer();
+    setShareStatus({ active: false, label: '', progress: 0 });
+  };
+
+  useEffect(() => () => clearShareTimer(), []);
 
   if (loading) {
     return <div className="max-w-7xl mx-auto p-6 text-muted-foreground">Cargando…</div>;
@@ -155,6 +209,14 @@ const Dashboard = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
+      {shareStatus.active && (
+        <Card className="border-primary/30 bg-primary/5 shadow-sm">
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground mb-2">{shareStatus.label}</p>
+            <Progress value={shareStatus.progress} className="h-2" />
+          </CardContent>
+        </Card>
+      )}
       <MotivationalBanner phrases={phrases} />
       <div data-tour="countdown">
         <CountdownTimer activeExamDate={activeExamDate} />

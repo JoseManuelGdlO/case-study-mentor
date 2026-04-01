@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,12 @@ const Results = () => {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [shareStatus, setShareStatus] = useState<{ active: boolean; label: string; progress: number }>({
+    active: false,
+    label: '',
+    progress: 0,
+  });
+  const shareTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!examId) return;
@@ -103,36 +109,83 @@ const Results = () => {
     : '';
 
   const shareToPlatform = async (platform: SharePlatform, text: string) => {
-    if (platform === 'instagram') {
-      await copyText(text);
-      const image = await generateShareImage({
-        title: 'Resultado ENARM',
-        subtitle: prediction ? `Prediccion: ${prediction.specialty}` : 'Nuevo simulador completado',
-        highlightA: `${score}% calificacion`,
-        highlightB: prediction
-          ? `${Math.round(prediction.placementProbability)}% probabilidad`
-          : `${correct}/${totalAnswered} correctas`,
-        footer: 'Texto copiado. Ahora comparte la imagen en Instagram.',
-      });
-      await shareImageOrDownload(image, `resultado-enarm-${exam.id}.png`, text);
-      toast.success('Imagen lista para Instagram y texto copiado');
-      return;
-    }
-
-    const shareUrl = buildPlatformUrl(platform, text, examUrl);
-    if (!shareUrl) return;
-    openShareUrl(shareUrl);
-  };
-
-  const handleQuickShare = async (text: string, label: string) => {
+    startShareProgress(platform === 'instagram' ? 'Preparando imagen para compartir...' : 'Abriendo opcion de compartir...');
     try {
-      const method = await shareWithFallback('Case Study Mentor', text, examUrl);
-      if (method === 'native') toast.success(`${label} compartido`);
-      else toast.success(`${label} copiado al portapapeles`);
+      if (platform === 'instagram') {
+        await copyText(text);
+        const image = await generateShareImage({
+          title: 'Resultado ENARM',
+          subtitle: prediction ? `Prediccion: ${prediction.specialty}` : 'Nuevo simulador completado',
+          highlightA: `${score}% calificacion`,
+          highlightB: prediction
+            ? `${Math.round(prediction.placementProbability)}% probabilidad`
+            : `${correct}/${totalAnswered} correctas`,
+          footer: 'Texto copiado. Ahora comparte la imagen en Instagram.',
+        });
+        await shareImageOrDownload(image, `resultado-enarm-${exam.id}.png`, text);
+        finishShareProgress();
+        toast.success('Imagen lista para Instagram y texto copiado');
+        return;
+      }
+      const shareUrl = buildPlatformUrl(platform, text, examUrl);
+      if (!shareUrl) {
+        failShareProgress();
+        return;
+      }
+      openShareUrl(shareUrl);
+      finishShareProgress();
     } catch (error) {
+      failShareProgress();
       toast.error(error instanceof Error ? error.message : 'No se pudo compartir');
     }
   };
+
+  const handleQuickShare = async (text: string, label: string) => {
+    startShareProgress(`Compartiendo ${label.toLowerCase()}...`);
+    try {
+      const method = await shareWithFallback('Case Study Mentor', text, examUrl);
+      finishShareProgress();
+      if (method === 'native') toast.success(`${label} compartido`);
+      else toast.success(`${label} copiado al portapapeles`);
+    } catch (error) {
+      failShareProgress();
+      toast.error(error instanceof Error ? error.message : 'No se pudo compartir');
+    }
+  };
+
+  const clearShareTimer = () => {
+    if (shareTimerRef.current != null) {
+      window.clearInterval(shareTimerRef.current);
+      shareTimerRef.current = null;
+    }
+  };
+
+  const startShareProgress = (label: string) => {
+    clearShareTimer();
+    setShareStatus({ active: true, label, progress: 18 });
+    shareTimerRef.current = window.setInterval(() => {
+      setShareStatus((prev) => {
+        if (!prev.active) return prev;
+        const next = Math.min(prev.progress + 14, 92);
+        return { ...prev, progress: next };
+      });
+    }, 180);
+  };
+
+  const finishShareProgress = () => {
+    clearShareTimer();
+    setShareStatus((prev) => ({ ...prev, progress: 100 }));
+    window.setTimeout(() => {
+      setShareStatus({ active: false, label: '', progress: 0 });
+    }, 450);
+  };
+
+  const failShareProgress = () => {
+    clearShareTimer();
+    setShareStatus({ active: false, label: '', progress: 0 });
+  };
+
+  useEffect(() => () => clearShareTimer(), []);
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -167,6 +220,12 @@ const Results = () => {
                 <Instagram className="w-4 h-4" /> Instagram
               </Button>
             </div>
+            {shareStatus.active && (
+              <div className="mt-4 max-w-md mx-auto rounded-lg bg-white/15 backdrop-blur-sm border border-white/30 p-3 text-left">
+                <p className="text-xs text-white/90 mb-2">{shareStatus.label}</p>
+                <Progress value={shareStatus.progress} className="h-2 bg-white/20" />
+              </div>
+            )}
           </div>
         </Card>
 
