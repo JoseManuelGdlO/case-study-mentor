@@ -5,6 +5,10 @@ function serviceError(message, status) {
     return e;
 }
 export function paypalApiBase() {
+    if (env.PAYPAL_ENV === 'sandbox')
+        return 'https://api-m.sandbox.paypal.com';
+    if (env.PAYPAL_ENV === 'live')
+        return 'https://api-m.paypal.com';
     return env.NODE_ENV === 'production' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
 }
 let paypalToken = null;

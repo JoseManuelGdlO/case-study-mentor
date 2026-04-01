@@ -8,7 +8,7 @@
 #   JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, CORS_ORIGIN (coma = varios orígenes), RATE_LIMIT_ENABLED (default true; false solo para pruebas de carga controladas),
 #   etc.
 #   Pagos (opcionales): FRONTEND_URL (URL pública del sitio, ej. https://enarm.com.mx — necesaria para redirects Stripe/PayPal),
-#   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_WEBHOOK_ID
+#   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_WEBHOOK_ID, PAYPAL_ENV (sandbox|live)
 #   Correo / recuperar contraseña (opcionales pero necesarios para olvidé contraseña en prod):
 #   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_SECURE (true con puerto 465)
 #   Compose sustituye ${SMTP_*} desde el .env en ESTA carpeta (raíz del repo), no desde backend/.env.
@@ -44,6 +44,7 @@ services:
       PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
       PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-}
       PAYPAL_WEBHOOK_ID: ${PAYPAL_WEBHOOK_ID:-}
+      PAYPAL_ENV: ${PAYPAL_ENV:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}

@@ -25,6 +25,11 @@ const envSchema = z.object({
     PAYPAL_CLIENT_ID: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
     PAYPAL_CLIENT_SECRET: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
     PAYPAL_WEBHOOK_ID: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+    /**
+     * API de PayPal: sandbox o live. Si no se define, se usa live solo con NODE_ENV=production y sandbox en el resto.
+     * Así puedes alinear credenciales (sandbox/live) sin depender solo de NODE_ENV.
+     */
+    PAYPAL_ENV: z.preprocess(emptyToUndefined, z.enum(['sandbox', 'live']).optional()),
     /** SMTP opcional: sin esto, en desarrollo el reset se registra en consola; en producción olvidé contraseña responde 503. */
     SMTP_HOST: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
     SMTP_PORT: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),

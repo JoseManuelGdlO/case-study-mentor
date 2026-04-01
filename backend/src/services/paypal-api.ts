@@ -7,6 +7,8 @@ function serviceError(message: string, status: number): Error & { status: number
 }
 
 export function paypalApiBase(): string {
+  if (env.PAYPAL_ENV === 'sandbox') return 'https://api-m.sandbox.paypal.com';
+  if (env.PAYPAL_ENV === 'live') return 'https://api-m.paypal.com';
   return env.NODE_ENV === 'production' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
 }
 
