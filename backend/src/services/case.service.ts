@@ -18,6 +18,10 @@ function serializeCase(row: {
   status: string;
   createdAt: Date;
   updatedAt: Date;
+  createdById: string | null;
+  updatedById: string | null;
+  createdBy: { id: string; firstName: string; lastName: string; email: string } | null;
+  updatedBy: { id: string; firstName: string; lastName: string; email: string } | null;
   specialty: { name: string };
   area: { name: string };
   labResults: { id: string; name: string; value: string; unit: string; normalRange: string }[];
@@ -78,6 +82,20 @@ function serializeCase(row: {
     status: row.status,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    createdBy: row.createdBy
+      ? {
+          id: row.createdBy.id,
+          name: `${row.createdBy.firstName} ${row.createdBy.lastName}`.trim(),
+          email: row.createdBy.email,
+        }
+      : undefined,
+    updatedBy: row.updatedBy
+      ? {
+          id: row.updatedBy.id,
+          name: `${row.updatedBy.firstName} ${row.updatedBy.lastName}`.trim(),
+          email: row.updatedBy.email,
+        }
+      : undefined,
   };
 }
 
@@ -104,6 +122,8 @@ export async function listCases(query: {
       include: {
         specialty: true,
         area: true,
+        createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        updatedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
         labResults: true,
         questions: { include: { options: true }, orderBy: { orderIndex: 'asc' } },
       },
@@ -123,6 +143,8 @@ export async function getCaseById(id: string) {
     include: {
       specialty: true,
       area: true,
+      createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+      updatedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
       labResults: true,
       questions: { include: { options: true }, orderBy: { orderIndex: 'asc' } },
     },
@@ -135,7 +157,7 @@ export async function getCaseById(id: string) {
   return { data: serializeCase(row) };
 }
 
-export async function createCase(input: CreateCase) {
+export async function createCase(input: CreateCase, userId: string) {
   const created = await prisma.$transaction(async (tx) => {
     const c = await tx.clinicalCase.create({
       data: {
@@ -146,6 +168,8 @@ export async function createCase(input: CreateCase) {
         text: input.text,
         imageUrl: input.imageUrl ?? null,
         status: input.status,
+        createdById: userId,
+        updatedById: userId,
         labResults: {
           create: (input.labResults ?? []).map((l) => ({
             name: l.name,
@@ -180,6 +204,8 @@ export async function createCase(input: CreateCase) {
       include: {
         specialty: true,
         area: true,
+        createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        updatedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
         labResults: true,
         questions: { include: { options: true }, orderBy: { orderIndex: 'asc' } },
       },
@@ -190,7 +216,7 @@ export async function createCase(input: CreateCase) {
   return getCaseById(created.id);
 }
 
-export async function updateCase(id: string, input: UpdateCase) {
+export async function updateCase(id: string, input: UpdateCase, userId: string) {
   const existing = await prisma.clinicalCase.findUnique({ where: { id } });
   if (!existing) {
     const err = new Error('Caso no encontrado') as Error & { status: number };
@@ -209,6 +235,7 @@ export async function updateCase(id: string, input: UpdateCase) {
         ...(input.text != null ? { text: input.text } : {}),
         ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl } : {}),
         ...(input.status != null ? { status: input.status } : {}),
+        updatedById: userId,
       },
     });
 

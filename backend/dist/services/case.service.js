@@ -45,6 +45,20 @@ function serializeCase(row) {
         status: row.status,
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
+        createdBy: row.createdBy
+            ? {
+                id: row.createdBy.id,
+                name: `${row.createdBy.firstName} ${row.createdBy.lastName}`.trim(),
+                email: row.createdBy.email,
+            }
+            : undefined,
+        updatedBy: row.updatedBy
+            ? {
+                id: row.updatedBy.id,
+                name: `${row.updatedBy.firstName} ${row.updatedBy.lastName}`.trim(),
+                email: row.updatedBy.email,
+            }
+            : undefined,
     };
 }
 export async function listCases(query) {
@@ -64,6 +78,8 @@ export async function listCases(query) {
             include: {
                 specialty: true,
                 area: true,
+                createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+                updatedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
                 labResults: true,
                 questions: { include: { options: true }, orderBy: { orderIndex: 'asc' } },
             },
@@ -82,6 +98,8 @@ export async function getCaseById(id) {
         include: {
             specialty: true,
             area: true,
+            createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+            updatedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
             labResults: true,
             questions: { include: { options: true }, orderBy: { orderIndex: 'asc' } },
         },
@@ -93,7 +111,7 @@ export async function getCaseById(id) {
     }
     return { data: serializeCase(row) };
 }
-export async function createCase(input) {
+export async function createCase(input, userId) {
     const created = await prisma.$transaction(async (tx) => {
         const c = await tx.clinicalCase.create({
             data: {
@@ -104,6 +122,8 @@ export async function createCase(input) {
                 text: input.text,
                 imageUrl: input.imageUrl ?? null,
                 status: input.status,
+                createdById: userId,
+                updatedById: userId,
                 labResults: {
                     create: (input.labResults ?? []).map((l) => ({
                         name: l.name,
@@ -138,6 +158,8 @@ export async function createCase(input) {
             include: {
                 specialty: true,
                 area: true,
+                createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+                updatedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
                 labResults: true,
                 questions: { include: { options: true }, orderBy: { orderIndex: 'asc' } },
             },
@@ -147,7 +169,7 @@ export async function createCase(input) {
     await cacheService.invalidate('cache:specialties*');
     return getCaseById(created.id);
 }
-export async function updateCase(id, input) {
+export async function updateCase(id, input, userId) {
     const existing = await prisma.clinicalCase.findUnique({ where: { id } });
     if (!existing) {
         const err = new Error('Caso no encontrado');
@@ -165,6 +187,7 @@ export async function updateCase(id, input) {
                 ...(input.text != null ? { text: input.text } : {}),
                 ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl } : {}),
                 ...(input.status != null ? { status: input.status } : {}),
+                updatedById: userId,
             },
         });
         if (input.labResults) {

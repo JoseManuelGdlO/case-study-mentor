@@ -188,7 +188,7 @@ const CaseList = () => {
                   <TableCell className="font-medium">{c.topic}</TableCell>
                   <TableCell>{getShortDescription(c.text)}</TableCell>
                   <TableCell>{formatUploadDate(c.createdAt)}</TableCell>
-                  <TableCell>No disponible</TableCell>
+                  <TableCell>{c.createdBy?.name || c.createdBy?.email || 'No disponible'}</TableCell>
                   <TableCell>{c.specialty}</TableCell>
                   <TableCell>{c.area}</TableCell>
                   <TableCell>{c.language === 'es' ? '🇲🇽' : '🇺🇸'}</TableCell>

@@ -29,7 +29,7 @@ casesRouter.get('/:id', authenticate, requireCaseEditor(), async (req, res, next
 });
 casesRouter.post('/', authenticate, requireCaseEditor(), validateBody(createCaseSchema), async (req, res, next) => {
     try {
-        const result = await caseService.createCase(req.body);
+        const result = await caseService.createCase(req.body, req.user.id);
         res.status(201).json(result);
     }
     catch (e) {
@@ -38,7 +38,7 @@ casesRouter.post('/', authenticate, requireCaseEditor(), validateBody(createCase
 });
 casesRouter.put('/:id', authenticate, requireCaseEditor(), validateBody(updateCaseSchema), async (req, res, next) => {
     try {
-        const result = await caseService.updateCase(paramString(req.params.id), req.body);
+        const result = await caseService.updateCase(paramString(req.params.id), req.body, req.user.id);
         res.json(result);
     }
     catch (e) {
@@ -61,7 +61,7 @@ casesRouter.post('/bulk-upload', authenticate, requireAdmin(), upload.single('fi
             res.status(400).json({ error: 'Archivo requerido' });
             return;
         }
-        const result = await processBulkUpload(file.buffer);
+        const result = await processBulkUpload(file.buffer, req.user.id);
         res.json(result);
     }
     catch (e) {

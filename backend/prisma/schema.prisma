@@ -68,6 +68,8 @@ model Profile {
   answers  UserAnswer[]
   payments                           Payment[]
   subscriptionCancellationFeedbacks SubscriptionCancellationFeedback[]
+  createdClinicalCases              ClinicalCase[] @relation("ClinicalCaseCreatedBy")
+  updatedClinicalCases              ClinicalCase[] @relation("ClinicalCaseUpdatedBy")
 
   @@map("profiles")
 }
@@ -150,6 +152,8 @@ model ClinicalCase {
   id          String   @id @default(uuid())
   specialtyId String   @map("specialty_id")
   areaId      String   @map("area_id")
+  createdById String?  @map("created_by_id")
+  updatedById String?  @map("updated_by_id")
   topic       String
   language    String   @default("es")
   text        String   @db.Text
@@ -160,10 +164,14 @@ model ClinicalCase {
 
   specialty  Specialty    @relation(fields: [specialtyId], references: [id])
   area       Area         @relation(fields: [areaId], references: [id])
+  createdBy  Profile?     @relation("ClinicalCaseCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy  Profile?     @relation("ClinicalCaseUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   questions  Question[]
   labResults LabResult[]
   examCases  ExamCase[]
 
+  @@index([createdById])
+  @@index([updatedById])
   @@map("clinical_cases")
 }
 

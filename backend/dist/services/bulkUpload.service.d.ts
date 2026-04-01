@@ -1,4 +1,4 @@
-export declare function processBulkUpload(buffer: Buffer): Promise<{
+export declare function processBulkUpload(buffer: Buffer, userId: string): Promise<{
     data: {
         success: number;
         errors: {

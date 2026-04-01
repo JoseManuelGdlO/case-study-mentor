@@ -63,6 +63,16 @@ export interface ClinicalCase {
   status: CaseStatus;
   createdAt: string;
   updatedAt: string;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  updatedBy?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 export interface ExamConfig {

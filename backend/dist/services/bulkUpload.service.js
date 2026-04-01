@@ -110,7 +110,7 @@ function normalizeRow(raw) {
         labRango: pick(['Lab_RangoNormal', 'Lab - Rango Normal', 'Lab Rango Normal']) ?? null,
     };
 }
-export async function processBulkUpload(buffer) {
+export async function processBulkUpload(buffer, userId) {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(sheet);
@@ -160,6 +160,8 @@ export async function processBulkUpload(buffer) {
                         text: row.casoTexto,
                         imageUrl: row.imagenUrl ? String(row.imagenUrl) : null,
                         status: 'published',
+                        createdById: userId,
+                        updatedById: userId,
                         labResults: row.labNombre && row.labValor
                             ? {
                                 create: [

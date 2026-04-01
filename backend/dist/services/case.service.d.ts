@@ -49,6 +49,16 @@ export declare function listCases(query: {
         status: string;
         createdAt: string;
         updatedAt: string;
+        createdBy: {
+            id: string;
+            name: string;
+            email: string;
+        } | undefined;
+        updatedBy: {
+            id: string;
+            name: string;
+            email: string;
+        } | undefined;
     }[];
     total: number;
     page: number;
@@ -95,9 +105,19 @@ export declare function getCaseById(id: string): Promise<{
         status: string;
         createdAt: string;
         updatedAt: string;
+        createdBy: {
+            id: string;
+            name: string;
+            email: string;
+        } | undefined;
+        updatedBy: {
+            id: string;
+            name: string;
+            email: string;
+        } | undefined;
     };
 }>;
-export declare function createCase(input: CreateCase): Promise<{
+export declare function createCase(input: CreateCase, userId: string): Promise<{
     data: {
         id: string;
         specialtyId: string;
@@ -138,9 +158,19 @@ export declare function createCase(input: CreateCase): Promise<{
         status: string;
         createdAt: string;
         updatedAt: string;
+        createdBy: {
+            id: string;
+            name: string;
+            email: string;
+        } | undefined;
+        updatedBy: {
+            id: string;
+            name: string;
+            email: string;
+        } | undefined;
     };
 }>;
-export declare function updateCase(id: string, input: UpdateCase): Promise<{
+export declare function updateCase(id: string, input: UpdateCase, userId: string): Promise<{
     data: {
         id: string;
         specialtyId: string;
@@ -181,6 +211,16 @@ export declare function updateCase(id: string, input: UpdateCase): Promise<{
         status: string;
         createdAt: string;
         updatedAt: string;
+        createdBy: {
+            id: string;
+            name: string;
+            email: string;
+        } | undefined;
+        updatedBy: {
+            id: string;
+            name: string;
+            email: string;
+        } | undefined;
     };
 }>;
 export declare function deleteCase(id: string): Promise<{

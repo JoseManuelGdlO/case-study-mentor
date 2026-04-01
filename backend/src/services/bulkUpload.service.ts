@@ -114,7 +114,7 @@ function normalizeRow(raw: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
-export async function processBulkUpload(buffer: Buffer): Promise<{
+export async function processBulkUpload(buffer: Buffer, userId: string): Promise<{
   data: { success: number; errors: { row: number; error: string }[] };
 }> {
   const workbook = XLSX.read(buffer, { type: 'buffer' });
@@ -170,6 +170,8 @@ export async function processBulkUpload(buffer: Buffer): Promise<{
             text: row.casoTexto,
             imageUrl: row.imagenUrl ? String(row.imagenUrl) : null,
             status: 'published',
+            createdById: userId,
+            updatedById: userId,
             labResults:
               row.labNombre && row.labValor
                 ? {
