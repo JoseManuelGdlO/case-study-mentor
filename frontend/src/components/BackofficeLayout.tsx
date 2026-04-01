@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, FileText, FolderTree, Users, CreditCard, BarChart3, Sparkles, CalendarClock, LogOut, Plus, MessageSquareText } from 'lucide-react';
+import { LayoutDashboard, FileText, FolderTree, Users, CreditCard, BarChart3, Sparkles, CalendarClock, LogOut, Plus, MessageSquareText, BookOpen } from 'lucide-react';
 import logoConLetra from '@/assets/logotipoconletra.png';
 import logoSolo from '@/assets/logotiposolo.png';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ const navItems: {
   { title: 'Cancelaciones', url: '/backoffice/subscription-cancellation-feedback', icon: MessageSquareText, adminOnly: true },
   { title: 'Precios', url: '/backoffice/pricing', icon: CreditCard, adminOnly: true },
   { title: 'Frases', url: '/backoffice/phrases', icon: Sparkles, adminOnly: true },
+  { title: 'Flashcards', url: '/backoffice/flashcards', icon: BookOpen, adminOnly: true },
   { title: 'Fechas ENARM', url: '/backoffice/exam-dates', icon: CalendarClock, adminOnly: true },
   { title: 'Estadísticas', url: '/backoffice/stats', icon: BarChart3, adminOnly: true },
 ];

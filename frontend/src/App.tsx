@@ -31,6 +31,7 @@ import PricingConfig from "./pages/backoffice/PricingConfig";
 import SpecialtyManagement from "./pages/backoffice/SpecialtyManagement";
 import SystemStats from "./pages/backoffice/SystemStats";
 import PhrasesManagement from "./pages/backoffice/PhrasesManagement";
+import FlashcardsManagement from "./pages/backoffice/FlashcardsManagement";
 import ExamDatesManagement from "./pages/backoffice/ExamDatesManagement";
 import BulkUploadCases from "./pages/backoffice/BulkUploadCases";
 import SubscriptionCancellationFeedback from "./pages/backoffice/SubscriptionCancellationFeedback";
@@ -166,6 +167,14 @@ const App = () => (
                   element={
                     <AdminRoute>
                       <PhrasesManagement />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="flashcards"
+                  element={
+                    <AdminRoute>
+                      <FlashcardsManagement />
                     </AdminRoute>
                   }
                 />
