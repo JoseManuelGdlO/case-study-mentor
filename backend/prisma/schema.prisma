@@ -212,6 +212,7 @@ model Question {
   caseId                String   @map("case_id")
   text                  String   @db.Text
   imageUrl              String?  @map("image_url")
+  feedbackImageUrl      String?  @map("feedback_image_url")
   summary               String   @db.Text
   bibliography          String   @db.Text
   difficultyLevel       Int      @default(2) @map("difficulty_level")

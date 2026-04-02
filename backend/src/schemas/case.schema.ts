@@ -13,6 +13,7 @@ const difficultyLevelSchema = z.union([z.literal(1), z.literal(2), z.literal(3)]
 const questionSchema = z.object({
   text: z.string(),
   imageUrl: z.string().optional().nullable(),
+  feedbackImageUrl: z.string().optional().nullable(),
   summary: z.string(),
   bibliography: z.string(),
   difficultyLevel: difficultyLevelSchema.default(2),

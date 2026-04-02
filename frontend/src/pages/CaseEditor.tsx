@@ -26,6 +26,7 @@ type DifficultyLevelForm = 1 | 2 | 3;
 interface QuestionForm {
   text: string;
   imageUrl: string;
+  feedbackImageUrl: string;
   options: { label: string; text: string; imageUrl: string; isCorrect: boolean; explanation: string }[];
   summary: string;
   bibliography: string;
@@ -40,6 +41,7 @@ const emptyLab = (): LabForm => ({ name: '', value: '', unit: '', normalRange: '
 const emptyQuestion = (): QuestionForm => ({
   text: '',
   imageUrl: '',
+  feedbackImageUrl: '',
   options: [
     { label: 'A', text: '', imageUrl: '', isCorrect: false, explanation: '' },
     { label: 'B', text: '', imageUrl: '', isCorrect: false, explanation: '' },
@@ -88,6 +90,7 @@ function mapCaseToForm(c: ClinicalCase): {
         ? c.questions.map((q) => ({
             text: q.text,
             imageUrl: q.imageUrl ?? '',
+            feedbackImageUrl: q.feedbackImageUrl ?? '',
             options: q.options.map((o) => ({
               label: o.label,
               text: o.text,
@@ -241,6 +244,19 @@ const CaseEditor = () => {
     }
   };
 
+  const onFeedbackImagePick = async (qi: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const url = await uploadImageFile(file);
+      updateQuestion(qi, 'feedbackImageUrl', url);
+      toast.success('Imagen de feedback subida');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al subir');
+    }
+  };
+
   const onOptionImagePick = async (qi: number, oi: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -273,6 +289,7 @@ const CaseEditor = () => {
       questions: questions.map((q, qi) => ({
         text: q.text.trim(),
         imageUrl: q.imageUrl.trim() || null,
+        feedbackImageUrl: q.feedbackImageUrl.trim() || null,
         summary: q.summary.trim(),
         bibliography: q.bibliography.trim(),
         difficultyLevel: q.difficultyLevel,
@@ -653,6 +670,40 @@ const CaseEditor = () => {
                 onClick={() => document.getElementById(`question-img-${qi}`)?.click()}
               >
                 <ImagePlus className="w-4 h-4" /> Subir imagen de la pregunta
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Imagen de feedback (opcional)</Label>
+              <p className="text-xs text-muted-foreground">
+                Se muestra en Modo Estudio después de contestar, en lugar de la imagen de la pregunta (si la defines).
+              </p>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id={`question-feedback-img-${qi}`}
+                onChange={(e) => void onFeedbackImagePick(qi, e)}
+              />
+              {q.feedbackImageUrl ? (
+                <div className="space-y-2">
+                  <img
+                    src={getUploadUrl(q.feedbackImageUrl)}
+                    alt={`Feedback pregunta ${qi + 1}`}
+                    className="max-h-40 rounded-lg border object-contain"
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={() => updateQuestion(qi, 'feedbackImageUrl', '')}>
+                    Quitar imagen
+                  </Button>
+                </div>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => document.getElementById(`question-feedback-img-${qi}`)?.click()}
+              >
+                <ImagePlus className="w-4 h-4" /> Subir imagen de feedback
               </Button>
             </div>
 

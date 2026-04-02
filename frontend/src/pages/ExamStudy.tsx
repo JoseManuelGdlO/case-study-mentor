@@ -79,6 +79,12 @@ const ExamStudy = () => {
   const selectedAnswer = currentState?.selectedAnswer ?? null;
   const revealed = currentState?.revealed ?? false;
 
+  const questionImageDisplayUrl = question
+    ? revealed
+      ? (question.feedbackImageUrl ?? question.imageUrl)
+      : question.imageUrl
+    : undefined;
+
   const handleSelect = async (optionId: string) => {
     if (!examId || !question || revealed) return;
     try {
@@ -211,9 +217,9 @@ const ExamStudy = () => {
                   </CollapsibleContent>
                 </Collapsible>
               ) : null}
-              {question.imageUrl ? (
+              {questionImageDisplayUrl ? (
                 <img
-                  src={getUploadUrl(question.imageUrl)}
+                  src={getUploadUrl(questionImageDisplayUrl)}
                   alt=""
                   className="mb-4 rounded-lg max-w-full max-h-64 border object-contain"
                 />

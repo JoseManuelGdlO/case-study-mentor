@@ -47,6 +47,8 @@ export interface Question {
   id: string;
   text: string;
   imageUrl?: string;
+  /** Imagen mostrada tras contestar (Modo Estudio); si falta, se usa `imageUrl`. */
+  feedbackImageUrl?: string;
   options: AnswerOption[];
   summary: string;
   bibliography: string;

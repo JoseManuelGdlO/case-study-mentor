@@ -30,6 +30,7 @@ function serializeCase(row: {
     id: string;
     text: string;
     imageUrl: string | null;
+    feedbackImageUrl: string | null;
     summary: string;
     bibliography: string;
     difficultyLevel: number;
@@ -65,6 +66,7 @@ function serializeCase(row: {
         id: q.id,
         text: q.text,
         imageUrl: q.imageUrl ?? undefined,
+        feedbackImageUrl: q.feedbackImageUrl ?? undefined,
         summary: q.summary,
         bibliography: q.bibliography,
         difficultyLevel: q.difficultyLevel,
@@ -187,6 +189,7 @@ export async function createCase(input: CreateCase, userId: string) {
           create: input.questions.map((q, qi) => ({
             text: q.text,
             imageUrl: q.imageUrl ?? null,
+            feedbackImageUrl: q.feedbackImageUrl ?? null,
             summary: q.summary,
             bibliography: q.bibliography,
             difficultyLevel: q.difficultyLevel,
@@ -270,6 +273,7 @@ export async function updateCase(id: string, input: UpdateCase, userId: string) 
             caseId: id,
             text: q.text,
             imageUrl: q.imageUrl ?? null,
+            feedbackImageUrl: q.feedbackImageUrl ?? null,
             summary: q.summary,
             bibliography: q.bibliography,
             difficultyLevel: q.difficultyLevel,
