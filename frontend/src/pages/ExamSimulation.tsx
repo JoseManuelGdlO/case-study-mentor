@@ -11,6 +11,8 @@ import { Clock, ChevronLeft, ChevronRight, Flag, AlertTriangle, Lightbulb, Chevr
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import LabResultsAccordion from '@/components/LabResultsAccordion';
 import { CaseClinicalMetadata } from '@/components/CaseClinicalMetadata';
+import { RichOrPlainBlock } from '@/components/RichOrPlainBlock';
+import { hintVisible } from '@/lib/richText';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -79,6 +81,8 @@ const ExamSimulation = () => {
   const progress = total ? Math.round(((currentIndex + 1) / total) * 100) : 0;
   const formatTime = (s: number) =>
     `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
+  const caseFmt = question?.caseTextFormat ?? 'plain';
 
   const selectAnswer = async (optionId: string) => {
     if (!examId || !question) return;
@@ -179,9 +183,7 @@ const ExamSimulation = () => {
                 area={question.area}
                 topic={question.topic}
               />
-              <div className="prose prose-sm max-w-none text-foreground">
-                <p className="leading-relaxed">{question.caseText}</p>
-              </div>
+              <RichOrPlainBlock format={caseFmt} text={question.caseText} />
               {question.caseImageUrl && (
                 <img src={getUploadUrl(question.caseImageUrl)} alt="Caso clínico" className="mt-4 rounded-lg max-w-full" />
               )}
@@ -193,8 +195,14 @@ const ExamSimulation = () => {
         <div className="space-y-4">
           <Card className="border-0 shadow-md">
             <CardContent className="p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">{question.text}</h2>
-              {question.hint?.trim() ? (
+              <div className="mb-4">
+                <RichOrPlainBlock
+                  format={caseFmt}
+                  text={question.text}
+                  className="text-lg font-semibold text-foreground [&_p]:text-lg [&_p]:font-semibold"
+                />
+              </div>
+              {hintVisible(question.hint, caseFmt) ? (
                 <Collapsible open={hintOpen} onOpenChange={setHintOpen} className="mb-4">
                   <CollapsibleTrigger asChild>
                     <Button variant="outline" size="sm" type="button" className="gap-2 w-full sm:w-auto">
@@ -204,7 +212,7 @@ const ExamSimulation = () => {
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-3 text-sm text-muted-foreground rounded-lg border border-border bg-muted/30 p-4">
-                    {question.hint}
+                    <RichOrPlainBlock format={caseFmt} text={question.hint ?? ''} />
                   </CollapsibleContent>
                 </Collapsible>
               ) : null}
@@ -235,7 +243,7 @@ const ExamSimulation = () => {
                         {opt.label}
                       </span>
                       <div className="flex flex-col gap-2 flex-1 min-w-0">
-                        <span className="text-foreground pt-1">{opt.text}</span>
+                        <RichOrPlainBlock format={caseFmt} text={opt.text} className="text-foreground pt-1" />
                         {opt.imageUrl ? (
                           <img
                             src={getUploadUrl(opt.imageUrl)}

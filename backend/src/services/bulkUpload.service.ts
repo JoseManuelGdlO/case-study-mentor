@@ -168,6 +168,7 @@ export async function processBulkUpload(buffer: Buffer, userId: string): Promise
             topic: row.Tema,
             language: row.Idioma,
             text: row.casoTexto,
+            textFormat: 'plain',
             imageUrl: row.imagenUrl ? String(row.imagenUrl) : null,
             status: 'published',
             createdById: userId,

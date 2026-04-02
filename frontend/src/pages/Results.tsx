@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, BarChart3, Home, RotateCcw, CheckCircle2, XCircle, Share2, MessageCircle, Facebook, Instagram } from 'lucide-react';
 import type { Exam, StudyPlan, UserStats } from '@/types';
+import { RichOrPlainBlock } from '@/components/RichOrPlainBlock';
 import { apiJson } from '@/lib/api';
 import { toast } from 'sonner';
 import {
@@ -329,6 +330,7 @@ const Results = () => {
               const a = byQ.get(q.id);
               const isCorrect = a?.isCorrect === true;
               const answered = a?.selectedOptionId != null;
+              const fmt = q.caseTextFormat ?? 'plain';
               return (
                 <div
                   key={q.id}
@@ -360,12 +362,18 @@ const Results = () => {
                         {' · '}
                         <span className="font-medium text-foreground/80">Tema:</span> {q.topic}
                       </p>
-                      <p className="font-medium text-foreground text-sm">{q.text}</p>
+                      <div className="text-sm">
+                        <RichOrPlainBlock format={fmt} text={q.text} className="font-medium text-foreground" />
+                      </div>
                       {answered && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Respuesta correcta:{' '}
-                          <strong className="text-success">{q.options.find((o) => o.isCorrect)?.text}</strong>
-                        </p>
+                        <div className="text-xs text-muted-foreground mt-1 space-y-1">
+                          <p>Respuesta correcta:</p>
+                          <RichOrPlainBlock
+                            format={fmt}
+                            text={q.options.find((o) => o.isCorrect)?.text ?? ''}
+                            className="text-success font-medium"
+                          />
+                        </div>
                       )}
                     </div>
                   </div>

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { apiJson } from '@/lib/api';
 import type { StudyPlan } from '@/types';
+import { RichOrPlainBlock } from '@/components/RichOrPlainBlock';
 
 const StudyPlanSession = () => {
   const navigate = useNavigate();
@@ -205,6 +206,7 @@ const StudyPlanSession = () => {
               const selectedOptionId = questionAnswers[q.id];
               const selectedOption = (q.options ?? []).find((o) => o.id === selectedOptionId);
               const isOpen = activeQuestionId === q.id;
+              const qFmt = q.textFormat ?? 'plain';
               return (
                 <div key={q.id} className="rounded-lg border p-3 space-y-3">
                   <button
@@ -213,7 +215,7 @@ const StudyPlanSession = () => {
                     onClick={() => setActiveQuestionId((prev) => (prev === q.id ? null : q.id))}
                   >
                     <p className="text-xs text-muted-foreground">{q.specialty} · {q.area} · {q.topic}</p>
-                    <p className="text-sm font-medium">{q.text}</p>
+                    <RichOrPlainBlock format={qFmt} text={q.text} className="text-sm font-medium" />
                   </button>
 
                   {isOpen && (
@@ -233,7 +235,8 @@ const StudyPlanSession = () => {
                           }`}
                           onClick={() => setQuestionAnswers((prev) => ({ ...prev, [q.id]: o.id }))}
                         >
-                          {o.label}. {o.text}
+                          <span className="font-medium">{o.label}. </span>
+                          <RichOrPlainBlock format={qFmt} text={o.text} className="inline-block w-full text-left" />
                         </button>
                       ))}
                       {selectedOption ? (
@@ -244,8 +247,11 @@ const StudyPlanSession = () => {
                               : 'border-red-500/40 bg-red-50 text-red-800'
                           }`}
                         >
-                          {selectedOption.isCorrect ? 'Correcto.' : 'Incorrecto.'}{' '}
-                          {selectedOption.explanation || q.hint || 'Revisa los datos clinicos clave para responder.'}
+                          <p className="mb-1">{selectedOption.isCorrect ? 'Correcto.' : 'Incorrecto.'}</p>
+                          <RichOrPlainBlock
+                            format={qFmt}
+                            text={selectedOption.explanation || q.hint || 'Revisa los datos clinicos clave para responder.'}
+                          />
                         </div>
                       ) : (
                         <p className="text-xs text-muted-foreground">Selecciona una respuesta para ver retroalimentacion.</p>
@@ -279,11 +285,15 @@ const StudyPlanSession = () => {
           <CardContent className="space-y-4">
             <p className="text-xs text-muted-foreground">{miniCase.specialty} · {miniCase.area} · {miniCase.topic}</p>
             <div className="rounded-lg border p-4">
-              <p>{miniCase.text}</p>
+              <RichOrPlainBlock format={miniCase.textFormat ?? 'plain'} text={miniCase.text} />
             </div>
             {miniCase.question ? (
               <div className="space-y-2">
-                <p className="font-medium">{miniCase.question.text}</p>
+                <RichOrPlainBlock
+                  format={miniCase.textFormat ?? 'plain'}
+                  text={miniCase.question.text}
+                  className="font-medium"
+                />
                 {miniCase.question.options.map((o) => (
                   <button
                     key={o.id}
@@ -302,7 +312,12 @@ const StudyPlanSession = () => {
                       setMiniCaseCorrect(o.isCorrect);
                     }}
                   >
-                    {o.label}. {o.text}
+                    <span className="font-medium">{o.label}. </span>
+                    <RichOrPlainBlock
+                      format={miniCase.textFormat ?? 'plain'}
+                      text={o.text}
+                      className="inline-block w-full text-left"
+                    />
                   </button>
                 ))}
                 {selectedMiniCaseOption ? (
@@ -313,8 +328,13 @@ const StudyPlanSession = () => {
                         : 'border-red-500/40 bg-red-50 text-red-800'
                     }`}
                   >
-                    {selectedMiniCaseOption.isCorrect ? 'Correcto.' : 'Incorrecto.'}{' '}
-                    {selectedMiniCaseOption.explanation || 'Revisa la fisiopatologia y criterios diagnosticos del caso.'}
+                    <p className="mb-1">{selectedMiniCaseOption.isCorrect ? 'Correcto.' : 'Incorrecto.'}</p>
+                    <RichOrPlainBlock
+                      format={miniCase.textFormat ?? 'plain'}
+                      text={
+                        selectedMiniCaseOption.explanation || 'Revisa la fisiopatologia y criterios diagnosticos del caso.'
+                      }
+                    />
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">Selecciona una respuesta para ver retroalimentacion.</p>

@@ -4,6 +4,7 @@ export type ExamStatus = 'in_progress' | 'completed' | 'not_started';
 /** 1 = Baja, 2 = Media, 3 = Alta */
 export type DifficultyLevel = 1 | 2 | 3;
 export type CaseStatus = 'draft' | 'published' | 'archived';
+export type CaseTextFormat = 'plain' | 'html';
 
 export interface PaginationMeta {
   page: number;
@@ -76,6 +77,8 @@ export interface ClinicalCase {
   topic: string;
   language: ExamLanguage;
   text: string;
+  /** Ausente en datos antiguos; se trata como plain */
+  textFormat?: CaseTextFormat;
   imageUrl?: string;
   generatedByIa: boolean;
   labResults?: LabResult[];
@@ -114,6 +117,8 @@ export interface UserAnswer {
 /** Pregunta en orden plano del examen (desde API) */
 export interface ExamFlatQuestion extends Question {
   caseText: string;
+  /** Ausente en respuestas cacheadas antiguas; se asume plain */
+  caseTextFormat?: CaseTextFormat;
   caseImageUrl?: string | null;
   /** Especialidad del caso */
   specialty: string;
@@ -182,6 +187,7 @@ export interface StudyPlanTask {
       specialty: string;
       area: string;
       text: string;
+      textFormat?: CaseTextFormat;
       question: {
         id: string;
         text: string;
@@ -195,6 +201,7 @@ export interface StudyPlanTask {
       topic: string;
       specialty: string;
       area: string;
+      textFormat?: CaseTextFormat;
       options?: { id: string; label: string; text: string; isCorrect: boolean; explanation?: string | null }[];
     }[];
   };

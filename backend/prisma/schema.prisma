@@ -55,6 +55,11 @@ enum StudyPlanTaskType {
   mini_case
 }
 
+enum CaseTextFormat {
+  plain
+  html
+}
+
 model Profile {
   id                    String            @id @default(uuid())
   email                 String            @unique
@@ -175,6 +180,7 @@ model ClinicalCase {
   topic       String
   language    String   @default("es")
   text        String   @db.Text
+  textFormat  CaseTextFormat @default(plain) @map("text_format")
   imageUrl    String?  @map("image_url")
   generatedByIa Boolean @default(false) @map("generated_by_ia")
   status      String   @default("draft")

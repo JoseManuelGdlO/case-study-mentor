@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import type { CaseStatus, Category, ClinicalCase } from '@/types';
+import type { CaseStatus, CaseTextFormat, Category, ClinicalCase } from '@/types';
+import { ClinicalRichTextEditor } from '@/components/ClinicalRichTextEditor';
+import { isRichTextEmpty } from '@/lib/richText';
 import { ArrowLeft, Plus, Trash2, ImagePlus, Save, FlaskConical } from 'lucide-react';
 import { apiFetch, apiJson, getUploadUrl } from '@/lib/api';
 import { toast } from 'sonner';
@@ -62,6 +64,7 @@ function mapCaseToForm(c: ClinicalCase): {
   topic: string;
   language: string;
   caseText: string;
+  textFormat: CaseTextFormat;
   caseImageUrl: string;
   status: CaseStatus;
   generatedByIa: boolean;
@@ -76,6 +79,7 @@ function mapCaseToForm(c: ClinicalCase): {
     topic: c.topic,
     language: c.language,
     caseText: c.text,
+    textFormat: c.textFormat ?? 'plain',
     caseImageUrl: c.imageUrl ?? '',
     status: c.status,
     generatedByIa: c.generatedByIa ?? false,
@@ -122,6 +126,11 @@ async function uploadImageFile(file: File): Promise<string> {
   return json.data.url;
 }
 
+function fieldNonEmpty(value: string, format: CaseTextFormat): boolean {
+  if (format === 'html') return !isRichTextEmpty(value);
+  return value.trim().length > 0;
+}
+
 const CaseEditor = () => {
   const navigate = useNavigate();
   const { caseId } = useParams<{ caseId: string }>();
@@ -138,6 +147,7 @@ const CaseEditor = () => {
   const [topic, setTopic] = useState('');
   const [language, setLanguage] = useState('es');
   const [caseText, setCaseText] = useState('');
+  const [textFormat, setTextFormat] = useState<CaseTextFormat>('html');
   const [caseImageUrl, setCaseImageUrl] = useState('');
   const [status, setStatus] = useState<CaseStatus>('draft');
   const [generatedByIa, setGeneratedByIa] = useState(false);
@@ -182,6 +192,7 @@ const CaseEditor = () => {
         setTopic(m.topic);
         setLanguage(m.language);
         setCaseText(m.caseText);
+        setTextFormat(m.textFormat);
         setCaseImageUrl(m.caseImageUrl);
         setStatus(m.status);
         setGeneratedByIa(m.generatedByIa);
@@ -276,7 +287,8 @@ const CaseEditor = () => {
       areaId,
       topic: topic.trim(),
       language: language as 'es' | 'en',
-      text: caseText.trim(),
+      text: textFormat === 'html' ? caseText : caseText.trim(),
+      textFormat,
       imageUrl: caseImageUrl.trim() || null,
       status,
       generatedByIa,
@@ -287,43 +299,43 @@ const CaseEditor = () => {
         normalRange: l.normalRange.trim(),
       })),
       questions: questions.map((q, qi) => ({
-        text: q.text.trim(),
+        text: textFormat === 'html' ? q.text : q.text.trim(),
         imageUrl: q.imageUrl.trim() || null,
         feedbackImageUrl: q.feedbackImageUrl.trim() || null,
-        summary: q.summary.trim(),
-        bibliography: q.bibliography.trim(),
+        summary: textFormat === 'html' ? q.summary : q.summary.trim(),
+        bibliography: textFormat === 'html' ? q.bibliography : q.bibliography.trim(),
         difficultyLevel: q.difficultyLevel,
         cognitiveCompetence: q.cognitiveCompetence,
         previousEnarmPresence: q.previousEnarmPresence,
-        hint: q.hint.trim(),
+        hint: textFormat === 'html' ? q.hint : q.hint.trim(),
         orderIndex: qi,
         options: q.options.map((o) => ({
           label: o.label,
-          text: o.text.trim(),
+          text: textFormat === 'html' ? o.text : o.text.trim(),
           imageUrl: o.imageUrl.trim() || null,
           isCorrect: o.isCorrect,
-          explanation: o.explanation.trim(),
+          explanation: textFormat === 'html' ? o.explanation : o.explanation.trim(),
         })),
       })),
     };
-  }, [specialtyId, areaId, topic, language, caseText, caseImageUrl, status, generatedByIa, labs, questions]);
+  }, [specialtyId, areaId, topic, language, caseText, textFormat, caseImageUrl, status, generatedByIa, labs, questions]);
 
   const validate = (): boolean => {
     if (!specialtyId || !areaId) {
       toast.error('Selecciona especialidad y área');
       return false;
     }
-    if (!topic.trim() || !caseText.trim()) {
+    if (!topic.trim() || !fieldNonEmpty(caseText, textFormat)) {
       toast.error('Tema y texto del caso son obligatorios');
       return false;
     }
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
-      if (!q.text.trim()) {
+      if (!fieldNonEmpty(q.text, textFormat)) {
         toast.error(`La pregunta ${i + 1} necesita texto`);
         return false;
       }
-      if (!q.summary.trim() || !q.bibliography.trim()) {
+      if (!fieldNonEmpty(q.summary, textFormat) || !fieldNonEmpty(q.bibliography, textFormat)) {
         toast.error(`La pregunta ${i + 1} necesita resumen y bibliografía`);
         return false;
       }
@@ -333,7 +345,7 @@ const CaseEditor = () => {
         return false;
       }
       for (const o of q.options) {
-        if (!o.text.trim() || !o.explanation.trim()) {
+        if (!fieldNonEmpty(o.text, textFormat) || !fieldNonEmpty(o.explanation, textFormat)) {
           toast.error(`Completa texto y explicación de todas las opciones (pregunta ${i + 1})`);
           return false;
         }
@@ -478,12 +490,21 @@ const CaseEditor = () => {
           <CardTitle>Caso Clínico</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Textarea
-            placeholder="Escribe el caso clínico aquí..."
-            className="min-h-[150px]"
-            value={caseText}
-            onChange={(e) => setCaseText(e.target.value)}
-          />
+          {textFormat === 'html' ? (
+            <ClinicalRichTextEditor
+              value={caseText}
+              onChange={setCaseText}
+              placeholder="Escribe el caso clínico aquí..."
+              minHeightClass="min-h-[150px]"
+            />
+          ) : (
+            <Textarea
+              placeholder="Escribe el caso clínico aquí..."
+              className="min-h-[150px]"
+              value={caseText}
+              onChange={(e) => setCaseText(e.target.value)}
+            />
+          )}
           {caseImageUrl ? (
             <div className="space-y-2">
               <img
@@ -627,20 +648,38 @@ const CaseEditor = () => {
             </div>
             <div className="space-y-2">
               <Label>Pista (opcional)</Label>
-              <Textarea
-                placeholder="Texto de ayuda para el estudiante, sin revelar la respuesta correcta"
-                className="min-h-[72px]"
-                value={q.hint}
-                onChange={(e) => updateQuestion(qi, 'hint', e.target.value)}
-              />
+              {textFormat === 'html' ? (
+                <ClinicalRichTextEditor
+                  value={q.hint}
+                  onChange={(v) => updateQuestion(qi, 'hint', v)}
+                  placeholder="Texto de ayuda para el estudiante, sin revelar la respuesta correcta"
+                  minHeightClass="min-h-[72px]"
+                />
+              ) : (
+                <Textarea
+                  placeholder="Texto de ayuda para el estudiante, sin revelar la respuesta correcta"
+                  className="min-h-[72px]"
+                  value={q.hint}
+                  onChange={(e) => updateQuestion(qi, 'hint', e.target.value)}
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label>Texto de la pregunta</Label>
-              <Textarea
-                placeholder="¿Cuál es el diagnóstico más probable?"
-                value={q.text}
-                onChange={(e) => updateQuestion(qi, 'text', e.target.value)}
-              />
+              {textFormat === 'html' ? (
+                <ClinicalRichTextEditor
+                  value={q.text}
+                  onChange={(v) => updateQuestion(qi, 'text', v)}
+                  placeholder="¿Cuál es el diagnóstico más probable?"
+                  minHeightClass="min-h-[100px]"
+                />
+              ) : (
+                <Textarea
+                  placeholder="¿Cuál es el diagnóstico más probable?"
+                  value={q.text}
+                  onChange={(e) => updateQuestion(qi, 'text', e.target.value)}
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label>Imagen de la pregunta (opcional)</Label>
@@ -716,18 +755,29 @@ const CaseEditor = () => {
                   key={oi}
                   className={`p-4 rounded-xl border-2 space-y-3 ${opt.isCorrect ? 'border-success bg-success/5' : 'border-border'}`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <span
                       className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 ${opt.isCorrect ? 'bg-success text-success-foreground' : 'bg-muted text-muted-foreground'}`}
                     >
                       {opt.label}
                     </span>
-                    <Input
-                      placeholder={`Texto de opción ${opt.label}`}
-                      className="flex-1"
-                      value={opt.text}
-                      onChange={(e) => updateOption(qi, oi, 'text', e.target.value)}
-                    />
+                    {textFormat === 'html' ? (
+                      <div className="flex-1 min-w-[200px]">
+                        <ClinicalRichTextEditor
+                          value={opt.text}
+                          onChange={(v) => updateOption(qi, oi, 'text', v)}
+                          placeholder={`Texto de opción ${opt.label}`}
+                          minHeightClass="min-h-[72px]"
+                        />
+                      </div>
+                    ) : (
+                      <Input
+                        placeholder={`Texto de opción ${opt.label}`}
+                        className="flex-1"
+                        value={opt.text}
+                        onChange={(e) => updateOption(qi, oi, 'text', e.target.value)}
+                      />
+                    )}
                     <div className="flex items-center gap-2">
                       <Checkbox checked={opt.isCorrect} onCheckedChange={(v) => updateOption(qi, oi, 'isCorrect', v)} />
                       <Label className="text-xs text-muted-foreground whitespace-nowrap">Correcta</Label>
@@ -769,12 +819,21 @@ const CaseEditor = () => {
                       <ImagePlus className="w-4 h-4" /> Subir imagen
                     </Button>
                   </div>
-                  <Textarea
-                    placeholder="Explicación de esta opción..."
-                    className="text-sm min-h-[60px]"
-                    value={opt.explanation}
-                    onChange={(e) => updateOption(qi, oi, 'explanation', e.target.value)}
-                  />
+                  {textFormat === 'html' ? (
+                    <ClinicalRichTextEditor
+                      value={opt.explanation}
+                      onChange={(v) => updateOption(qi, oi, 'explanation', v)}
+                      placeholder="Explicación de esta opción..."
+                      minHeightClass="min-h-[72px]"
+                    />
+                  ) : (
+                    <Textarea
+                      placeholder="Explicación de esta opción..."
+                      className="text-sm min-h-[60px]"
+                      value={opt.explanation}
+                      onChange={(e) => updateOption(qi, oi, 'explanation', e.target.value)}
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -783,19 +842,37 @@ const CaseEditor = () => {
 
             <div className="space-y-2">
               <Label>En Resumen</Label>
-              <Textarea
-                placeholder="Resumen de la explicación..."
-                value={q.summary}
-                onChange={(e) => updateQuestion(qi, 'summary', e.target.value)}
-              />
+              {textFormat === 'html' ? (
+                <ClinicalRichTextEditor
+                  value={q.summary}
+                  onChange={(v) => updateQuestion(qi, 'summary', v)}
+                  placeholder="Resumen de la explicación..."
+                  minHeightClass="min-h-[100px]"
+                />
+              ) : (
+                <Textarea
+                  placeholder="Resumen de la explicación..."
+                  value={q.summary}
+                  onChange={(e) => updateQuestion(qi, 'summary', e.target.value)}
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label>Bibliografía</Label>
-              <Input
-                placeholder="Fuente bibliográfica..."
-                value={q.bibliography}
-                onChange={(e) => updateQuestion(qi, 'bibliography', e.target.value)}
-              />
+              {textFormat === 'html' ? (
+                <ClinicalRichTextEditor
+                  value={q.bibliography}
+                  onChange={(v) => updateQuestion(qi, 'bibliography', v)}
+                  placeholder="Fuente bibliográfica..."
+                  minHeightClass="min-h-[80px]"
+                />
+              ) : (
+                <Input
+                  placeholder="Fuente bibliográfica..."
+                  value={q.bibliography}
+                  onChange={(e) => updateQuestion(qi, 'bibliography', e.target.value)}
+                />
+              )}
             </div>
           </CardContent>
         </Card>

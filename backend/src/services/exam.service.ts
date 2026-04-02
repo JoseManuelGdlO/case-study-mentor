@@ -236,6 +236,7 @@ export async function getExamById(userId: string, examId: string) {
       topic: string;
       language: string;
       text: string;
+      textFormat: 'plain' | 'html';
       imageUrl?: string | null;
       generatedByIa: boolean;
       labResults: unknown[];
@@ -257,6 +258,7 @@ export async function getExamById(userId: string, examId: string) {
         topic: cc.topic,
         language: cc.language as 'es' | 'en',
         text: cc.text,
+        textFormat: cc.textFormat,
         imageUrl: cc.imageUrl,
         generatedByIa: cc.generatedByIa,
         labResults: cc.labResults.map((l) => ({
@@ -327,6 +329,7 @@ export async function getExamById(userId: string, examId: string) {
         previousEnarmPresence: q.previousEnarmPresence,
         hint: q.hint,
         caseText: cc.text,
+        caseTextFormat: cc.textFormat,
         caseImageUrl: cc.imageUrl,
         specialty: cc.specialty.name,
         area: cc.area.name,

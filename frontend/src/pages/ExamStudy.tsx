@@ -18,6 +18,8 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import LabResultsAccordion from '@/components/LabResultsAccordion';
 import { CaseClinicalMetadata } from '@/components/CaseClinicalMetadata';
+import { RichOrPlainBlock } from '@/components/RichOrPlainBlock';
+import { hintVisible } from '@/lib/richText';
 import type { Exam, ExamFlatQuestion } from '@/types';
 import { apiJson } from '@/lib/api';
 import { getUploadUrl } from '@/lib/api';
@@ -84,6 +86,8 @@ const ExamStudy = () => {
       ? (question.feedbackImageUrl ?? question.imageUrl)
       : question.imageUrl
     : undefined;
+
+  const caseFmt = question?.caseTextFormat ?? 'plain';
 
   const handleSelect = async (optionId: string) => {
     if (!examId || !question || revealed) return;
@@ -163,9 +167,7 @@ const ExamStudy = () => {
                 area={question.area}
                 topic={question.topic}
               />
-              <div className="prose prose-sm max-w-none text-foreground">
-                <p className="leading-relaxed">{question.caseText}</p>
-              </div>
+              <RichOrPlainBlock format={caseFmt} text={question.caseText} />
               {question.caseImageUrl && (
                 <img
                   src={getUploadUrl(question.caseImageUrl)}
@@ -184,7 +186,11 @@ const ExamStudy = () => {
                   <h3 className="font-bold text-foreground flex items-center gap-2 mb-2">
                     <FileText className="w-4 h-4 text-primary" /> En Resumen
                   </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{question.summary}</p>
+                  <RichOrPlainBlock
+                    format={caseFmt}
+                    text={question.summary}
+                    className="text-sm text-muted-foreground leading-relaxed"
+                  />
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-md border-l-4 border-l-secondary">
@@ -192,7 +198,11 @@ const ExamStudy = () => {
                   <h3 className="font-bold text-foreground flex items-center gap-2 mb-2">
                     <BookOpen className="w-4 h-4 text-secondary" /> Bibliografía
                   </h3>
-                  <p className="text-sm text-muted-foreground">{question.bibliography}</p>
+                  <RichOrPlainBlock
+                    format={caseFmt}
+                    text={question.bibliography}
+                    className="text-sm text-muted-foreground"
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -202,8 +212,14 @@ const ExamStudy = () => {
         <div className="space-y-4">
           <Card className="border-0 shadow-md">
             <CardContent className="p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">{question.text}</h2>
-              {question.hint?.trim() ? (
+              <div className="mb-4">
+                <RichOrPlainBlock
+                  format={caseFmt}
+                  text={question.text}
+                  className="text-lg font-semibold text-foreground [&_p]:text-lg [&_p]:font-semibold"
+                />
+              </div>
+              {hintVisible(question.hint, caseFmt) ? (
                 <Collapsible open={hintOpen} onOpenChange={setHintOpen} className="mb-4">
                   <CollapsibleTrigger asChild>
                     <Button variant="outline" size="sm" type="button" className="gap-2 w-full sm:w-auto">
@@ -213,7 +229,7 @@ const ExamStudy = () => {
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-3 text-sm text-muted-foreground rounded-lg border border-border bg-muted/30 p-4">
-                    {question.hint}
+                    <RichOrPlainBlock format={caseFmt} text={question.hint ?? ''} />
                   </CollapsibleContent>
                 </Collapsible>
               ) : null}
@@ -271,7 +287,7 @@ const ExamStudy = () => {
                         )}
                       </span>
                       <div className="flex-1 min-w-0 flex flex-col gap-2">
-                        <span className="text-foreground">{opt.text}</span>
+                        <RichOrPlainBlock format={caseFmt} text={opt.text} className="text-foreground" />
                         {opt.imageUrl ? (
                           <img
                             src={getUploadUrl(opt.imageUrl)}
@@ -280,7 +296,11 @@ const ExamStudy = () => {
                           />
                         ) : null}
                         {revealed && (isSelected || isCorrect) && opt.explanation && (
-                          <p className="text-sm text-muted-foreground mt-2 italic">{opt.explanation}</p>
+                          <RichOrPlainBlock
+                            format={caseFmt}
+                            text={opt.explanation}
+                            className="text-sm text-muted-foreground mt-2 italic"
+                          />
                         )}
                       </div>
                     </button>

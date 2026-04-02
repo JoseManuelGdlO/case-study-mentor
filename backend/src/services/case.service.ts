@@ -2,7 +2,8 @@ import { prisma } from '../config/database.js';
 import { paginationMeta, paginationParams } from '../utils/helpers.js';
 import type { z } from 'zod';
 import type { createCaseSchema, updateCaseSchema } from '../schemas/case.schema.js';
-import { cacheService, CACHE_KEYS } from './cache.service.js';
+import { cacheService } from './cache.service.js';
+import { sanitizeCreateCasePayload, sanitizeUpdateCasePayload } from '../utils/case-payload-sanitize.js';
 
 type CreateCase = z.infer<typeof createCaseSchema>;
 type UpdateCase = z.infer<typeof updateCaseSchema>;
@@ -14,6 +15,7 @@ function serializeCase(row: {
   topic: string;
   language: string;
   text: string;
+  textFormat: 'plain' | 'html';
   imageUrl: string | null;
   generatedByIa: boolean;
   status: string;
@@ -50,6 +52,7 @@ function serializeCase(row: {
     topic: row.topic,
     language: row.language,
     text: row.text,
+    textFormat: row.textFormat,
     imageUrl: row.imageUrl ?? undefined,
     generatedByIa: row.generatedByIa,
     labResults: row.labResults.map((l) => ({
@@ -164,21 +167,23 @@ export async function getCaseById(id: string) {
 }
 
 export async function createCase(input: CreateCase, userId: string) {
+  const sanitized = sanitizeCreateCasePayload(input);
   const created = await prisma.$transaction(async (tx) => {
     const c = await tx.clinicalCase.create({
       data: {
-        specialtyId: input.specialtyId,
-        areaId: input.areaId,
-        topic: input.topic,
-        language: input.language,
-        text: input.text,
-        imageUrl: input.imageUrl ?? null,
-        generatedByIa: input.generatedByIa ?? false,
-        status: input.status,
+        specialtyId: sanitized.specialtyId,
+        areaId: sanitized.areaId,
+        topic: sanitized.topic,
+        language: sanitized.language,
+        text: sanitized.text,
+        textFormat: sanitized.textFormat,
+        imageUrl: sanitized.imageUrl ?? null,
+        generatedByIa: sanitized.generatedByIa ?? false,
+        status: sanitized.status,
         createdById: userId,
         updatedById: userId,
         labResults: {
-          create: (input.labResults ?? []).map((l) => ({
+          create: (sanitized.labResults ?? []).map((l) => ({
             name: l.name,
             value: l.value,
             unit: l.unit,
@@ -186,7 +191,7 @@ export async function createCase(input: CreateCase, userId: string) {
           })),
         },
         questions: {
-          create: input.questions.map((q, qi) => ({
+          create: sanitized.questions.map((q, qi) => ({
             text: q.text,
             imageUrl: q.imageUrl ?? null,
             feedbackImageUrl: q.feedbackImageUrl ?? null,
@@ -232,26 +237,29 @@ export async function updateCase(id: string, input: UpdateCase, userId: string) 
     throw err;
   }
 
+  const sanitized = sanitizeUpdateCasePayload(input, existing.textFormat);
+
   await prisma.$transaction(async (tx) => {
     await tx.clinicalCase.update({
       where: { id },
       data: {
-        ...(input.specialtyId != null ? { specialtyId: input.specialtyId } : {}),
-        ...(input.areaId != null ? { areaId: input.areaId } : {}),
-        ...(input.topic != null ? { topic: input.topic } : {}),
-        ...(input.language != null ? { language: input.language } : {}),
-        ...(input.text != null ? { text: input.text } : {}),
-        ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl } : {}),
-        ...(input.generatedByIa !== undefined ? { generatedByIa: input.generatedByIa } : {}),
-        ...(input.status != null ? { status: input.status } : {}),
+        ...(sanitized.specialtyId != null ? { specialtyId: sanitized.specialtyId } : {}),
+        ...(sanitized.areaId != null ? { areaId: sanitized.areaId } : {}),
+        ...(sanitized.topic != null ? { topic: sanitized.topic } : {}),
+        ...(sanitized.language != null ? { language: sanitized.language } : {}),
+        ...(sanitized.text != null ? { text: sanitized.text } : {}),
+        ...(sanitized.textFormat != null ? { textFormat: sanitized.textFormat } : {}),
+        ...(sanitized.imageUrl !== undefined ? { imageUrl: sanitized.imageUrl } : {}),
+        ...(sanitized.generatedByIa !== undefined ? { generatedByIa: sanitized.generatedByIa } : {}),
+        ...(sanitized.status != null ? { status: sanitized.status } : {}),
         updatedById: userId,
       },
     });
 
-    if (input.labResults) {
+    if (sanitized.labResults) {
       await tx.labResult.deleteMany({ where: { caseId: id } });
       await tx.labResult.createMany({
-        data: input.labResults.map((l) => ({
+        data: sanitized.labResults.map((l) => ({
           caseId: id,
           name: l.name,
           value: l.value,
@@ -261,13 +269,13 @@ export async function updateCase(id: string, input: UpdateCase, userId: string) 
       });
     }
 
-    if (input.questions) {
+    if (sanitized.questions) {
       await tx.answerOption.deleteMany({
         where: { question: { caseId: id } },
       });
       await tx.question.deleteMany({ where: { caseId: id } });
-      for (let qi = 0; qi < input.questions.length; qi++) {
-        const q = input.questions[qi];
+      for (let qi = 0; qi < sanitized.questions.length; qi++) {
+        const q = sanitized.questions[qi];
         await tx.question.create({
           data: {
             caseId: id,

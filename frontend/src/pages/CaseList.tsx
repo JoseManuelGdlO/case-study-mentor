@@ -24,7 +24,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import type { Category, ClinicalCase, PaginatedResponse, PaginationMeta } from '@/types';
+import type { CaseTextFormat, Category, ClinicalCase, PaginatedResponse, PaginationMeta } from '@/types';
+import { htmlToPlainText } from '@/lib/richText';
 import { Plus, Search, Eye, Pencil, Trash2, Upload, ChevronLeft, ChevronRight, Columns3 } from 'lucide-react';
 import { apiJson, apiFetch } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -189,9 +190,11 @@ const CaseList = () => {
   const filtered = useMemo(() => {
     if (!search.trim()) return cases;
     const q = search.toLowerCase();
-    return cases.filter(
-      (c) => c.topic.toLowerCase().includes(q) || c.text.toLowerCase().includes(q)
-    );
+    return cases.filter((c) => {
+      const textForSearch =
+        c.textFormat === 'html' ? htmlToPlainText(c.text) : c.text;
+      return c.topic.toLowerCase().includes(q) || textForSearch.toLowerCase().includes(q);
+    });
   }, [cases, search]);
 
   const deleteCase = async (id: string) => {
@@ -285,8 +288,9 @@ const CaseList = () => {
     draft: 'Borrador',
     archived: 'Archivado',
   };
-  const getShortDescription = (text: string) => {
-    const normalized = text.trim().replace(/\s+/g, ' ');
+  const getShortDescription = (text: string, format?: CaseTextFormat) => {
+    const plain = format === 'html' ? htmlToPlainText(text) : text.trim();
+    const normalized = plain.replace(/\s+/g, ' ');
     if (!normalized) return '-';
     return normalized.split(' ').slice(0, 5).join(' ');
   };
@@ -458,7 +462,9 @@ const CaseList = () => {
                       );
                     }
                     if (column.id === 'description') {
-                      return <TableCell key={column.id}>{getShortDescription(c.text)}</TableCell>;
+                      return (
+                        <TableCell key={column.id}>{getShortDescription(c.text, c.textFormat)}</TableCell>
+                      );
                     }
                     if (column.id === 'uploadedAt') {
                       return <TableCell key={column.id}>{formatUploadDate(c.createdAt)}</TableCell>;
