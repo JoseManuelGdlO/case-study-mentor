@@ -662,18 +662,163 @@ backofficeRouter.put(
 
 backofficeRouter.get('/stats', requireAdmin(), async (_req, res, next) => {
   try {
-    const [totalUsers, totalExams, totalCases, totalQuestions] = await Promise.all([
+    const pairKey = (specialtyId: string, areaId: string) => `${specialtyId}\0${areaId}`;
+
+    const [
+      totalUsers,
+      totalExams,
+      totalCases,
+      totalQuestions,
+      totalPublishedCases,
+      specialties,
+      allByPair,
+      publishedByPair,
+    ] = await Promise.all([
       prisma.profile.count(),
       prisma.exam.count(),
       prisma.clinicalCase.count(),
       prisma.question.count(),
+      prisma.clinicalCase.count({ where: { status: 'published' } }),
+      prisma.specialty.findMany({
+        select: {
+          id: true,
+          name: true,
+          areas: { select: { id: true, name: true }, orderBy: { name: 'asc' } },
+        },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.clinicalCase.groupBy({
+        by: ['specialtyId', 'areaId'],
+        _count: { _all: true },
+      }),
+      prisma.clinicalCase.groupBy({
+        by: ['specialtyId', 'areaId'],
+        where: { status: 'published' },
+        _count: { _all: true },
+      }),
     ]);
+
+    const allMap = new Map(
+      allByPair.map((r) => [pairKey(r.specialtyId, r.areaId), r._count._all])
+    );
+    const pubMap = new Map(
+      publishedByPair.map((r) => [pairKey(r.specialtyId, r.areaId), r._count._all])
+    );
+
+    const catalogAreaKeys = new Set<string>();
+    for (const s of specialties) {
+      for (const a of s.areas) {
+        catalogAreaKeys.add(pairKey(s.id, a.id));
+      }
+    }
+
+    const orphans: { specialtyId: string; areaId: string }[] = [];
+    for (const r of allByPair) {
+      const k = pairKey(r.specialtyId, r.areaId);
+      if (!catalogAreaKeys.has(k)) {
+        orphans.push({ specialtyId: r.specialtyId, areaId: r.areaId });
+      }
+    }
+
+    const orphanSpecIds = [...new Set(orphans.map((o) => o.specialtyId))];
+    const orphanAreaIds = [...new Set(orphans.map((o) => o.areaId))];
+    const [orphanSpecs, orphanAreas] = await Promise.all([
+      orphanSpecIds.length
+        ? prisma.specialty.findMany({
+            where: { id: { in: orphanSpecIds } },
+            select: { id: true, name: true },
+          })
+        : Promise.resolve([] as { id: string; name: string }[]),
+      orphanAreaIds.length
+        ? prisma.area.findMany({
+            where: { id: { in: orphanAreaIds } },
+            select: { id: true, name: true, specialtyId: true },
+          })
+        : Promise.resolve([] as { id: string; name: string; specialtyId: string }[]),
+    ]);
+    const specNameById = new Map(orphanSpecs.map((s) => [s.id, s.name]));
+    const areaMetaById = new Map(orphanAreas.map((a) => [a.id, a]));
+
+    const caseDistribution = specialties.map((spec) => {
+      const areas = spec.areas.map((area) => {
+        const k = pairKey(spec.id, area.id);
+        return {
+          areaId: area.id,
+          areaName: area.name,
+          totalCases: allMap.get(k) ?? 0,
+          publishedCases: pubMap.get(k) ?? 0,
+        };
+      });
+      const totalCasesSpec = areas.reduce((acc, a) => acc + a.totalCases, 0);
+      const publishedCasesSpec = areas.reduce((acc, a) => acc + a.publishedCases, 0);
+      return {
+        specialtyId: spec.id,
+        specialtyName: spec.name,
+        totalCases: totalCasesSpec,
+        publishedCases: publishedCasesSpec,
+        areas,
+      };
+    });
+
+    const distBySpecId = new Map(caseDistribution.map((row) => [row.specialtyId, row]));
+
+    if (orphans.length > 0) {
+      const bySpec = new Map<string, typeof orphans>();
+      for (const o of orphans) {
+        const list = bySpec.get(o.specialtyId) ?? [];
+        list.push(o);
+        bySpec.set(o.specialtyId, list);
+      }
+      for (const [specId, pairs] of bySpec) {
+        const existing = distBySpecId.get(specId);
+        const areaRows = pairs.map((o) => {
+          const k = pairKey(o.specialtyId, o.areaId);
+          const meta = areaMetaById.get(o.areaId);
+          return {
+            areaId: o.areaId,
+            areaName: meta?.name ?? '(área sin catálogo)',
+            totalCases: allMap.get(k) ?? 0,
+            publishedCases: pubMap.get(k) ?? 0,
+          };
+        });
+        if (existing) {
+          const seen = new Set(existing.areas.map((a) => a.areaId));
+          for (const row of areaRows) {
+            if (seen.has(row.areaId)) continue;
+            seen.add(row.areaId);
+            existing.areas.push(row);
+            existing.totalCases += row.totalCases;
+            existing.publishedCases += row.publishedCases;
+          }
+          existing.areas.sort((a, b) => a.areaName.localeCompare(b.areaName, 'es'));
+        } else {
+          areaRows.sort((a, b) => a.areaName.localeCompare(b.areaName, 'es'));
+          const totalCasesSpec = areaRows.reduce((acc, a) => acc + a.totalCases, 0);
+          const publishedCasesSpec = areaRows.reduce((acc, a) => acc + a.publishedCases, 0);
+          const row = {
+            specialtyId: specId,
+            specialtyName: specNameById.get(specId) ?? '(especialidad sin catálogo)',
+            totalCases: totalCasesSpec,
+            publishedCases: publishedCasesSpec,
+            areas: areaRows,
+          };
+          caseDistribution.push(row);
+          distBySpecId.set(specId, row);
+        }
+      }
+      caseDistribution.sort((a, b) =>
+        a.specialtyName.localeCompare(b.specialtyName, 'es')
+      );
+    }
+
     res.json({
       data: {
         totalUsers,
         totalExams,
         totalCases,
+        totalPublishedCases,
         totalQuestions,
+        caseDistribution,
         activeUsers: totalUsers,
         freeUsers: totalUsers,
         monthlySubscribers: 0,

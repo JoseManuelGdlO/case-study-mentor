@@ -16,6 +16,11 @@ declare const envSchema: z.ZodObject<{
     PAYPAL_CLIENT_ID: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
     PAYPAL_CLIENT_SECRET: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
     PAYPAL_WEBHOOK_ID: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    /**
+     * API de PayPal: sandbox o live. Si no se define, se usa live solo con NODE_ENV=production y sandbox en el resto.
+     * Así puedes alinear credenciales (sandbox/live) sin depender solo de NODE_ENV.
+     */
+    PAYPAL_ENV: z.ZodEffects<z.ZodOptional<z.ZodEnum<["sandbox", "live"]>>, "sandbox" | "live" | undefined, unknown>;
     /** SMTP opcional: sin esto, en desarrollo el reset se registra en consola; en producción olvidé contraseña responde 503. */
     SMTP_HOST: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
     SMTP_PORT: z.ZodEffects<z.ZodOptional<z.ZodNumber>, number | undefined, unknown>;
@@ -52,6 +57,7 @@ declare const envSchema: z.ZodObject<{
     PAYPAL_CLIENT_ID?: string | undefined;
     PAYPAL_CLIENT_SECRET?: string | undefined;
     PAYPAL_WEBHOOK_ID?: string | undefined;
+    PAYPAL_ENV?: "sandbox" | "live" | undefined;
     SMTP_HOST?: string | undefined;
     SMTP_PORT?: number | undefined;
     SMTP_USER?: string | undefined;
@@ -74,6 +80,7 @@ declare const envSchema: z.ZodObject<{
     PAYPAL_CLIENT_ID?: unknown;
     PAYPAL_CLIENT_SECRET?: unknown;
     PAYPAL_WEBHOOK_ID?: unknown;
+    PAYPAL_ENV?: unknown;
     SMTP_HOST?: unknown;
     SMTP_PORT?: unknown;
     SMTP_USER?: unknown;
@@ -104,6 +111,7 @@ export declare const env: {
     PAYPAL_CLIENT_ID?: string | undefined;
     PAYPAL_CLIENT_SECRET?: string | undefined;
     PAYPAL_WEBHOOK_ID?: string | undefined;
+    PAYPAL_ENV?: "sandbox" | "live" | undefined;
     SMTP_HOST?: string | undefined;
     SMTP_PORT?: number | undefined;
     SMTP_USER?: string | undefined;

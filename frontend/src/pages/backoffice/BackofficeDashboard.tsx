@@ -1,23 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, UserCheck, FileText, HelpCircle, DollarSign, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Users, UserCheck, FileText, HelpCircle, DollarSign, TrendingUp, BarChart3 } from 'lucide-react';
 import { apiJson } from '@/lib/api';
 import { toast } from 'sonner';
-
-type BackofficeStats = {
-  totalUsers: number;
-  totalExams: number;
-  totalCases: number;
-  totalQuestions: number;
-  activeUsers: number;
-  freeUsers: number;
-  monthlySubscribers: number;
-  semesterSubscribers: number;
-  annualSubscribers: number;
-  estimatedRevenue: number;
-  avgAccuracy: number;
-  abandonRate: number;
-};
+import type { BackofficeStats } from '@/types/backoffice';
 
 const BackofficeDashboard = () => {
   const [stats, setStats] = useState<BackofficeStats | null>(null);
@@ -50,6 +38,13 @@ const BackofficeDashboard = () => {
       ]
     : [];
 
+  const topSpecialtiesByCases = useMemo(() => {
+    if (!stats?.caseDistribution?.length) return [];
+    return [...stats.caseDistribution]
+      .sort((a, b) => b.totalCases - a.totalCases)
+      .slice(0, 3);
+  }, [stats]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -76,6 +71,47 @@ const BackofficeDashboard = () => {
           ))}
         </div>
       )}
+
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4 space-y-0">
+          <div>
+            <CardTitle className="text-lg">Casos por especialidad</CardTitle>
+            <p className="text-sm text-muted-foreground font-normal mt-1">
+              {stats != null ? (
+                <>
+                  {stats.totalCases.toLocaleString()} casos en total,{' '}
+                  {stats.totalPublishedCases.toLocaleString()} publicados. Desglose completo por subespecialidad en Estadísticas.
+                </>
+              ) : (
+                '—'
+              )}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" className="gap-2 shrink-0" asChild>
+            <Link to="/backoffice/stats">
+              <BarChart3 className="h-4 w-4" />
+              Ver estadísticas
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {stats != null && topSpecialtiesByCases.length > 0 ? (
+            <ul className="text-sm text-muted-foreground space-y-2">
+              {topSpecialtiesByCases.map((s, i) => (
+                <li key={s.specialtyId}>
+                  <span className="font-medium text-foreground">{i + 1}. {s.specialtyName}</span>
+                  <span className="tabular-nums">
+                    {' '}
+                    — {s.totalCases.toLocaleString()} total, {s.publishedCases.toLocaleString()} publicados
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : stats != null ? (
+            <p className="text-sm text-muted-foreground">No hay datos de especialidades todavía.</p>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
