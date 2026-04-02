@@ -19,6 +19,7 @@ export declare function listCases(query: {
         language: string;
         text: string;
         imageUrl: string | undefined;
+        generatedByIa: boolean;
         labResults: {
             id: string;
             name: string;
@@ -83,6 +84,7 @@ export declare function getCaseById(id: string): Promise<{
         language: string;
         text: string;
         imageUrl: string | undefined;
+        generatedByIa: boolean;
         labResults: {
             id: string;
             name: string;
@@ -136,6 +138,7 @@ export declare function createCase(input: CreateCase, userId: string): Promise<{
         language: string;
         text: string;
         imageUrl: string | undefined;
+        generatedByIa: boolean;
         labResults: {
             id: string;
             name: string;
@@ -189,6 +192,7 @@ export declare function updateCase(id: string, input: UpdateCase, userId: string
         language: string;
         text: string;
         imageUrl: string | undefined;
+        generatedByIa: boolean;
         labResults: {
             id: string;
             name: string;

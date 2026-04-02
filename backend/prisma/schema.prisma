@@ -176,6 +176,7 @@ model ClinicalCase {
   language    String   @default("es")
   text        String   @db.Text
   imageUrl    String?  @map("image_url")
+  generatedByIa Boolean @default(false) @map("generated_by_ia")
   status      String   @default("draft")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

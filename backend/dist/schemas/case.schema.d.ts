@@ -6,6 +6,7 @@ export declare const createCaseSchema: z.ZodObject<{
     language: z.ZodDefault<z.ZodEnum<["es", "en"]>>;
     text: z.ZodString;
     imageUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    generatedByIa: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
     status: z.ZodDefault<z.ZodEnum<["draft", "published", "archived"]>>;
     questions: z.ZodArray<z.ZodObject<{
         text: z.ZodString;
@@ -94,6 +95,7 @@ export declare const createCaseSchema: z.ZodObject<{
     areaId: string;
     topic: string;
     text: string;
+    generatedByIa: boolean;
     questions: {
         options: {
             isCorrect: boolean;
@@ -145,6 +147,7 @@ export declare const createCaseSchema: z.ZodObject<{
     status?: "draft" | "published" | "archived" | undefined;
     language?: "es" | "en" | undefined;
     imageUrl?: string | null | undefined;
+    generatedByIa?: boolean | undefined;
     labResults?: {
         value: string;
         name: string;
@@ -159,6 +162,7 @@ export declare const updateCaseSchema: z.ZodObject<{
     language: z.ZodOptional<z.ZodDefault<z.ZodEnum<["es", "en"]>>>;
     text: z.ZodOptional<z.ZodString>;
     imageUrl: z.ZodOptional<z.ZodNullable<z.ZodOptional<z.ZodString>>>;
+    generatedByIa: z.ZodOptional<z.ZodDefault<z.ZodOptional<z.ZodBoolean>>>;
     status: z.ZodOptional<z.ZodDefault<z.ZodEnum<["draft", "published", "archived"]>>>;
 } & {
     questions: z.ZodOptional<z.ZodArray<z.ZodObject<{
@@ -249,6 +253,7 @@ export declare const updateCaseSchema: z.ZodObject<{
     topic?: string | undefined;
     text?: string | undefined;
     imageUrl?: string | null | undefined;
+    generatedByIa?: boolean | undefined;
     questions?: {
         options: {
             isCorrect: boolean;
@@ -281,6 +286,7 @@ export declare const updateCaseSchema: z.ZodObject<{
     topic?: string | undefined;
     text?: string | undefined;
     imageUrl?: string | null | undefined;
+    generatedByIa?: boolean | undefined;
     questions?: {
         options: {
             isCorrect: boolean;

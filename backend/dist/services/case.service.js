@@ -12,6 +12,7 @@ function serializeCase(row) {
         language: row.language,
         text: row.text,
         imageUrl: row.imageUrl ?? undefined,
+        generatedByIa: row.generatedByIa,
         labResults: row.labResults.map((l) => ({
             id: l.id,
             name: l.name,
@@ -123,6 +124,7 @@ export async function createCase(input, userId) {
                 language: input.language,
                 text: input.text,
                 imageUrl: input.imageUrl ?? null,
+                generatedByIa: input.generatedByIa ?? false,
                 status: input.status,
                 createdById: userId,
                 updatedById: userId,
@@ -188,6 +190,7 @@ export async function updateCase(id, input, userId) {
                 ...(input.language != null ? { language: input.language } : {}),
                 ...(input.text != null ? { text: input.text } : {}),
                 ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl } : {}),
+                ...(input.generatedByIa !== undefined ? { generatedByIa: input.generatedByIa } : {}),
                 ...(input.status != null ? { status: input.status } : {}),
                 updatedById: userId,
             },

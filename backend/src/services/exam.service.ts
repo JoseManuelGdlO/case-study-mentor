@@ -237,6 +237,7 @@ export async function getExamById(userId: string, examId: string) {
       language: string;
       text: string;
       imageUrl?: string | null;
+      generatedByIa: boolean;
       labResults: unknown[];
       questions: unknown[];
       status: string;
@@ -257,6 +258,7 @@ export async function getExamById(userId: string, examId: string) {
         language: cc.language as 'es' | 'en',
         text: cc.text,
         imageUrl: cc.imageUrl,
+        generatedByIa: cc.generatedByIa,
         labResults: cc.labResults.map((l) => ({
           id: l.id,
           name: l.name,

@@ -62,6 +62,7 @@ function mapCaseToForm(c: ClinicalCase): {
   caseText: string;
   caseImageUrl: string;
   status: CaseStatus;
+  generatedByIa: boolean;
   labs: LabForm[];
   questions: QuestionForm[];
 } {
@@ -75,6 +76,7 @@ function mapCaseToForm(c: ClinicalCase): {
     caseText: c.text,
     caseImageUrl: c.imageUrl ?? '',
     status: c.status,
+    generatedByIa: c.generatedByIa ?? false,
     labs: (c.labResults ?? []).map((l) => ({
       name: l.name,
       value: l.value,
@@ -135,6 +137,7 @@ const CaseEditor = () => {
   const [caseText, setCaseText] = useState('');
   const [caseImageUrl, setCaseImageUrl] = useState('');
   const [status, setStatus] = useState<CaseStatus>('draft');
+  const [generatedByIa, setGeneratedByIa] = useState(false);
   const [questions, setQuestions] = useState<QuestionForm[]>([emptyQuestion()]);
   const [labs, setLabs] = useState<LabForm[]>([]);
 
@@ -178,6 +181,7 @@ const CaseEditor = () => {
         setCaseText(m.caseText);
         setCaseImageUrl(m.caseImageUrl);
         setStatus(m.status);
+        setGeneratedByIa(m.generatedByIa);
         setLabs(m.labs);
         setQuestions(m.questions);
       })
@@ -259,6 +263,7 @@ const CaseEditor = () => {
       text: caseText.trim(),
       imageUrl: caseImageUrl.trim() || null,
       status,
+      generatedByIa,
       labResults: labs.map((l) => ({
         name: l.name.trim(),
         value: l.value.trim(),
@@ -284,7 +289,7 @@ const CaseEditor = () => {
         })),
       })),
     };
-  }, [specialtyId, areaId, topic, language, caseText, caseImageUrl, status, labs, questions]);
+  }, [specialtyId, areaId, topic, language, caseText, caseImageUrl, status, generatedByIa, labs, questions]);
 
   const validate = (): boolean => {
     if (!specialtyId || !areaId) {
@@ -437,6 +442,16 @@ const CaseEditor = () => {
                 <SelectItem value="archived">Archivado</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex items-center space-x-2 sm:col-span-2">
+            <Checkbox
+              id="generated-by-ia"
+              checked={generatedByIa}
+              onCheckedChange={(v) => setGeneratedByIa(v === true)}
+            />
+            <Label htmlFor="generated-by-ia" className="text-sm font-normal cursor-pointer">
+              Generado por IA
+            </Label>
           </div>
         </CardContent>
       </Card>

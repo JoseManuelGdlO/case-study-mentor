@@ -75,6 +75,7 @@ export interface ClinicalCase {
   language: ExamLanguage;
   text: string;
   imageUrl?: string;
+  generatedByIa: boolean;
   labResults?: LabResult[];
   questions: Question[];
   status: CaseStatus;

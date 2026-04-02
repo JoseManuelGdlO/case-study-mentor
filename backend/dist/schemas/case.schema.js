@@ -32,6 +32,7 @@ export const createCaseSchema = z.object({
     language: z.enum(['es', 'en']).default('es'),
     text: z.string().min(1),
     imageUrl: z.string().optional().nullable(),
+    generatedByIa: z.boolean().optional().default(false),
     status: z.enum(['draft', 'published', 'archived']).default('draft'),
     questions: z.array(questionSchema).min(1),
     labResults: z.array(labSchema).optional().default([]),

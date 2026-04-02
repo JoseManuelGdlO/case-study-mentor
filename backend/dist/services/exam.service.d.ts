@@ -21,6 +21,7 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
             language: string;
             text: string;
             imageUrl?: string | null;
+            generatedByIa: boolean;
             labResults: unknown[];
             questions: unknown[];
             status: string;
@@ -123,6 +124,7 @@ export declare function getExamById(userId: string, examId: string): Promise<{
             language: string;
             text: string;
             imageUrl?: string | null;
+            generatedByIa: boolean;
             labResults: unknown[];
             questions: unknown[];
             status: string;
@@ -218,6 +220,7 @@ export declare function completeExam(userId: string, examId: string, timeSpentSe
             language: string;
             text: string;
             imageUrl?: string | null;
+            generatedByIa: boolean;
             labResults: unknown[];
             questions: unknown[];
             status: string;
@@ -296,6 +299,7 @@ export declare function getExamResults(userId: string, examId: string): Promise<
             language: string;
             text: string;
             imageUrl?: string | null;
+            generatedByIa: boolean;
             labResults: unknown[];
             questions: unknown[];
             status: string;

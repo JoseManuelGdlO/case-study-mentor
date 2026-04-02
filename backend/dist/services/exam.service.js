@@ -199,6 +199,7 @@ export async function getExamById(userId, examId) {
                 language: cc.language,
                 text: cc.text,
                 imageUrl: cc.imageUrl,
+                generatedByIa: cc.generatedByIa,
                 labResults: cc.labResults.map((l) => ({
                     id: l.id,
                     name: l.name,

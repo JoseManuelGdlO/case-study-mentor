@@ -28,6 +28,7 @@ type ColumnId =
   | 'specialty'
   | 'area'
   | 'language'
+  | 'generatedByIa'
   | 'questions'
   | 'status'
   | 'actions';
@@ -49,6 +50,7 @@ const COLUMNS: ColumnConfig[] = [
   { id: 'specialty', label: 'Especialidad', hideable: true },
   { id: 'area', label: 'Área', hideable: true },
   { id: 'language', label: 'Idioma', hideable: true },
+  { id: 'generatedByIa', label: 'Generado por IA', hideable: true },
   { id: 'questions', label: 'Preguntas', hideable: true },
   { id: 'status', label: 'Estado', hideable: true },
   { id: 'actions', label: 'Acciones', hideable: false, headerClassName: 'text-right', cellClassName: 'text-right' },
@@ -62,6 +64,7 @@ const DEFAULT_COLUMN_VISIBILITY: Record<ColumnId, boolean> = {
   specialty: true,
   area: true,
   language: true,
+  generatedByIa: true,
   questions: true,
   status: true,
   actions: true,
@@ -352,6 +355,19 @@ const CaseList = () => {
                     }
                     if (column.id === 'language') {
                       return <TableCell key={column.id}>{c.language === 'es' ? '🇲🇽' : '🇺🇸'}</TableCell>;
+                    }
+                    if (column.id === 'generatedByIa') {
+                      return (
+                        <TableCell key={column.id}>
+                          {c.generatedByIa ? (
+                            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                              Sí
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">No</span>
+                          )}
+                        </TableCell>
+                      );
                     }
                     if (column.id === 'questions') {
                       return <TableCell key={column.id}>{c.questions.length}</TableCell>;
