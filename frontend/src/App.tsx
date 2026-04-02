@@ -162,30 +162,9 @@ const App = () => (
                     </AdminRoute>
                   }
                 />
-                <Route
-                  path="phrases"
-                  element={
-                    <AdminRoute>
-                      <PhrasesManagement />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="flashcards"
-                  element={
-                    <AdminRoute>
-                      <FlashcardsManagement />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="exam-dates"
-                  element={
-                    <AdminRoute>
-                      <ExamDatesManagement />
-                    </AdminRoute>
-                  }
-                />
+                <Route path="phrases" element={<PhrasesManagement />} />
+                <Route path="flashcards" element={<FlashcardsManagement />} />
+                <Route path="exam-dates" element={<ExamDatesManagement />} />
                 <Route
                   path="subscription-cancellation-feedback"
                   element={

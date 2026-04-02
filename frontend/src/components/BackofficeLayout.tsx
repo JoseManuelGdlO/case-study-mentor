@@ -30,9 +30,9 @@ const navItems: {
   { title: 'Usuarios', url: '/backoffice/users', icon: Users, adminOnly: true },
   { title: 'Cancelaciones', url: '/backoffice/subscription-cancellation-feedback', icon: MessageSquareText, adminOnly: true },
   { title: 'Precios', url: '/backoffice/pricing', icon: CreditCard, adminOnly: true },
-  { title: 'Frases', url: '/backoffice/phrases', icon: Sparkles, adminOnly: true },
-  { title: 'Flashcards', url: '/backoffice/flashcards', icon: BookOpen, adminOnly: true },
-  { title: 'Fechas ENARM', url: '/backoffice/exam-dates', icon: CalendarClock, adminOnly: true },
+  { title: 'Frases', url: '/backoffice/phrases', icon: Sparkles },
+  { title: 'Flashcards', url: '/backoffice/flashcards', icon: BookOpen },
+  { title: 'Fechas ENARM', url: '/backoffice/exam-dates', icon: CalendarClock },
   { title: 'Estadísticas', url: '/backoffice/stats', icon: BarChart3, adminOnly: true },
 ];
 
