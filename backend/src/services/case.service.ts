@@ -305,3 +305,12 @@ export async function deleteCase(id: string) {
   await cacheService.invalidate('cache:specialties*');
   return { data: { ok: true } };
 }
+
+export async function deleteCasesBulk(ids: string[]) {
+  const uniqueIds = [...new Set(ids)];
+  const result = await prisma.clinicalCase.deleteMany({
+    where: { id: { in: uniqueIds } },
+  });
+  await cacheService.invalidate('cache:specialties*');
+  return { data: { deleted: result.count } };
+}

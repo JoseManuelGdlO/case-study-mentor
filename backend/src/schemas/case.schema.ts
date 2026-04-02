@@ -55,3 +55,7 @@ export const listCasesQuerySchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
 });
+
+export const bulkDeleteCasesSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(100),
+});

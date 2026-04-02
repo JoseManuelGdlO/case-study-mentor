@@ -14,6 +14,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { Category, ClinicalCase, PaginatedResponse, PaginationMeta } from '@/types';
 import { Plus, Search, Eye, Pencil, Trash2, Upload, ChevronLeft, ChevronRight, Columns3 } from 'lucide-react';
 import { apiJson, apiFetch } from '@/lib/api';
@@ -107,6 +117,10 @@ const CaseList = () => {
     hasPrev: false,
   });
   const [columnVisibility, setColumnVisibility] = useState<Record<ColumnId, boolean>>(readColumnVisibility);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleteStep, setBulkDeleteStep] = useState<1 | 2>(1);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const loadCases = useCallback(async () => {
     const qs = new URLSearchParams();
@@ -161,6 +175,10 @@ const CaseList = () => {
   }, [filterStatus, filterSpecialty, limit]);
 
   useEffect(() => {
+    setSelectedIds(new Set());
+  }, [page, filterStatus, filterSpecialty, limit]);
+
+  useEffect(() => {
     try {
       window.localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(columnVisibility));
     } catch {
@@ -187,6 +205,75 @@ const CaseList = () => {
       toast.error(e instanceof Error ? e.message : 'Error');
     }
   };
+
+  const filteredIds = useMemo(() => filtered.map((c) => c.id), [filtered]);
+  const allFilteredSelected =
+    filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+  const someFilteredSelected = filteredIds.some((id) => selectedIds.has(id));
+
+  const toggleSelectAllFiltered = (checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        for (const id of filteredIds) next.add(id);
+      } else {
+        for (const id of filteredIds) next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectOne = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const openBulkDeleteDialog = () => {
+    setBulkDeleteStep(1);
+    setBulkDeleteOpen(true);
+  };
+
+  const onBulkDeleteOpenChange = (open: boolean) => {
+    setBulkDeleteOpen(open);
+    if (!open) {
+      setBulkDeleteStep(1);
+      setBulkDeleting(false);
+    }
+  };
+
+  const executeBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const json = await apiJson<{ data: { deleted: number } }>('/api/cases/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      });
+      toast.success(
+        json.data.deleted === ids.length
+          ? `Se eliminaron ${json.data.deleted} caso(s)`
+          : `Se eliminaron ${json.data.deleted} de ${ids.length} caso(s)`
+      );
+      setSelectedIds(new Set());
+      setBulkDeleteOpen(false);
+      setBulkDeleteStep(1);
+      await loadCases();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al eliminar');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const selectedCasesOnPage = useMemo(
+    () => cases.filter((c) => selectedIds.has(c.id)),
+    [cases, selectedIds]
+  );
 
   const statusColors: Record<string, string> = {
     published: 'bg-success/10 text-success border-success/30',
@@ -317,20 +404,52 @@ const CaseList = () => {
         {loading ? (
           <p className="p-6 text-muted-foreground">Cargando…</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {visibleColumns.map((column) => (
-                  <TableHead key={column.id} className={column.headerClassName}>
-                    {column.label}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((c) => (
-                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50">
-                  {visibleColumns.map((column) => {
+          <>
+            {isAdmin && selectedIds.size > 0 && (
+              <div className="px-6 pt-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+                <p className="text-sm text-muted-foreground">
+                  {selectedIds.size} caso{selectedIds.size === 1 ? '' : 's'} seleccionado{selectedIds.size === 1 ? '' : 's'}
+                </p>
+                <Button type="button" variant="destructive" className="gap-2" onClick={openBulkDeleteDialog}>
+                  <Trash2 className="w-4 h-4" /> Eliminar seleccionados ({selectedIds.size})
+                </Button>
+              </div>
+            )}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {isAdmin && (
+                    <TableHead className="w-12 pr-0">
+                      <Checkbox
+                        aria-label="Seleccionar todos en esta página"
+                        checked={
+                          allFilteredSelected ? true : someFilteredSelected ? 'indeterminate' : false
+                        }
+                        onCheckedChange={(v) => toggleSelectAllFiltered(v === true)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </TableHead>
+                  )}
+                  {visibleColumns.map((column) => (
+                    <TableHead key={column.id} className={column.headerClassName}>
+                      {column.label}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((c) => (
+                  <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50">
+                    {isAdmin && (
+                      <TableCell className="w-12 pr-0" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          aria-label={`Seleccionar ${c.topic}`}
+                          checked={selectedIds.has(c.id)}
+                          onCheckedChange={(v) => toggleSelectOne(c.id, v === true)}
+                        />
+                      </TableCell>
+                    )}
+                    {visibleColumns.map((column) => {
                     if (column.id === 'topic') {
                       return (
                         <TableCell key={column.id} className="font-medium">
@@ -414,12 +533,78 @@ const CaseList = () => {
                       </TableCell>
                     );
                   })}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </>
         )}
       </Card>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={onBulkDeleteOpenChange}>
+        <AlertDialogContent>
+          {bulkDeleteStep === 1 ? (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Eliminar casos seleccionados</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-3 text-left">
+                    <p>
+                      Estás a punto de solicitar la eliminación de{' '}
+                      <strong className="text-foreground">{selectedIds.size}</strong> caso
+                      {selectedIds.size === 1 ? '' : 's'}.
+                    </p>
+                    {selectedCasesOnPage.length > 0 && (
+                      <ul className="list-disc pl-5 text-sm max-h-32 overflow-y-auto">
+                        {selectedCasesOnPage.slice(0, 8).map((c) => (
+                          <li key={c.id} className="truncate">
+                            {c.topic}
+                          </li>
+                        ))}
+                        {selectedCasesOnPage.length > 8 && (
+                          <li className="list-none text-muted-foreground">
+                            … y {selectedCasesOnPage.length - 8} más
+                          </li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <Button type="button" onClick={() => setBulkDeleteStep(2)}>
+                  Continuar
+                </Button>
+              </AlertDialogFooter>
+            </>
+          ) : (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Confirmar eliminación definitiva?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta acción no se puede deshacer. Se eliminarán de forma permanente{' '}
+                  {selectedIds.size} caso{selectedIds.size === 1 ? '' : 's'} y sus preguntas asociadas.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <Button type="button" variant="outline" onClick={() => setBulkDeleteStep(1)}>
+                  Volver
+                </Button>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={bulkDeleting}
+                  onClick={() => void executeBulkDelete()}
+                >
+                  {bulkDeleting ? 'Eliminando…' : 'Eliminar definitivamente'}
+                </Button>
+              </AlertDialogFooter>
+            </>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
 
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">

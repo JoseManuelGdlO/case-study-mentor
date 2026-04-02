@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/auth.js';
 import { requireAdmin, requireCaseEditor } from '../middleware/roles.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import {
+  bulkDeleteCasesSchema,
   createCaseSchema,
   listCasesQuerySchema,
   updateCaseSchema,
@@ -97,6 +98,22 @@ casesRouter.post(
         return;
       }
       const result = await processBulkUpload(file.buffer, req.user!.id);
+      res.json(result);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+casesRouter.post(
+  '/bulk-delete',
+  authenticate,
+  requireAdmin(),
+  validateBody(bulkDeleteCasesSchema),
+  async (req, res, next) => {
+    try {
+      const body = req.body as { ids: string[] };
+      const result = await caseService.deleteCasesBulk(body.ids);
       res.json(result);
     } catch (e) {
       next(e);
