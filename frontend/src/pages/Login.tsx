@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, FileText, BarChart3, BookOpen, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import logoConLetra from '@/assets/logotipoconletra.png';
@@ -38,7 +38,17 @@ const Login = () => {
     }
     return '/dashboard';
   }, []);
+
   const [isRegister, setIsRegister] = useState(false);
+
+  const focusRegister = useCallback(() => {
+    setIsRegister(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById('auth-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }, []);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -120,7 +130,7 @@ const Login = () => {
             />
           ))}
         </div>
-        <div className="relative z-10 text-center text-white max-w-md">
+        <div className="relative z-10 flex flex-col items-center text-center text-white max-w-lg px-4">
           <div className="inline-block rounded-2xl bg-white/95 p-6 mb-8 shadow-lg">
             <img
               src={logoConLetra}
@@ -128,15 +138,47 @@ const Login = () => {
               className="h-16 sm:h-20 w-auto max-w-[280px] mx-auto object-contain"
             />
           </div>
-          <p className="text-xl text-white/90 mb-6">
-            Tu plataforma de preparación para el Examen Nacional de Residencias Médicas
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-3">
+            Entrena para el ENARM con práctica real
+          </h1>
+          <p className="text-lg text-white/90 mb-8 max-w-md">
+            Simulacros, plan de estudio y estadísticas en un solo lugar. Gratis para empezar; solo te toma un minuto.
+          </p>
+          <ul className="w-full max-w-md space-y-3 mb-8 text-left">
+            <li className="flex gap-3 items-start text-white/95">
+              <FileText className="h-5 w-5 shrink-0 mt-0.5 text-white" aria-hidden />
+              <span>Exámenes tipo ENARM y repaso por tema desde Mis Exámenes</span>
+            </li>
+            <li className="flex gap-3 items-start text-white/95">
+              <BarChart3 className="h-5 w-5 shrink-0 mt-0.5 text-white" aria-hidden />
+              <span>Estadísticas para ver tu avance y enfocar lo que falta</span>
+            </li>
+            <li className="flex gap-3 items-start text-white/95">
+              <BookOpen className="h-5 w-5 shrink-0 mt-0.5 text-white" aria-hidden />
+              <span>Plan de estudio con sesiones guiadas día a día</span>
+            </li>
+            <li className="flex gap-3 items-start text-white/95">
+              <Sparkles className="h-5 w-5 shrink-0 mt-0.5 text-white" aria-hidden />
+              <span>Crea tu cuenta gratis y continúa en el dashboard</span>
+            </li>
+          </ul>
+          <Button
+            type="button"
+            size="lg"
+            onClick={focusRegister}
+            className="w-full max-w-sm h-12 text-base font-semibold bg-white text-primary hover:bg-white/90 shadow-lg border-0"
+          >
+            Crear cuenta gratis
+          </Button>
+          <p className="mt-6 text-sm text-white/75 max-w-sm">
+            ¿Ya estudias con nosotros? Inicia sesión en el formulario de la derecha.
           </p>
         </div>
       </div>
 
       <div className="flex-1 flex items-center justify-center p-6 bg-background">
         <div className="w-full max-w-md">
-          <div className="lg:hidden text-center mb-8">
+          <div className="lg:hidden text-center mb-6">
             <img
               src={logoConLetra}
               alt="ENARMX"
@@ -144,7 +186,17 @@ const Login = () => {
             />
           </div>
 
-          <Card className="border-0 shadow-xl">
+          <div className="lg:hidden mb-6 rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-3">
+            <p className="text-sm font-medium text-foreground text-center leading-snug">
+              ¿Primera vez aquí? Crea tu cuenta gratis y accede a simulacros, plan de estudio y estadísticas.
+            </p>
+            <Button type="button" variant="default" className="w-full h-11 font-semibold gradient-primary border-0" onClick={focusRegister}>
+              Registrarme gratis
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">Solo te toma un minuto.</p>
+          </div>
+
+          <Card id="auth-panel" className="border-0 shadow-xl scroll-mt-6">
             <CardContent className="p-8">
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-foreground">
