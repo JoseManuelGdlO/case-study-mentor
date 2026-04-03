@@ -160,7 +160,7 @@ const SubscriptionManagementSection = () => {
         }),
       });
       await refreshUser();
-      toast.success('Tu suscripción de PayPal se ha cancelado según las condiciones de PayPal.');
+      toast.success('Tu suscripción se cancelará al final del periodo pagado. Seguirás con acceso hasta esa fecha.');
       setCancelPayPalOpen(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'No se pudo cancelar la suscripción');
@@ -169,7 +169,13 @@ const SubscriptionManagementSection = () => {
     }
   };
 
-  if (!user?.hasStripeSubscription && !user?.hasPayPalSubscription) {
+  const showPayPalCancelledGrace =
+    !user?.hasStripeSubscription &&
+    !!user?.subscriptionCancelAtPeriodEnd &&
+    user?.plan !== undefined &&
+    user.plan !== 'free';
+
+  if (!user?.hasStripeSubscription && !user?.hasPayPalSubscription && !showPayPalCancelledGrace) {
     return null;
   }
 
@@ -184,8 +190,8 @@ const SubscriptionManagementSection = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Tienes una suscripción recurrente con Stripe. Puedes cancelarla cuando quieras; seguirás con acceso hasta el
-              final del periodo ya pagado.
+              Tienes una suscripción recurrente con Stripe. Puedes cancelarla cuando quieras; no se reembolsa el periodo ya
+              pagado y seguirás con acceso hasta el final de ese periodo.
             </p>
             {user.subscriptionCancelAtPeriodEnd ? (
               <Badge variant="secondary" className="bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/30">
@@ -202,7 +208,7 @@ const SubscriptionManagementSection = () => {
               onOpenChange={setCancelStripeOpen}
               title="¿Cancelar suscripción?"
               description={
-                `No volveremos a cobrarte. Mantendrás el acceso completo hasta ${
+                `No volveremos a cobrarte. No hay reembolso del periodo ya pagado. Mantendrás el acceso completo hasta ${
                   user.subscriptionExpiresAt
                     ? new Date(user.subscriptionExpiresAt).toLocaleDateString('es-MX', {
                         day: 'numeric',
@@ -220,7 +226,7 @@ const SubscriptionManagementSection = () => {
         </Card>
       )}
 
-      {user.hasPayPalSubscription && (
+      {(user.hasPayPalSubscription || showPayPalCancelledGrace) && (
         <Card className="border-0 shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -229,12 +235,12 @@ const SubscriptionManagementSection = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Tienes una suscripción recurrente con PayPal. Puedes cancelarla desde aquí; el efecto exacto depende del
-              estado de tu suscripción en PayPal.
+              Tienes una suscripción recurrente con PayPal. Puedes cancelarla cuando quieras; no se reembolsa el periodo
+              ya pagado y seguirás con acceso hasta el final de ese periodo.
             </p>
             {user.subscriptionCancelAtPeriodEnd ? (
               <Badge variant="secondary" className="bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/30">
-                Cancelación solicitada
+                Cancelación programada al final del periodo
               </Badge>
             ) : (
               <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setCancelPayPalOpen(true)}>
@@ -246,8 +252,8 @@ const SubscriptionManagementSection = () => {
               open={cancelPayPalOpen}
               onOpenChange={setCancelPayPalOpen}
               title="¿Cancelar suscripción PayPal?"
-              description="Se enviará la cancelación a PayPal. Si tienes dudas, revisa también el centro de PayPal."
-              confirmLabel="Sí, cancelar"
+              description="No volveremos a cobrarte. Mantendrás el acceso completo hasta el final del periodo ya pagado (sin reembolso de ese periodo)."
+              confirmLabel="Sí, cancelar al final del periodo"
               busy={cancelPayPalBusy}
               onConfirm={cancelPayPalSubscription}
             />

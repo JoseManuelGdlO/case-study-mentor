@@ -127,9 +127,59 @@ export async function syncProfileFromPayPalSubscriptionResource(sub) {
         expiresAt = new Date(Date.now() + plan.duration * 86_400_000);
     }
     const status = (sub.status ?? '').toUpperCase();
-    if (status === 'CANCELLED' || status === 'EXPIRED') {
-        await prisma.profile.updateMany({
-            where: { paypalSubscriptionId: sub.id },
+    if (status === 'EXPIRED') {
+        const row = await prisma.profile.findUnique({
+            where: { id: parsed.userId },
+            select: { paypalSubscriptionId: true },
+        });
+        if (!row)
+            return;
+        if (row.paypalSubscriptionId && row.paypalSubscriptionId !== sub.id)
+            return;
+        await prisma.profile.update({
+            where: { id: parsed.userId },
+            data: {
+                paypalSubscriptionId: null,
+                subscriptionCancelAtPeriodEnd: false,
+                subscriptionTier: 'free',
+                subscriptionExpiresAt: null,
+            },
+        });
+        return;
+    }
+    if (status === 'CANCELLED') {
+        const now = new Date();
+        const profile = await prisma.profile.findUnique({
+            where: { id: parsed.userId },
+            select: { subscriptionExpiresAt: true, paypalSubscriptionId: true },
+        });
+        if (!profile)
+            return;
+        if (profile.paypalSubscriptionId && profile.paypalSubscriptionId !== sub.id)
+            return;
+        let accessUntil = null;
+        if (next) {
+            const nd = new Date(next);
+            if (nd > now)
+                accessUntil = nd;
+        }
+        if (!accessUntil && profile.subscriptionExpiresAt && profile.subscriptionExpiresAt > now) {
+            accessUntil = profile.subscriptionExpiresAt;
+        }
+        if (accessUntil && accessUntil > now) {
+            await prisma.profile.update({
+                where: { id: parsed.userId },
+                data: {
+                    paypalSubscriptionId: null,
+                    subscriptionTier: parsed.tier,
+                    subscriptionExpiresAt: accessUntil,
+                    subscriptionCancelAtPeriodEnd: true,
+                },
+            });
+            return;
+        }
+        await prisma.profile.update({
+            where: { id: parsed.userId },
             data: {
                 paypalSubscriptionId: null,
                 subscriptionCancelAtPeriodEnd: false,

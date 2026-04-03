@@ -69,8 +69,8 @@ const SystemStats = () => {
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
               <p>
-                <span className="font-medium text-foreground">Usuarios:</span> {stats.totalUsers.toLocaleString()} (activos según
-                API: {stats.activeUsers.toLocaleString()})
+                <span className="font-medium text-foreground">Usuarios:</span> {stats.totalUsers.toLocaleString()} (suscripción de
+                pago activa: {stats.activeUsers.toLocaleString()})
               </p>
               <p>
                 <span className="font-medium text-foreground">Casos clínicos:</span>{' '}
