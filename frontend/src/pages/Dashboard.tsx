@@ -56,7 +56,7 @@ const emptyStats: UserStats = {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { isFreeUser } = useUser();
+  const { isFreeUser, isFreeTrialExhausted, freeTrialExamsRemaining } = useUser();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [exams, setExams] = useState<ListExam[]>([]);
@@ -231,7 +231,21 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="font-semibold text-foreground">Estás en la versión gratuita</p>
-                <p className="text-sm text-muted-foreground">Exámenes limitados a 10 preguntas. Suscríbete para acceso completo.</p>
+                <p className="text-sm text-muted-foreground">
+                  Incluye hasta 2 exámenes de prueba de 10 preguntas cada uno.
+                  {typeof freeTrialExamsRemaining === 'number' && freeTrialExamsRemaining > 0 && (
+                    <span className="block mt-1 font-medium text-foreground">
+                      {freeTrialExamsRemaining === 1
+                        ? 'Te queda 1 examen de prueba.'
+                        : `Te quedan ${freeTrialExamsRemaining} exámenes de prueba.`}
+                    </span>
+                  )}
+                  {isFreeTrialExhausted && (
+                    <span className="block mt-1 font-medium text-warning">
+                      Ya no puedes crear más exámenes hasta suscribirte.
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
             <Button className="gradient-primary border-0 font-semibold gap-2 flex-shrink-0" onClick={() => navigate('/dashboard/subscription')}>
@@ -246,8 +260,13 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold text-foreground">{greeting} 👋</h1>
           <p className="text-muted-foreground mt-1">Continúa tu preparación para el ENARM</p>
         </div>
-        <Button className="gradient-primary border-0 font-semibold gap-2 h-12 px-6" onClick={() => navigate('/dashboard/new-exam')}>
-          <Plus className="w-5 h-5" /> Nuevo Examen
+        <Button
+          className="gradient-primary border-0 font-semibold gap-2 h-12 px-6"
+          onClick={() =>
+            isFreeTrialExhausted ? navigate('/dashboard/subscription') : navigate('/dashboard/new-exam')
+          }
+        >
+          <Plus className="w-5 h-5" /> {isFreeTrialExhausted ? 'Suscribirme para más exámenes' : 'Nuevo Examen'}
         </Button>
       </div>
 
@@ -522,8 +541,16 @@ const Dashboard = () => {
         {completed.length === 0 ? (
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-2">
             <p className="text-sm text-muted-foreground">Aún no has completado exámenes.</p>
-            <Button variant="outline" size="sm" className="w-fit" onClick={() => navigate('/dashboard/new-exam')}>
-              <Plus className="w-4 h-4 mr-1" /> Nuevo examen
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              onClick={() =>
+                isFreeTrialExhausted ? navigate('/dashboard/subscription') : navigate('/dashboard/new-exam')
+              }
+            >
+              <Plus className="w-4 h-4 mr-1" />{' '}
+              {isFreeTrialExhausted ? 'Ver suscripción' : 'Nuevo examen'}
             </Button>
           </div>
         ) : (

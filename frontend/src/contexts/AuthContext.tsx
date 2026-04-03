@@ -20,6 +20,10 @@ export type AuthUser = {
   hasStripeSubscription?: boolean;
   hasPayPalSubscription?: boolean;
   subscriptionCancelAtPeriodEnd?: boolean;
+  /** Exámenes de prueba ya consumidos (plan free). */
+  freeTrialExamsUsed?: number;
+  /** Cuántos exámenes de prueba quedan; null si hay suscripción activa. */
+  freeTrialExamsRemaining?: number | null;
 };
 
 type AuthContextType = {

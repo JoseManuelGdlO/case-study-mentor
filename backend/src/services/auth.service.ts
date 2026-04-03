@@ -7,6 +7,7 @@ import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { redis } from '../config/redis.js';
 import { isSmtpConfigured, sendGoogleAccountNoticeEmail, sendTemporaryPasswordEmail } from './email.service.js';
+import { FREE_TRIAL_MAX_EXAMS } from '../constants/freeTrial.js';
 import { effectivePlanFromProfile } from './profile.service.js';
 import { REFRESH_TTL_SEC, signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
 
@@ -74,6 +75,7 @@ async function publicUser(userId: string) {
       stripeSubscriptionId: true,
       paypalSubscriptionId: true,
       subscriptionCancelAtPeriodEnd: true,
+      freeTrialExamsUsed: true,
       roles: { select: { role: true } },
     },
   });
@@ -97,9 +99,12 @@ function buildPublicUser(profile: {
   stripeSubscriptionId: string | null;
   paypalSubscriptionId: string | null;
   subscriptionCancelAtPeriodEnd: boolean;
+  freeTrialExamsUsed: number;
   roles: { role: string }[];
 }) {
   const { plan, subscriptionExpiresAt } = effectivePlanFromProfile(profile);
+  const freeTrialExamsRemaining =
+    plan === 'free' ? Math.max(0, FREE_TRIAL_MAX_EXAMS - profile.freeTrialExamsUsed) : null;
   return {
     id: profile.id,
     email: profile.email,
@@ -117,6 +122,8 @@ function buildPublicUser(profile: {
     hasStripeSubscription: !!profile.stripeSubscriptionId,
     hasPayPalSubscription: !!profile.paypalSubscriptionId,
     subscriptionCancelAtPeriodEnd: profile.subscriptionCancelAtPeriodEnd,
+    freeTrialExamsUsed: profile.freeTrialExamsUsed,
+    freeTrialExamsRemaining,
   };
 }
 

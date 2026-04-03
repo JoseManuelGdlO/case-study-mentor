@@ -78,6 +78,7 @@ model Profile {
   stripeSubscriptionId           String?           @unique @map("stripe_subscription_id")
   paypalSubscriptionId           String?           @unique @map("paypal_subscription_id")
   subscriptionCancelAtPeriodEnd  Boolean           @default(false) @map("subscription_cancel_at_period_end")
+  freeTrialExamsUsed             Int               @default(0) @map("free_trial_exams_used")
   createdAt             DateTime          @default(now()) @map("created_at")
   updatedAt             DateTime          @updatedAt @map("updated_at")
 

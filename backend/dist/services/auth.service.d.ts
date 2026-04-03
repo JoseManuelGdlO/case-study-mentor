@@ -26,6 +26,8 @@ export declare function register(data: {
             hasStripeSubscription: boolean;
             hasPayPalSubscription: boolean;
             subscriptionCancelAtPeriodEnd: boolean;
+            freeTrialExamsUsed: number;
+            freeTrialExamsRemaining: number | null;
         } | null;
         isNewUser: boolean;
     };
@@ -56,6 +58,8 @@ export declare function createUserByAdmin(data: {
             hasStripeSubscription: boolean;
             hasPayPalSubscription: boolean;
             subscriptionCancelAtPeriodEnd: boolean;
+            freeTrialExamsUsed: number;
+            freeTrialExamsRemaining: number | null;
         };
     };
 }>;
@@ -81,6 +85,8 @@ export declare function login(data: {
             hasStripeSubscription: boolean;
             hasPayPalSubscription: boolean;
             subscriptionCancelAtPeriodEnd: boolean;
+            freeTrialExamsUsed: number;
+            freeTrialExamsRemaining: number | null;
         } | null;
         isNewUser: boolean;
     };
@@ -104,6 +110,8 @@ export declare function refreshTokens(refreshCookie: string | undefined, res: Re
             hasStripeSubscription: boolean;
             hasPayPalSubscription: boolean;
             subscriptionCancelAtPeriodEnd: boolean;
+            freeTrialExamsUsed: number;
+            freeTrialExamsRemaining: number | null;
         } | null;
     };
 }>;
@@ -136,6 +144,8 @@ export declare function googleAuth(idToken: string, res: Response): Promise<{
             hasStripeSubscription: boolean;
             hasPayPalSubscription: boolean;
             subscriptionCancelAtPeriodEnd: boolean;
+            freeTrialExamsUsed: number;
+            freeTrialExamsRemaining: number | null;
         } | null;
         isNewUser: boolean;
     };

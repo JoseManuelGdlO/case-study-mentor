@@ -4,6 +4,7 @@ import { requireAdmin, requireCaseEditor } from '../middleware/roles.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { areaCreateSchema, backofficeUserCreateSchema, backofficeUsersQuerySchema, examDateCreateSchema, examDateUpdateSchema, flashcardCreateSchema, flashcardUpdateSchema, phraseCreateSchema, phraseUpdateSchema, planCreateSchema, planUpdateSchema, specialtyCreateSchema, specialtyUpdateSchema, userRoleUpdateSchema, backofficeUserUpdateSchema, } from '../schemas/backoffice.schema.js';
 import { prisma } from '../config/database.js';
+import { PAID_TIERS, TIER_CHECKOUT } from '../config/plans.js';
 import { createUserByAdmin } from '../services/auth.service.js';
 import { effectivePlanFromProfile } from '../services/profile.service.js';
 import { paginationMeta, paginationParams, totalPages } from '../utils/helpers.js';
@@ -649,6 +650,51 @@ backofficeRouter.get('/stats', requireAdmin(), async (_req, res, next) => {
             }
             caseDistribution.sort((a, b) => a.specialtyName.localeCompare(b.specialtyName, 'es'));
         }
+        const now = new Date();
+        const [activeSubscribersByTier, tierPlansForPricing] = await Promise.all([
+            prisma.profile.groupBy({
+                by: ['subscriptionTier'],
+                where: {
+                    subscriptionTier: { not: 'free' },
+                    subscriptionExpiresAt: { gt: now },
+                },
+                _count: { _all: true },
+            }),
+            prisma.subscriptionPlan.findMany({
+                where: { isActive: true, tier: { in: [...PAID_TIERS] } },
+                select: { tier: true, price: true, duration: true },
+                orderBy: { price: 'asc' },
+            }),
+        ]);
+        const countByTier = new Map(activeSubscribersByTier.map((r) => [r.subscriptionTier, r._count._all]));
+        const monthlySubscribers = countByTier.get('monthly') ?? 0;
+        const semesterSubscribers = countByTier.get('semester') ?? 0;
+        const annualSubscribers = countByTier.get('annual') ?? 0;
+        const activeUsers = monthlySubscribers + semesterSubscribers + annualSubscribers;
+        const freeUsers = Math.max(0, totalUsers - activeUsers);
+        const bestPlanByTier = new Map();
+        for (const p of tierPlansForPricing) {
+            if (!p.tier || p.tier === 'free')
+                continue;
+            const t = p.tier;
+            const cur = bestPlanByTier.get(t);
+            if (!cur || p.price < cur.price) {
+                bestPlanByTier.set(t, { price: p.price, duration: Math.max(1, p.duration) });
+            }
+        }
+        const mrrFromPlan = (price, durationDays) => (price * 30) / durationDays;
+        let estimatedRevenue = 0;
+        for (const tier of PAID_TIERS) {
+            const n = countByTier.get(tier) ?? 0;
+            if (n === 0)
+                continue;
+            const fromDb = bestPlanByTier.get(tier);
+            const mrr = fromDb
+                ? mrrFromPlan(fromDb.price, fromDb.duration)
+                : mrrFromPlan(TIER_CHECKOUT[tier].amountCents / 100, TIER_CHECKOUT[tier].durationDays);
+            estimatedRevenue += n * mrr;
+        }
+        estimatedRevenue = Math.round(estimatedRevenue);
         res.json({
             data: {
                 totalUsers,
@@ -657,12 +703,12 @@ backofficeRouter.get('/stats', requireAdmin(), async (_req, res, next) => {
                 totalPublishedCases,
                 totalQuestions,
                 caseDistribution,
-                activeUsers: totalUsers,
-                freeUsers: totalUsers,
-                monthlySubscribers: 0,
-                semesterSubscribers: 0,
-                annualSubscribers: 0,
-                estimatedRevenue: 0,
+                activeUsers,
+                freeUsers,
+                monthlySubscribers,
+                semesterSubscribers,
+                annualSubscribers,
+                estimatedRevenue,
                 avgAccuracy: 0,
                 abandonRate: 0,
             },

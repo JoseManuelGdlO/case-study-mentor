@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import { prisma } from '../config/database.js';
+import { FREE_TRIAL_MAX_EXAMS } from '../constants/freeTrial.js';
 const BCRYPT_ROUNDS = 12;
 export function effectivePlanFromProfile(row) {
     const now = new Date();
@@ -32,6 +33,7 @@ export async function getProfile(userId) {
             stripeSubscriptionId: true,
             paypalSubscriptionId: true,
             subscriptionCancelAtPeriodEnd: true,
+            freeTrialExamsUsed: true,
             roles: { select: { role: true } },
         },
     });
@@ -41,6 +43,8 @@ export async function getProfile(userId) {
         throw err;
     }
     const { plan, subscriptionExpiresAt } = effectivePlanFromProfile(p);
+    const freeTrialExamsUsed = p.freeTrialExamsUsed;
+    const freeTrialExamsRemaining = plan === 'free' ? Math.max(0, FREE_TRIAL_MAX_EXAMS - freeTrialExamsUsed) : null;
     return {
         data: {
             id: p.id,
@@ -59,6 +63,8 @@ export async function getProfile(userId) {
             hasStripeSubscription: !!p.stripeSubscriptionId,
             hasPayPalSubscription: !!p.paypalSubscriptionId,
             subscriptionCancelAtPeriodEnd: p.subscriptionCancelAtPeriodEnd,
+            freeTrialExamsUsed,
+            freeTrialExamsRemaining,
         },
     };
 }

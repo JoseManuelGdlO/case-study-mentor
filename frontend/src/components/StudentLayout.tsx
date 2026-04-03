@@ -19,6 +19,7 @@ import logoConLetra from '@/assets/logotipoconletra.png';
 import logoSolo from '@/assets/logotiposolo.png';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -35,8 +36,8 @@ function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const navigate = useNavigate();
-  const { isFreeUser } = useUser();
-  const { logout, user } = useAuth();
+  const { isFreeUser, isFreeTrialExhausted } = useUser();
+  const { logout } = useAuth();
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -59,13 +60,26 @@ function AppSidebar() {
 
         {!collapsed && (
           <div className="px-4 mb-2" data-tour="new-exam">
-            <Button
-              className="w-full gradient-primary border-0 font-semibold gap-2"
-              onClick={() => navigate('/dashboard/new-exam')}
-            >
-              <Plus className="w-4 h-4" />
-              Nuevo Examen
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="block w-full">
+                  <Button
+                    className="w-full gradient-primary border-0 font-semibold gap-2"
+                    onClick={() =>
+                      isFreeTrialExhausted ? navigate('/dashboard/subscription') : navigate('/dashboard/new-exam')
+                    }
+                  >
+                    <Plus className="w-4 h-4" />
+                    Nuevo Examen
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {isFreeTrialExhausted && (
+                <TooltipContent side="right" className="max-w-xs">
+                  Ya usaste los 2 exámenes de prueba. Suscríbete para crear más exámenes.
+                </TooltipContent>
+              )}
+            </Tooltip>
           </div>
         )}
 

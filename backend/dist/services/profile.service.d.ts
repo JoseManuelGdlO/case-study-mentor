@@ -25,6 +25,8 @@ export declare function getProfile(userId: string): Promise<{
         hasStripeSubscription: boolean;
         hasPayPalSubscription: boolean;
         subscriptionCancelAtPeriodEnd: boolean;
+        freeTrialExamsUsed: number;
+        freeTrialExamsRemaining: number | null;
     };
 }>;
 export declare function updateProfile(userId: string, body: {
@@ -52,6 +54,8 @@ export declare function updateProfile(userId: string, body: {
         hasStripeSubscription: boolean;
         hasPayPalSubscription: boolean;
         subscriptionCancelAtPeriodEnd: boolean;
+        freeTrialExamsUsed: number;
+        freeTrialExamsRemaining: number | null;
     };
 }>;
 export declare function completeOnboarding(userId: string): Promise<{
@@ -72,6 +76,8 @@ export declare function completeOnboarding(userId: string): Promise<{
         hasStripeSubscription: boolean;
         hasPayPalSubscription: boolean;
         subscriptionCancelAtPeriodEnd: boolean;
+        freeTrialExamsUsed: number;
+        freeTrialExamsRemaining: number | null;
     };
 }>;
 export declare function changePassword(userId: string, body: {

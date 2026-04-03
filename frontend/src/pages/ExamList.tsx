@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Plus, Clock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiJson } from '@/lib/api';
+import { useUser } from '@/contexts/UserContext';
 import type { ExamConfig, ExamStatus } from '@/types';
 
 type ListExam = {
@@ -22,6 +23,7 @@ type ListExam = {
 
 const ExamList = () => {
   const navigate = useNavigate();
+  const { isFreeTrialExhausted } = useUser();
   const [exams, setExams] = useState<ListExam[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -101,8 +103,13 @@ const ExamList = () => {
           <h1 className="text-3xl font-bold text-foreground">Mis Exámenes</h1>
           <p className="text-muted-foreground">Todos tus exámenes en un solo lugar</p>
         </div>
-        <Button className="gradient-primary border-0 font-semibold gap-2" onClick={() => navigate('/dashboard/new-exam')}>
-          <Plus className="w-4 h-4" /> Nuevo Examen
+        <Button
+          className="gradient-primary border-0 font-semibold gap-2"
+          onClick={() =>
+            isFreeTrialExhausted ? navigate('/dashboard/subscription') : navigate('/dashboard/new-exam')
+          }
+        >
+          <Plus className="w-4 h-4" /> {isFreeTrialExhausted ? 'Suscribirme' : 'Nuevo Examen'}
         </Button>
       </div>
 

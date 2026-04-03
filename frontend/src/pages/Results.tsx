@@ -7,6 +7,8 @@ import { Trophy, BarChart3, Home, RotateCcw, CheckCircle2, XCircle, Share2, Mess
 import type { Exam, StudyPlan, UserStats } from '@/types';
 import { RichOrPlainBlock } from '@/components/RichOrPlainBlock';
 import { apiJson } from '@/lib/api';
+import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   buildPlatformUrl,
@@ -23,6 +25,8 @@ import {
 const Results = () => {
   const { examId } = useParams();
   const navigate = useNavigate();
+  const { isFreeTrialExhausted } = useUser();
+  const { refreshUser } = useAuth();
   const [exam, setExam] = useState<Exam | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
@@ -57,6 +61,7 @@ const Results = () => {
           setExam(examRes.data);
           if (statsRes) setStats(statsRes.data);
           setStudyPlan(studyRes?.data ?? null);
+          void refreshUser();
         }
       } catch (e) {
         if (!c) setErr(e instanceof Error ? e.message : 'Error');
@@ -387,8 +392,13 @@ const Results = () => {
           <Button variant="outline" className="gap-2" onClick={() => navigate('/dashboard')}>
             <Home className="w-4 h-4" /> Ir al Dashboard
           </Button>
-          <Button className="gradient-primary border-0 gap-2" onClick={() => navigate('/dashboard/new-exam')}>
-            <RotateCcw className="w-4 h-4" /> Nuevo examen
+          <Button
+            className="gradient-primary border-0 gap-2"
+            onClick={() =>
+              isFreeTrialExhausted ? navigate('/dashboard/subscription') : navigate('/dashboard/new-exam')
+            }
+          >
+            <RotateCcw className="w-4 h-4" /> {isFreeTrialExhausted ? 'Suscribirme' : 'Nuevo examen'}
           </Button>
         </div>
       </div>

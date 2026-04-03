@@ -9,6 +9,8 @@ import type { Category } from '@/types';
 import type { ExamMode, ExamLanguage } from '@/types';
 import { ArrowLeft, ArrowRight, BookOpen, Timer, CheckCircle2, Lock, Crown, Info } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { apiJson } from '@/lib/api';
@@ -21,7 +23,8 @@ type QuestionFilter = 'all' | 'unanswered' | 'answered';
 
 const NewExam = () => {
   const navigate = useNavigate();
-  const { isFreeUser } = useUser();
+  const { isFreeUser, isFreeTrialExhausted, freeTrialExamsRemaining } = useUser();
+  const { refreshUser } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingTree, setLoadingTree] = useState(true);
   const [step, setStep] = useState(0);
@@ -241,11 +244,21 @@ const NewExam = () => {
               <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
                 <Crown className="w-4 h-4 text-warning flex-shrink-0" />
                 <p className="text-sm text-foreground">
-                  <span className="font-semibold">Plan gratuito:</span> máximo 10 preguntas por examen.{' '}
+                  <span className="font-semibold">Plan gratuito:</span> puedes crear hasta{' '}
+                  <span className="font-semibold">2 exámenes de prueba</span> de hasta{' '}
+                  <span className="font-semibold">10 preguntas</span> cada uno.
+                  {typeof freeTrialExamsRemaining === 'number' && freeTrialExamsRemaining > 0 && (
+                    <>
+                      {' '}
+                      {freeTrialExamsRemaining === 1
+                        ? 'Te queda 1 examen de prueba.'
+                        : `Te quedan ${freeTrialExamsRemaining} exámenes de prueba.`}
+                    </>
+                  )}{' '}
                   <button type="button" onClick={() => navigate('/dashboard/subscription')} className="text-primary font-semibold underline">
                     Suscríbete
                   </button>{' '}
-                  para más.
+                  para exámenes más largos y sin límite de cantidad.
                 </p>
               </div>
             )}
@@ -337,6 +350,7 @@ const NewExam = () => {
       adaptiveMode,
       questionCount,
       isFreeUser,
+      freeTrialExamsRemaining,
       navigate,
       filteredSubcategories,
       selectedSubcategories,
@@ -362,6 +376,7 @@ const NewExam = () => {
           predictionSpecialtyId: selectedCategories[0],
         }),
       });
+      await refreshUser();
       navigate(`/exam/${json.data.id}/${mode}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'No se pudo generar el examen');
@@ -369,6 +384,29 @@ const NewExam = () => {
       setStarting(false);
     }
   };
+
+  if (isFreeTrialExhausted) {
+    return (
+      <div className="max-w-lg mx-auto animate-fade-in space-y-6">
+        <Button variant="ghost" onClick={() => navigate('/dashboard')} className="gap-2 -ml-2">
+          <ArrowLeft className="w-4 h-4" /> Volver al dashboard
+        </Button>
+        <Alert className="border-warning/40 bg-warning/5">
+          <Crown className="h-4 w-4 text-warning" />
+          <AlertTitle>Prueba gratuita agotada</AlertTitle>
+          <AlertDescription className="text-foreground space-y-0">
+            <p>
+              El plan gratuito incluye solo <strong>2 exámenes de prueba</strong> de hasta <strong>10 preguntas</strong> cada
+              uno. Ya usaste ambos; para seguir creando exámenes necesitas una suscripción activa.
+            </p>
+          </AlertDescription>
+        </Alert>
+        <Button className="w-full gradient-primary border-0 font-semibold gap-2" onClick={() => navigate('/dashboard/subscription')}>
+          <Crown className="w-4 h-4" /> Ver planes y suscribirme
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto animate-fade-in">

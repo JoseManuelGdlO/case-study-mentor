@@ -1,6 +1,8 @@
 import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { shuffleInPlace } from '../utils/helpers.js';
+import { FREE_TRIAL_MAX_EXAMS, FREE_TRIAL_MAX_QUESTIONS } from '../constants/freeTrial.js';
+import { effectivePlanFromProfile } from './profile.service.js';
 import { predictPlacement } from './prediction.service.js';
 import { invalidateStudyPlanCaches } from './study-plan.service.js';
 export async function generateExam(userId, input) {
@@ -14,7 +16,7 @@ export async function generateExam(userId, input) {
     const [profile, cases] = await Promise.all([
         prisma.profile.findUnique({
             where: { id: userId },
-            select: { subscriptionTier: true, subscriptionExpiresAt: true },
+            select: { subscriptionTier: true, subscriptionExpiresAt: true, freeTrialExamsUsed: true },
         }),
         prisma.clinicalCase.findMany({
             where: caseWhere,
@@ -23,10 +25,22 @@ export async function generateExam(userId, input) {
             },
         }),
     ]);
-    const hasPaidPlan = profile &&
-        profile.subscriptionTier !== 'free' &&
-        !!profile.subscriptionExpiresAt &&
-        profile.subscriptionExpiresAt > new Date();
+    if (!profile) {
+        const err = new Error('Usuario no encontrado');
+        err.status = 404;
+        throw err;
+    }
+    const hasPaidPlan = effectivePlanFromProfile(profile).plan !== 'free';
+    if (!hasPaidPlan && questionCount > FREE_TRIAL_MAX_QUESTIONS) {
+        const err = new Error(`En el plan gratuito cada examen tiene como máximo ${FREE_TRIAL_MAX_QUESTIONS} preguntas. Suscríbete para crear exámenes más largos.`);
+        err.status = 400;
+        throw err;
+    }
+    if (!hasPaidPlan && profile.freeTrialExamsUsed >= FREE_TRIAL_MAX_EXAMS) {
+        const err = new Error('Ya usaste los 2 exámenes de prueba gratuitos (10 preguntas cada uno). Suscríbete para seguir creando exámenes.');
+        err.status = 403;
+        throw err;
+    }
     if (adaptiveMode && !hasPaidPlan) {
         const err = new Error('El modo adaptativo está disponible solo para usuarios con suscripción activa');
         err.status = 403;
@@ -82,6 +96,17 @@ export async function generateExam(userId, input) {
             distinct: ['areaId'],
         })).map((r) => r.areaId);
     const exam = await prisma.$transaction(async (tx) => {
+        if (!hasPaidPlan) {
+            const reserved = await tx.profile.updateMany({
+                where: { id: userId, freeTrialExamsUsed: { lt: FREE_TRIAL_MAX_EXAMS } },
+                data: { freeTrialExamsUsed: { increment: 1 } },
+            });
+            if (reserved.count === 0) {
+                const err = new Error('Ya usaste los 2 exámenes de prueba gratuitos (10 preguntas cada uno). Suscríbete para seguir creando exámenes.');
+                err.status = 403;
+                throw err;
+            }
+        }
         const e = await tx.exam.create({
             data: {
                 userId,

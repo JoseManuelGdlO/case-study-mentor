@@ -5,6 +5,7 @@ import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { redis } from '../config/redis.js';
 import { isSmtpConfigured, sendGoogleAccountNoticeEmail, sendTemporaryPasswordEmail } from './email.service.js';
+import { FREE_TRIAL_MAX_EXAMS } from '../constants/freeTrial.js';
 import { effectivePlanFromProfile } from './profile.service.js';
 import { REFRESH_TTL_SEC, signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
 const BCRYPT_ROUNDS = 12;
@@ -63,6 +64,7 @@ async function publicUser(userId) {
             stripeSubscriptionId: true,
             paypalSubscriptionId: true,
             subscriptionCancelAtPeriodEnd: true,
+            freeTrialExamsUsed: true,
             roles: { select: { role: true } },
         },
     });
@@ -72,6 +74,7 @@ async function publicUser(userId) {
 }
 function buildPublicUser(profile) {
     const { plan, subscriptionExpiresAt } = effectivePlanFromProfile(profile);
+    const freeTrialExamsRemaining = plan === 'free' ? Math.max(0, FREE_TRIAL_MAX_EXAMS - profile.freeTrialExamsUsed) : null;
     return {
         id: profile.id,
         email: profile.email,
@@ -89,6 +92,8 @@ function buildPublicUser(profile) {
         hasStripeSubscription: !!profile.stripeSubscriptionId,
         hasPayPalSubscription: !!profile.paypalSubscriptionId,
         subscriptionCancelAtPeriodEnd: profile.subscriptionCancelAtPeriodEnd,
+        freeTrialExamsUsed: profile.freeTrialExamsUsed,
+        freeTrialExamsRemaining,
     };
 }
 export async function register(data, res) {
