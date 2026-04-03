@@ -32,6 +32,9 @@ const plans: {
   { id: 'annual', name: 'Anual', price: 2100, period: '/año', monthly: 175, savings: 'Ahorra $300', popular: true },
 ];
 
+/** Desactivar temporalmente el botón de checkout PayPal; poner en true cuando los pagos estén resueltos. */
+const SHOW_PAYPAL_CHECKOUT = false;
+
 async function pollProfileUntilPaid(maxAttempts = 8, delayMs = 900): Promise<void> {
   for (let i = 0; i < maxAttempts; i++) {
     const res = await apiFetch('/api/profile');
@@ -241,23 +244,27 @@ const Subscription = () => {
                 {payBusy === 'stripe' ? <Loader2 className="w-5 h-5 animate-spin" /> : <CreditCard className="w-5 h-5" />}
                 Suscribirse con Stripe
               </Button>
-              <Button
-                className="w-full h-14 text-base font-semibold gap-3 bg-[#0070BA] hover:bg-[#005C99] text-white"
-                onClick={() => void startPayPal()}
-                disabled={!!payBusy}
-              >
-                {payBusy === 'paypal' ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c1.725 3.386.14 7.13-3.62 7.13h-2.19a1.627 1.627 0 0 0-1.604 1.373l-1.12 7.106a.641.641 0 0 0 .633.74h3.472c.457 0 .846-.334.917-.787l.378-2.398a.925.925 0 0 1 .913-.787h.601c3.728 0 6.643-1.515 7.497-5.896.36-1.846.148-3.372-.87-4.44z" />
-                  </svg>
-                )}
-                Suscribirse con PayPal
-              </Button>
+              {SHOW_PAYPAL_CHECKOUT && (
+                <Button
+                  className="w-full h-14 text-base font-semibold gap-3 bg-[#0070BA] hover:bg-[#005C99] text-white"
+                  onClick={() => void startPayPal()}
+                  disabled={!!payBusy}
+                >
+                  {payBusy === 'paypal' ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c1.725 3.386.14 7.13-3.62 7.13h-2.19a1.627 1.627 0 0 0-1.604 1.373l-1.12 7.106a.641.641 0 0 0 .633.74h3.472c.457 0 .846-.334.917-.787l.378-2.398a.925.925 0 0 1 .913-.787h.601c3.728 0 6.643-1.515 7.497-5.896.36-1.846.148-3.372-.87-4.44z" />
+                    </svg>
+                  )}
+                  Suscribirse con PayPal
+                </Button>
+              )}
               <p className="text-center text-xs text-muted-foreground">
-                Cargo recurrente: el cobro se repetirá cada periodo hasta que canceles desde tu perfil. Stripe y PayPal te
-                redirigen de forma segura.
+                Cargo recurrente: el cobro se repetirá cada periodo hasta que canceles desde tu perfil.{' '}
+                {SHOW_PAYPAL_CHECKOUT
+                  ? 'Stripe y PayPal te redirigen de forma segura.'
+                  : 'Stripe te redirige de forma segura.'}
               </p>
             </CardContent>
           </Card>
