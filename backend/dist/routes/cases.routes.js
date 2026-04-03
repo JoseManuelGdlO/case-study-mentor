@@ -3,7 +3,7 @@ import multer from 'multer';
 import { authenticate } from '../middleware/auth.js';
 import { requireAdmin, requireCaseEditor } from '../middleware/roles.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
-import { createCaseSchema, listCasesQuerySchema, updateCaseSchema, } from '../schemas/case.schema.js';
+import { bulkDeleteCasesSchema, createCaseSchema, listCasesQuerySchema, updateCaseSchema, } from '../schemas/case.schema.js';
 import * as caseService from '../services/case.service.js';
 import { processBulkUpload } from '../services/bulkUpload.service.js';
 import { paramString } from '../utils/params.js';
@@ -62,6 +62,16 @@ casesRouter.post('/bulk-upload', authenticate, requireAdmin(), upload.single('fi
             return;
         }
         const result = await processBulkUpload(file.buffer, req.user.id);
+        res.json(result);
+    }
+    catch (e) {
+        next(e);
+    }
+});
+casesRouter.post('/bulk-delete', authenticate, requireAdmin(), validateBody(bulkDeleteCasesSchema), async (req, res, next) => {
+    try {
+        const body = req.body;
+        const result = await caseService.deleteCasesBulk(body.ids);
         res.json(result);
     }
     catch (e) {

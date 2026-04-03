@@ -98,7 +98,7 @@ const ExamStudy = () => {
     if (!examId || !question || revealed) return;
     try {
       const json = await apiJson<{
-        data: { saved: boolean; isCorrect?: boolean; explanation?: string };
+        data: { saved: boolean; isCorrect?: boolean; explanation?: string; feedbackImageUrl?: string };
       }>(`/api/exams/${examId}/answer`, {
         method: 'PUT',
         body: JSON.stringify({ questionId: question.id, selectedOptionId: optionId }),
@@ -300,13 +300,24 @@ const ExamStudy = () => {
                             className="rounded-lg max-w-full max-h-48 border object-contain"
                           />
                         ) : null}
-                        {revealed && (isSelected || isCorrect) && opt.explanation && (
-                          <RichOrPlainBlock
-                            format={caseFmt}
-                            text={opt.explanation}
-                            className="text-sm text-muted-foreground mt-2 italic"
-                          />
-                        )}
+                        {revealed && (isSelected || isCorrect) && (opt.explanation || opt.feedbackImageUrl) ? (
+                          <>
+                            {opt.explanation ? (
+                              <RichOrPlainBlock
+                                format={caseFmt}
+                                text={opt.explanation}
+                                className="text-sm text-muted-foreground mt-2 italic"
+                              />
+                            ) : null}
+                            {opt.feedbackImageUrl ? (
+                              <img
+                                src={getUploadUrl(opt.feedbackImageUrl)}
+                                alt=""
+                                className="rounded-lg max-w-full max-h-48 border object-contain mt-2"
+                              />
+                            ) : null}
+                          </>
+                        ) : null}
                       </div>
                     </button>
                   );

@@ -5,12 +5,14 @@ export declare const createCaseSchema: z.ZodObject<{
     topic: z.ZodString;
     language: z.ZodDefault<z.ZodEnum<["es", "en"]>>;
     text: z.ZodString;
+    textFormat: z.ZodDefault<z.ZodEnum<["plain", "html"]>>;
     imageUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     generatedByIa: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
     status: z.ZodDefault<z.ZodEnum<["draft", "published", "archived"]>>;
     questions: z.ZodArray<z.ZodObject<{
         text: z.ZodString;
         imageUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        feedbackImageUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         summary: z.ZodString;
         bibliography: z.ZodString;
         difficultyLevel: z.ZodDefault<z.ZodUnion<[z.ZodLiteral<1>, z.ZodLiteral<2>, z.ZodLiteral<3>]>>;
@@ -22,6 +24,7 @@ export declare const createCaseSchema: z.ZodObject<{
             label: z.ZodString;
             text: z.ZodString;
             imageUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+            feedbackImageUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
             isCorrect: z.ZodBoolean;
             explanation: z.ZodString;
         }, "strip", z.ZodTypeAny, {
@@ -30,12 +33,14 @@ export declare const createCaseSchema: z.ZodObject<{
             label: string;
             explanation: string;
             imageUrl?: string | null | undefined;
+            feedbackImageUrl?: string | null | undefined;
         }, {
             isCorrect: boolean;
             text: string;
             label: string;
             explanation: string;
             imageUrl?: string | null | undefined;
+            feedbackImageUrl?: string | null | undefined;
         }>, "many">;
     }, "strip", z.ZodTypeAny, {
         options: {
@@ -44,6 +49,7 @@ export declare const createCaseSchema: z.ZodObject<{
             label: string;
             explanation: string;
             imageUrl?: string | null | undefined;
+            feedbackImageUrl?: string | null | undefined;
         }[];
         text: string;
         summary: string;
@@ -53,6 +59,7 @@ export declare const createCaseSchema: z.ZodObject<{
         previousEnarmPresence: boolean;
         hint: string;
         imageUrl?: string | null | undefined;
+        feedbackImageUrl?: string | null | undefined;
         orderIndex?: number | undefined;
     }, {
         options: {
@@ -61,11 +68,13 @@ export declare const createCaseSchema: z.ZodObject<{
             label: string;
             explanation: string;
             imageUrl?: string | null | undefined;
+            feedbackImageUrl?: string | null | undefined;
         }[];
         text: string;
         summary: string;
         bibliography: string;
         imageUrl?: string | null | undefined;
+        feedbackImageUrl?: string | null | undefined;
         difficultyLevel?: 1 | 3 | 2 | undefined;
         cognitiveCompetence?: boolean | undefined;
         previousEnarmPresence?: boolean | undefined;
@@ -95,6 +104,7 @@ export declare const createCaseSchema: z.ZodObject<{
     areaId: string;
     topic: string;
     text: string;
+    textFormat: "plain" | "html";
     generatedByIa: boolean;
     questions: {
         options: {
@@ -103,6 +113,7 @@ export declare const createCaseSchema: z.ZodObject<{
             label: string;
             explanation: string;
             imageUrl?: string | null | undefined;
+            feedbackImageUrl?: string | null | undefined;
         }[];
         text: string;
         summary: string;
@@ -112,6 +123,7 @@ export declare const createCaseSchema: z.ZodObject<{
         previousEnarmPresence: boolean;
         hint: string;
         imageUrl?: string | null | undefined;
+        feedbackImageUrl?: string | null | undefined;
         orderIndex?: number | undefined;
     }[];
     labResults: {
@@ -133,11 +145,13 @@ export declare const createCaseSchema: z.ZodObject<{
             label: string;
             explanation: string;
             imageUrl?: string | null | undefined;
+            feedbackImageUrl?: string | null | undefined;
         }[];
         text: string;
         summary: string;
         bibliography: string;
         imageUrl?: string | null | undefined;
+        feedbackImageUrl?: string | null | undefined;
         difficultyLevel?: 1 | 3 | 2 | undefined;
         cognitiveCompetence?: boolean | undefined;
         previousEnarmPresence?: boolean | undefined;
@@ -146,6 +160,7 @@ export declare const createCaseSchema: z.ZodObject<{
     }[];
     status?: "draft" | "published" | "archived" | undefined;
     language?: "es" | "en" | undefined;
+    textFormat?: "plain" | "html" | undefined;
     imageUrl?: string | null | undefined;
     generatedByIa?: boolean | undefined;
     labResults?: {
@@ -161,6 +176,7 @@ export declare const updateCaseSchema: z.ZodObject<{
     topic: z.ZodOptional<z.ZodString>;
     language: z.ZodOptional<z.ZodDefault<z.ZodEnum<["es", "en"]>>>;
     text: z.ZodOptional<z.ZodString>;
+    textFormat: z.ZodOptional<z.ZodDefault<z.ZodEnum<["plain", "html"]>>>;
     imageUrl: z.ZodOptional<z.ZodNullable<z.ZodOptional<z.ZodString>>>;
     generatedByIa: z.ZodOptional<z.ZodDefault<z.ZodOptional<z.ZodBoolean>>>;
     status: z.ZodOptional<z.ZodDefault<z.ZodEnum<["draft", "published", "archived"]>>>;
@@ -168,6 +184,7 @@ export declare const updateCaseSchema: z.ZodObject<{
     questions: z.ZodOptional<z.ZodArray<z.ZodObject<{
         text: z.ZodString;
         imageUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        feedbackImageUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         summary: z.ZodString;
         bibliography: z.ZodString;
         difficultyLevel: z.ZodDefault<z.ZodUnion<[z.ZodLiteral<1>, z.ZodLiteral<2>, z.ZodLiteral<3>]>>;
@@ -179,6 +196,7 @@ export declare const updateCaseSchema: z.ZodObject<{
             label: z.ZodString;
             text: z.ZodString;
             imageUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+            feedbackImageUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
             isCorrect: z.ZodBoolean;
             explanation: z.ZodString;
         }, "strip", z.ZodTypeAny, {
@@ -187,12 +205,14 @@ export declare const updateCaseSchema: z.ZodObject<{
             label: string;
             explanation: string;
             imageUrl?: string | null | undefined;
+            feedbackImageUrl?: string | null | undefined;
         }, {
             isCorrect: boolean;
             text: string;
             label: string;
             explanation: string;
             imageUrl?: string | null | undefined;
+            feedbackImageUrl?: string | null | undefined;
         }>, "many">;
     }, "strip", z.ZodTypeAny, {
         options: {
@@ -201,6 +221,7 @@ export declare const updateCaseSchema: z.ZodObject<{
             label: string;
             explanation: string;
             imageUrl?: string | null | undefined;
+            feedbackImageUrl?: string | null | undefined;
         }[];
         text: string;
         summary: string;
@@ -210,6 +231,7 @@ export declare const updateCaseSchema: z.ZodObject<{
         previousEnarmPresence: boolean;
         hint: string;
         imageUrl?: string | null | undefined;
+        feedbackImageUrl?: string | null | undefined;
         orderIndex?: number | undefined;
     }, {
         options: {
@@ -218,11 +240,13 @@ export declare const updateCaseSchema: z.ZodObject<{
             label: string;
             explanation: string;
             imageUrl?: string | null | undefined;
+            feedbackImageUrl?: string | null | undefined;
         }[];
         text: string;
         summary: string;
         bibliography: string;
         imageUrl?: string | null | undefined;
+        feedbackImageUrl?: string | null | undefined;
         difficultyLevel?: 1 | 3 | 2 | undefined;
         cognitiveCompetence?: boolean | undefined;
         previousEnarmPresence?: boolean | undefined;
@@ -252,6 +276,7 @@ export declare const updateCaseSchema: z.ZodObject<{
     areaId?: string | undefined;
     topic?: string | undefined;
     text?: string | undefined;
+    textFormat?: "plain" | "html" | undefined;
     imageUrl?: string | null | undefined;
     generatedByIa?: boolean | undefined;
     questions?: {
@@ -261,6 +286,7 @@ export declare const updateCaseSchema: z.ZodObject<{
             label: string;
             explanation: string;
             imageUrl?: string | null | undefined;
+            feedbackImageUrl?: string | null | undefined;
         }[];
         text: string;
         summary: string;
@@ -270,6 +296,7 @@ export declare const updateCaseSchema: z.ZodObject<{
         previousEnarmPresence: boolean;
         hint: string;
         imageUrl?: string | null | undefined;
+        feedbackImageUrl?: string | null | undefined;
         orderIndex?: number | undefined;
     }[] | undefined;
     labResults?: {
@@ -285,6 +312,7 @@ export declare const updateCaseSchema: z.ZodObject<{
     areaId?: string | undefined;
     topic?: string | undefined;
     text?: string | undefined;
+    textFormat?: "plain" | "html" | undefined;
     imageUrl?: string | null | undefined;
     generatedByIa?: boolean | undefined;
     questions?: {
@@ -294,11 +322,13 @@ export declare const updateCaseSchema: z.ZodObject<{
             label: string;
             explanation: string;
             imageUrl?: string | null | undefined;
+            feedbackImageUrl?: string | null | undefined;
         }[];
         text: string;
         summary: string;
         bibliography: string;
         imageUrl?: string | null | undefined;
+        feedbackImageUrl?: string | null | undefined;
         difficultyLevel?: 1 | 3 | 2 | undefined;
         cognitiveCompetence?: boolean | undefined;
         previousEnarmPresence?: boolean | undefined;
@@ -330,5 +360,12 @@ export declare const listCasesQuerySchema: z.ZodObject<{
     area?: string | undefined;
     limit?: number | undefined;
     page?: number | undefined;
+}>;
+export declare const bulkDeleteCasesSchema: z.ZodObject<{
+    ids: z.ZodArray<z.ZodString, "many">;
+}, "strip", z.ZodTypeAny, {
+    ids: string[];
+}, {
+    ids: string[];
 }>;
 //# sourceMappingURL=case.schema.d.ts.map

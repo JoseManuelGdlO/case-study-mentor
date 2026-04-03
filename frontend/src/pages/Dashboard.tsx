@@ -462,7 +462,7 @@ const Dashboard = () => {
                 Si completas 14 dias: +{studyPlan.estimatedImpact14Days.scoreDelta} puntos y +{studyPlan.estimatedImpact14Days.percentileDelta} percentil (estimado)
               </p>
               {studyPlan.isFreeLimited ? (
-                <Button size="sm" onClick={() => navigate('/dashboard/subscription')}>
+                <Button size="sm" onClick={() => navigate('/dashboard/subscription?from=daily-plan')}>
                   Desbloquear completo
                 </Button>
               ) : (

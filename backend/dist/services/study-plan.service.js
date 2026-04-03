@@ -419,6 +419,7 @@ async function enrichTaskPayload(taskType, payload) {
                 id: true,
                 topic: true,
                 text: true,
+                textFormat: true,
                 specialty: { select: { name: true } },
                 area: { select: { name: true } },
                 questions: {
@@ -429,7 +430,14 @@ async function enrichTaskPayload(taskType, payload) {
                         text: true,
                         options: {
                             orderBy: { label: 'asc' },
-                            select: { id: true, label: true, text: true, isCorrect: true, explanation: true },
+                            select: {
+                                id: true,
+                                label: true,
+                                text: true,
+                                isCorrect: true,
+                                explanation: true,
+                                feedbackImageUrl: true,
+                            },
                         },
                     },
                 },
@@ -442,6 +450,7 @@ async function enrichTaskPayload(taskType, payload) {
                 specialty: c.specialty.name,
                 area: c.area.name,
                 text: c.text,
+                textFormat: c.textFormat,
                 question: c.questions[0] ?? null,
             })),
         };
@@ -458,10 +467,22 @@ async function enrichTaskPayload(taskType, payload) {
                 hint: true,
                 options: {
                     orderBy: { label: 'asc' },
-                    select: { id: true, label: true, text: true, isCorrect: true, explanation: true },
+                    select: {
+                        id: true,
+                        label: true,
+                        text: true,
+                        isCorrect: true,
+                        explanation: true,
+                        feedbackImageUrl: true,
+                    },
                 },
                 clinicalCase: {
-                    select: { topic: true, specialty: { select: { name: true } }, area: { select: { name: true } } },
+                    select: {
+                        topic: true,
+                        textFormat: true,
+                        specialty: { select: { name: true } },
+                        area: { select: { name: true } },
+                    },
                 },
             },
         });
@@ -474,6 +495,7 @@ async function enrichTaskPayload(taskType, payload) {
                 topic: q.clinicalCase.topic,
                 specialty: q.clinicalCase.specialty.name,
                 area: q.clinicalCase.area.name,
+                textFormat: q.clinicalCase.textFormat,
             })),
         };
     }

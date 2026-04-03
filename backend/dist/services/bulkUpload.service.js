@@ -43,6 +43,10 @@ const rowSchema = z.object({
     expB: z.string().min(1),
     expC: z.string().min(1),
     expD: z.string().min(1),
+    feedbackImgA: z.string().optional().nullable(),
+    feedbackImgB: z.string().optional().nullable(),
+    feedbackImgC: z.string().optional().nullable(),
+    feedbackImgD: z.string().optional().nullable(),
     Resumen: z.string().min(1),
     Bibliografía: z.string().min(1),
     difficultyLevel: z.union([z.literal(1), z.literal(2), z.literal(3)]),
@@ -88,6 +92,34 @@ function normalizeRow(raw) {
         expB: pick(['ExplicaciónB', 'Explicación B']),
         expC: pick(['ExplicaciónC', 'Explicación C']),
         expD: pick(['ExplicaciónD', 'Explicación D']),
+        feedbackImgA: pick([
+            'Imagen feedback A',
+            'Imagen Feedback A',
+            'Feedback imagen A',
+            'feedbackImagenA',
+            'Imagen de feedback A',
+        ]) ?? null,
+        feedbackImgB: pick([
+            'Imagen feedback B',
+            'Imagen Feedback B',
+            'Feedback imagen B',
+            'feedbackImagenB',
+            'Imagen de feedback B',
+        ]) ?? null,
+        feedbackImgC: pick([
+            'Imagen feedback C',
+            'Imagen Feedback C',
+            'Feedback imagen C',
+            'feedbackImagenC',
+            'Imagen de feedback C',
+        ]) ?? null,
+        feedbackImgD: pick([
+            'Imagen feedback D',
+            'Imagen Feedback D',
+            'Feedback imagen D',
+            'feedbackImagenD',
+            'Imagen de feedback D',
+        ]) ?? null,
         Resumen: pick(['Resumen']),
         Bibliografía: pick(['Bibliografía', 'Bibliografia']),
         difficultyLevel: parseDifficultyLevel(pick(['Dificultad', 'Dificultad (1/2/3)', 'Dificultad (low/medium/high)']) ?? 'medium'),
@@ -137,6 +169,7 @@ export async function processBulkUpload(buffer, userId) {
         const labels = ['A', 'B', 'C', 'D'];
         const texts = [row.optA, row.optB, row.optC, row.optD];
         const expl = [row.expA, row.expB, row.expC, row.expD];
+        const feedbackImgs = [row.feedbackImgA, row.feedbackImgB, row.feedbackImgC, row.feedbackImgD];
         try {
             await prisma.$transaction(async (tx) => {
                 let spec = await tx.specialty.findFirst({ where: { name: row.Especialidad } });
@@ -158,6 +191,7 @@ export async function processBulkUpload(buffer, userId) {
                         topic: row.Tema,
                         language: row.Idioma,
                         text: row.casoTexto,
+                        textFormat: 'plain',
                         imageUrl: row.imagenUrl ? String(row.imagenUrl) : null,
                         status: 'published',
                         createdById: userId,
@@ -191,6 +225,12 @@ export async function processBulkUpload(buffer, userId) {
                                             text: texts[idx],
                                             isCorrect: label === row.correcta,
                                             explanation: expl[idx],
+                                            feedbackImageUrl: (() => {
+                                                const raw = feedbackImgs[idx];
+                                                if (raw == null || String(raw).trim() === '')
+                                                    return null;
+                                                return String(raw).trim();
+                                            })(),
                                         })),
                                     },
                                 },

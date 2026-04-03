@@ -3,6 +3,7 @@ const optionSchema = z.object({
     label: z.string(),
     text: z.string(),
     imageUrl: z.string().optional().nullable(),
+    feedbackImageUrl: z.string().optional().nullable(),
     isCorrect: z.boolean(),
     explanation: z.string(),
 });
@@ -10,6 +11,7 @@ const difficultyLevelSchema = z.union([z.literal(1), z.literal(2), z.literal(3)]
 const questionSchema = z.object({
     text: z.string(),
     imageUrl: z.string().optional().nullable(),
+    feedbackImageUrl: z.string().optional().nullable(),
     summary: z.string(),
     bibliography: z.string(),
     difficultyLevel: difficultyLevelSchema.default(2),
@@ -31,6 +33,7 @@ export const createCaseSchema = z.object({
     topic: z.string().min(1),
     language: z.enum(['es', 'en']).default('es'),
     text: z.string().min(1),
+    textFormat: z.enum(['plain', 'html']).default('html'),
     imageUrl: z.string().optional().nullable(),
     generatedByIa: z.boolean().optional().default(false),
     status: z.enum(['draft', 'published', 'archived']).default('draft'),
@@ -47,5 +50,8 @@ export const listCasesQuerySchema = z.object({
     status: z.enum(['draft', 'published', 'archived']).optional(),
     page: z.coerce.number().int().positive().optional(),
     limit: z.coerce.number().int().positive().max(100).optional(),
+});
+export const bulkDeleteCasesSchema = z.object({
+    ids: z.array(z.string().uuid()).min(1).max(100),
 });
 //# sourceMappingURL=case.schema.js.map

@@ -43,7 +43,9 @@ const TEMPLATE_HEADERS = [
   'Especialidad', 'Área', 'Tema', 'Idioma (es/en)', 'Caso Clínico',
   'Pregunta', 'Opción A', 'Opción B', 'Opción C', 'Opción D',
   'Respuesta Correcta (A/B/C/D)', 'Explicación A', 'Explicación B',
-  'Explicación C', 'Explicación D', 'Resumen', 'Bibliografía',
+  'Explicación C', 'Explicación D',
+  'Imagen feedback A', 'Imagen feedback B', 'Imagen feedback C', 'Imagen feedback D',
+  'Resumen', 'Bibliografía',
   'Dificultad (1/2/3 o low/medium/high)',
   'Competencia cognitiva (0/1)',
   'Presencia ENARM previo (0/1)',
@@ -67,6 +69,7 @@ const SAMPLE_DATA = [
     'Explicación opción B (ejemplo)',
     'Explicación opción C (ejemplo)',
     'Explicación opción D (ejemplo)',
+    '', '', '', '',
     'Resumen de ejemplo — sustituir o borrar fila',
     'Bibliografía de ejemplo — sustituir o borrar fila',
     '2',
@@ -101,9 +104,10 @@ function downloadTemplate() {
     ['8. Competencia cognitiva y Presencia ENARM previo: 0=No, 1=Sí (vacío = No). Pista: texto opcional.'],
     ['9. Los campos de laboratorio son opcionales. Si un caso no tiene labs, deja esas columnas vacías.'],
     ['10. Para agregar múltiples labs al mismo caso, agrega filas adicionales con los mismos datos del caso pero diferentes valores de lab.'],
+    ['11. Imagen feedback A–D: opcional. URL o ruta de imagen mostrada con la explicación de cada opción en modo estudio (misma convención que otras URLs de imagen del sistema).'],
     [''],
     ['Campos obligatorios: Especialidad, Área, Tema, Idioma, Caso Clínico, Pregunta, Opciones A-D, Respuesta Correcta, Explicaciones A-D'],
-    ['Campos opcionales: Resumen, Bibliografía, Dificultad/metadatos de pregunta, Pista, Labs'],
+    ['Campos opcionales: Resumen, Bibliografía, Dificultad/metadatos de pregunta, Pista, Labs, Imagen feedback A–D'],
   ];
   const wsInstr = XLSX.utils.aoa_to_sheet(instrData);
   wsInstr['!cols'] = [{ wch: 100 }];

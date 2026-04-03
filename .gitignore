@@ -10,3 +10,5 @@ load-tests/users.json
 # Subidas locales (bind mount ./data/uploads)
 data/uploads/*
 !data/uploads/.gitkeep
+
+querys/*

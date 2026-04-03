@@ -93,8 +93,8 @@ backofficeRouter.delete('/areas/:areaId', requireAdmin(), async (req, res, next)
         next(e);
     }
 });
-/* --- Phrases --- */
-backofficeRouter.get('/phrases', requireAdmin(), async (req, res, next) => {
+/* --- Phrases (admin + editor) --- */
+backofficeRouter.get('/phrases', requireCaseEditor(), async (req, res, next) => {
     try {
         const { skip, take, page, limit } = paginationParams(req.query.page, req.query.limit);
         const [total, data] = await Promise.all([
@@ -111,7 +111,7 @@ backofficeRouter.get('/phrases', requireAdmin(), async (req, res, next) => {
         next(e);
     }
 });
-backofficeRouter.post('/phrases', requireAdmin(), validateBody(phraseCreateSchema), async (req, res, next) => {
+backofficeRouter.post('/phrases', requireCaseEditor(), validateBody(phraseCreateSchema), async (req, res, next) => {
     try {
         const row = await prisma.motivationalPhrase.create({ data: req.body });
         await cacheService.invalidate('cache:phrases*');
@@ -121,7 +121,7 @@ backofficeRouter.post('/phrases', requireAdmin(), validateBody(phraseCreateSchem
         next(e);
     }
 });
-backofficeRouter.put('/phrases/:id', requireAdmin(), validateBody(phraseUpdateSchema), async (req, res, next) => {
+backofficeRouter.put('/phrases/:id', requireCaseEditor(), validateBody(phraseUpdateSchema), async (req, res, next) => {
     try {
         const row = await prisma.motivationalPhrase.update({
             where: { id: paramString(req.params.id) },
@@ -134,7 +134,7 @@ backofficeRouter.put('/phrases/:id', requireAdmin(), validateBody(phraseUpdateSc
         next(e);
     }
 });
-backofficeRouter.delete('/phrases/:id', requireAdmin(), async (req, res, next) => {
+backofficeRouter.delete('/phrases/:id', requireCaseEditor(), async (req, res, next) => {
     try {
         await prisma.motivationalPhrase.delete({ where: { id: paramString(req.params.id) } });
         await cacheService.invalidate('cache:phrases*');
@@ -144,8 +144,8 @@ backofficeRouter.delete('/phrases/:id', requireAdmin(), async (req, res, next) =
         next(e);
     }
 });
-/* --- Flashcards --- */
-backofficeRouter.get('/flashcards', requireAdmin(), async (req, res, next) => {
+/* --- Flashcards (admin + editor) --- */
+backofficeRouter.get('/flashcards', requireCaseEditor(), async (req, res, next) => {
     try {
         const { skip, take, page, limit } = paginationParams(req.query.page, req.query.limit);
         const [total, data] = await Promise.all([
@@ -180,7 +180,7 @@ backofficeRouter.get('/flashcards', requireAdmin(), async (req, res, next) => {
         next(e);
     }
 });
-backofficeRouter.post('/flashcards', requireAdmin(), validateBody(flashcardCreateSchema), async (req, res, next) => {
+backofficeRouter.post('/flashcards', requireCaseEditor(), validateBody(flashcardCreateSchema), async (req, res, next) => {
     try {
         const b = req.body;
         const row = await prisma.flashcard.create({
@@ -199,7 +199,7 @@ backofficeRouter.post('/flashcards', requireAdmin(), validateBody(flashcardCreat
         next(e);
     }
 });
-backofficeRouter.put('/flashcards/:id', requireAdmin(), validateBody(flashcardUpdateSchema), async (req, res, next) => {
+backofficeRouter.put('/flashcards/:id', requireCaseEditor(), validateBody(flashcardUpdateSchema), async (req, res, next) => {
     try {
         const flashcardId = paramString(req.params.id);
         const b = req.body;
@@ -240,7 +240,7 @@ backofficeRouter.put('/flashcards/:id', requireAdmin(), validateBody(flashcardUp
         next(e);
     }
 });
-backofficeRouter.delete('/flashcards/:id', requireAdmin(), async (req, res, next) => {
+backofficeRouter.delete('/flashcards/:id', requireCaseEditor(), async (req, res, next) => {
     try {
         await prisma.flashcard.delete({ where: { id: paramString(req.params.id) } });
         res.json({ data: { ok: true } });
@@ -249,8 +249,8 @@ backofficeRouter.delete('/flashcards/:id', requireAdmin(), async (req, res, next
         next(e);
     }
 });
-/* --- Exam dates --- */
-backofficeRouter.get('/exam-dates', requireAdmin(), async (req, res, next) => {
+/* --- Exam dates (admin + editor) --- */
+backofficeRouter.get('/exam-dates', requireCaseEditor(), async (req, res, next) => {
     try {
         const { skip, take, page, limit } = paginationParams(req.query.page, req.query.limit);
         const [total, data] = await Promise.all([
@@ -275,7 +275,7 @@ backofficeRouter.get('/exam-dates', requireAdmin(), async (req, res, next) => {
         next(e);
     }
 });
-backofficeRouter.post('/exam-dates', requireAdmin(), validateBody(examDateCreateSchema), async (req, res, next) => {
+backofficeRouter.post('/exam-dates', requireCaseEditor(), validateBody(examDateCreateSchema), async (req, res, next) => {
     try {
         const row = await prisma.examDate.create({
             data: {
@@ -291,7 +291,7 @@ backofficeRouter.post('/exam-dates', requireAdmin(), validateBody(examDateCreate
         next(e);
     }
 });
-backofficeRouter.put('/exam-dates/:id', requireAdmin(), validateBody(examDateUpdateSchema), async (req, res, next) => {
+backofficeRouter.put('/exam-dates/:id', requireCaseEditor(), validateBody(examDateUpdateSchema), async (req, res, next) => {
     try {
         const b = req.body;
         const row = await prisma.examDate.update({
@@ -309,7 +309,7 @@ backofficeRouter.put('/exam-dates/:id', requireAdmin(), validateBody(examDateUpd
         next(e);
     }
 });
-backofficeRouter.delete('/exam-dates/:id', requireAdmin(), async (req, res, next) => {
+backofficeRouter.delete('/exam-dates/:id', requireCaseEditor(), async (req, res, next) => {
     try {
         await prisma.examDate.delete({ where: { id: paramString(req.params.id) } });
         await cacheService.invalidate('cache:exam-dates*');

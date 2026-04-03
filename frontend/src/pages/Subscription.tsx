@@ -14,7 +14,8 @@ import {
 import { useUser, type UserPlan } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiFetch, apiJson } from '@/lib/api';
-import { Check, Crown, CreditCard, ArrowLeft, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Check, Crown, CreditCard, ArrowLeft, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 const plans: {
@@ -196,6 +197,7 @@ const Subscription = () => {
   };
 
   const planForPayment = selectedPlan ? plans.find((p) => p.id === selectedPlan) : undefined;
+  const fromDailyPlan = searchParams.get('from') === 'daily-plan';
 
   return (
     <>
@@ -267,8 +269,9 @@ const Subscription = () => {
               <Crown className="w-8 h-8 text-warning" />
               <h1 className="text-3xl font-bold text-foreground">Elige tu plan</h1>
             </div>
-            <p className="text-muted-foreground max-w-md mx-auto">
+            <p className="text-muted-foreground max-w-lg mx-auto">
               Desbloquea acceso ilimitado a exámenes, estadísticas detalladas y todo el contenido de preparación ENARM.
+              Cualquier plan de pago incluye el plan de hoy completo (bloque diario con preguntas, flashcards y mini-caso).
             </p>
             {!isFreeUser && (
               <Badge className="mt-3 bg-success/20 text-success border-success/30">
@@ -276,6 +279,18 @@ const Subscription = () => {
               </Badge>
             )}
           </div>
+
+          {fromDailyPlan && (
+            <Alert className="max-w-2xl mx-auto border-primary/30 bg-primary/5">
+              <Info className="h-4 w-4" />
+              <AlertTitle>Plan de hoy completo</AlertTitle>
+              <AlertDescription>
+                No hay un plan distinto para esto: el bloque diario sin límites se activa con{' '}
+                <strong>cualquiera</strong> de las suscripciones de abajo (Mensual, Semestral o Anual). Solo cambia el
+                periodo de facturación y el precio.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {plans.map((plan) => (
@@ -306,6 +321,7 @@ const Subscription = () => {
                   {plan.id !== 'monthly' && <p className="text-sm text-muted-foreground">${plan.monthly} MXN/mes</p>}
                   <ul className="text-left space-y-2">
                     {[
+                      'Plan de hoy completo (bloque diario)',
                       'Exámenes ilimitados',
                       'Todas las preguntas',
                       'Estadísticas completas',

@@ -18,6 +18,7 @@ export declare function listCases(query: {
         topic: string;
         language: string;
         text: string;
+        textFormat: "plain" | "html";
         imageUrl: string | undefined;
         generatedByIa: boolean;
         labResults: {
@@ -31,6 +32,7 @@ export declare function listCases(query: {
             id: string;
             text: string;
             imageUrl: string | undefined;
+            feedbackImageUrl: string | undefined;
             summary: string;
             bibliography: string;
             difficultyLevel: number;
@@ -43,6 +45,7 @@ export declare function listCases(query: {
                 label: string;
                 text: string;
                 imageUrl: string | undefined;
+                feedbackImageUrl: string | undefined;
                 isCorrect: boolean;
                 explanation: string;
             }[];
@@ -83,6 +86,7 @@ export declare function getCaseById(id: string): Promise<{
         topic: string;
         language: string;
         text: string;
+        textFormat: "plain" | "html";
         imageUrl: string | undefined;
         generatedByIa: boolean;
         labResults: {
@@ -96,6 +100,7 @@ export declare function getCaseById(id: string): Promise<{
             id: string;
             text: string;
             imageUrl: string | undefined;
+            feedbackImageUrl: string | undefined;
             summary: string;
             bibliography: string;
             difficultyLevel: number;
@@ -108,6 +113,7 @@ export declare function getCaseById(id: string): Promise<{
                 label: string;
                 text: string;
                 imageUrl: string | undefined;
+                feedbackImageUrl: string | undefined;
                 isCorrect: boolean;
                 explanation: string;
             }[];
@@ -137,6 +143,7 @@ export declare function createCase(input: CreateCase, userId: string): Promise<{
         topic: string;
         language: string;
         text: string;
+        textFormat: "plain" | "html";
         imageUrl: string | undefined;
         generatedByIa: boolean;
         labResults: {
@@ -150,6 +157,7 @@ export declare function createCase(input: CreateCase, userId: string): Promise<{
             id: string;
             text: string;
             imageUrl: string | undefined;
+            feedbackImageUrl: string | undefined;
             summary: string;
             bibliography: string;
             difficultyLevel: number;
@@ -162,6 +170,7 @@ export declare function createCase(input: CreateCase, userId: string): Promise<{
                 label: string;
                 text: string;
                 imageUrl: string | undefined;
+                feedbackImageUrl: string | undefined;
                 isCorrect: boolean;
                 explanation: string;
             }[];
@@ -191,6 +200,7 @@ export declare function updateCase(id: string, input: UpdateCase, userId: string
         topic: string;
         language: string;
         text: string;
+        textFormat: "plain" | "html";
         imageUrl: string | undefined;
         generatedByIa: boolean;
         labResults: {
@@ -204,6 +214,7 @@ export declare function updateCase(id: string, input: UpdateCase, userId: string
             id: string;
             text: string;
             imageUrl: string | undefined;
+            feedbackImageUrl: string | undefined;
             summary: string;
             bibliography: string;
             difficultyLevel: number;
@@ -216,6 +227,7 @@ export declare function updateCase(id: string, input: UpdateCase, userId: string
                 label: string;
                 text: string;
                 imageUrl: string | undefined;
+                feedbackImageUrl: string | undefined;
                 isCorrect: boolean;
                 explanation: string;
             }[];
@@ -238,6 +250,11 @@ export declare function updateCase(id: string, input: UpdateCase, userId: string
 export declare function deleteCase(id: string): Promise<{
     data: {
         ok: boolean;
+    };
+}>;
+export declare function deleteCasesBulk(ids: string[]): Promise<{
+    data: {
+        deleted: number;
     };
 }>;
 export {};

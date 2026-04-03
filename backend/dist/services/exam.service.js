@@ -115,7 +115,7 @@ export async function generateExam(userId, input) {
     return getExamById(userId, exam.id);
 }
 function stripSimulationOptions(options) {
-    return options.map(({ isCorrect: _i, explanation: _e, ...rest }) => rest);
+    return options.map(({ isCorrect: _i, explanation: _e, feedbackImageUrl: _f, ...rest }) => rest);
 }
 export async function listExams(userId, page, limit) {
     const skip = (page - 1) * limit;
@@ -198,6 +198,7 @@ export async function getExamById(userId, examId) {
                 topic: cc.topic,
                 language: cc.language,
                 text: cc.text,
+                textFormat: cc.textFormat,
                 imageUrl: cc.imageUrl,
                 generatedByIa: cc.generatedByIa,
                 labResults: cc.labResults.map((l) => ({
@@ -219,6 +220,7 @@ export async function getExamById(userId, examId) {
             label: o.label,
             text: o.text,
             imageUrl: o.imageUrl ?? undefined,
+            feedbackImageUrl: o.feedbackImageUrl ?? undefined,
             isCorrect: o.isCorrect,
             explanation: o.explanation,
         }));
@@ -226,6 +228,7 @@ export async function getExamById(userId, examId) {
             id: q.id,
             text: q.text,
             imageUrl: q.imageUrl ?? undefined,
+            feedbackImageUrl: hideAnswers ? undefined : (q.feedbackImageUrl ?? undefined),
             options: hideAnswers ? stripSimulationOptions(opts) : opts,
             summary: hideAnswers ? '' : q.summary,
             bibliography: hideAnswers ? '' : q.bibliography,
@@ -248,6 +251,7 @@ export async function getExamById(userId, examId) {
             label: o.label,
             text: o.text,
             imageUrl: o.imageUrl ?? undefined,
+            feedbackImageUrl: o.feedbackImageUrl ?? undefined,
             isCorrect: o.isCorrect,
             explanation: o.explanation,
         }));
@@ -256,6 +260,7 @@ export async function getExamById(userId, examId) {
             globalOrder: eq.orderIndex,
             text: q.text,
             imageUrl: q.imageUrl ?? undefined,
+            feedbackImageUrl: hideAnswers ? undefined : (q.feedbackImageUrl ?? undefined),
             options: hideAnswers ? stripSimulationOptions(opts) : opts,
             summary: hideAnswers ? '' : q.summary,
             bibliography: hideAnswers ? '' : q.bibliography,
@@ -264,6 +269,7 @@ export async function getExamById(userId, examId) {
             previousEnarmPresence: q.previousEnarmPresence,
             hint: q.hint,
             caseText: cc.text,
+            caseTextFormat: cc.textFormat,
             caseImageUrl: cc.imageUrl,
             specialty: cc.specialty.name,
             area: cc.area.name,
@@ -339,6 +345,7 @@ export async function submitAnswer(userId, examId, body) {
     if (body.selectedOptionId) {
         const opt = await prisma.answerOption.findFirst({
             where: { id: body.selectedOptionId, questionId: body.questionId },
+            select: { id: true, isCorrect: true, explanation: true, feedbackImageUrl: true },
         });
         if (!opt) {
             const err = new Error('Opción inválida');
@@ -388,6 +395,7 @@ export async function submitAnswer(userId, examId, body) {
                 saved: true,
                 isCorrect: selectedOption.isCorrect,
                 explanation,
+                feedbackImageUrl: selectedOption.feedbackImageUrl ?? undefined,
             },
         };
     }

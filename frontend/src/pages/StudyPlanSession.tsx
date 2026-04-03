@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { apiJson } from '@/lib/api';
+import { apiJson, getUploadUrl } from '@/lib/api';
 import type { StudyPlan } from '@/types';
 import { RichOrPlainBlock } from '@/components/RichOrPlainBlock';
 
@@ -252,6 +252,13 @@ const StudyPlanSession = () => {
                             format={qFmt}
                             text={selectedOption.explanation || q.hint || 'Revisa los datos clinicos clave para responder.'}
                           />
+                          {selectedOption.feedbackImageUrl ? (
+                            <img
+                              src={getUploadUrl(selectedOption.feedbackImageUrl)}
+                              alt=""
+                              className="mt-2 rounded-lg max-w-full max-h-48 border object-contain"
+                            />
+                          ) : null}
                         </div>
                       ) : (
                         <p className="text-xs text-muted-foreground">Selecciona una respuesta para ver retroalimentacion.</p>
@@ -335,6 +342,13 @@ const StudyPlanSession = () => {
                         selectedMiniCaseOption.explanation || 'Revisa la fisiopatologia y criterios diagnosticos del caso.'
                       }
                     />
+                    {selectedMiniCaseOption.feedbackImageUrl ? (
+                      <img
+                        src={getUploadUrl(selectedMiniCaseOption.feedbackImageUrl)}
+                        alt=""
+                        className="mt-2 rounded-lg max-w-full max-h-48 border object-contain"
+                      />
+                    ) : null}
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">Selecciona una respuesta para ver retroalimentacion.</p>

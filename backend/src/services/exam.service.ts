@@ -146,10 +146,13 @@ export async function generateExam(userId: string, input: GenerateInput) {
   return getExamById(userId, exam.id);
 }
 
-function stripSimulationOptions<T extends { isCorrect: boolean; explanation: string }>(
-  options: T[]
-): Omit<T, 'isCorrect' | 'explanation'>[] {
-  return options.map(({ isCorrect: _i, explanation: _e, ...rest }) => rest as Omit<T, 'isCorrect' | 'explanation'>);
+function stripSimulationOptions<
+  T extends { isCorrect: boolean; explanation: string; feedbackImageUrl?: string | null },
+>(options: T[]): Omit<T, 'isCorrect' | 'explanation' | 'feedbackImageUrl'>[] {
+  return options.map(
+    ({ isCorrect: _i, explanation: _e, feedbackImageUrl: _f, ...rest }) =>
+      rest as Omit<T, 'isCorrect' | 'explanation' | 'feedbackImageUrl'>,
+  );
 }
 
 export async function listExams(userId: string, page: number, limit: number) {
@@ -280,6 +283,7 @@ export async function getExamById(userId: string, examId: string) {
       label: o.label,
       text: o.text,
       imageUrl: o.imageUrl ?? undefined,
+      feedbackImageUrl: o.feedbackImageUrl ?? undefined,
       isCorrect: o.isCorrect,
       explanation: o.explanation,
     }));
@@ -312,6 +316,7 @@ export async function getExamById(userId: string, examId: string) {
         label: o.label,
         text: o.text,
         imageUrl: o.imageUrl ?? undefined,
+        feedbackImageUrl: o.feedbackImageUrl ?? undefined,
         isCorrect: o.isCorrect,
         explanation: o.explanation,
       }));
@@ -411,12 +416,13 @@ export async function submitAnswer(
   let isCorrect: boolean | null = null;
   let explanation: string | undefined;
   let selectedOption:
-    | { isCorrect: boolean; explanation: string; id: string }
+    | { isCorrect: boolean; explanation: string; id: string; feedbackImageUrl: string | null }
     | null = null;
 
   if (body.selectedOptionId) {
     const opt = await prisma.answerOption.findFirst({
       where: { id: body.selectedOptionId, questionId: body.questionId },
+      select: { id: true, isCorrect: true, explanation: true, feedbackImageUrl: true },
     });
     if (!opt) {
       const err = new Error('Opción inválida') as Error & { status: number };
@@ -469,6 +475,7 @@ export async function submitAnswer(
         saved: true,
         isCorrect: selectedOption.isCorrect,
         explanation,
+        feedbackImageUrl: selectedOption.feedbackImageUrl ?? undefined,
       },
     };
   }

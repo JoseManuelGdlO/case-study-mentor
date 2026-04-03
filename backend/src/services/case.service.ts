@@ -40,7 +40,15 @@ function serializeCase(row: {
     previousEnarmPresence: boolean;
     hint: string;
     orderIndex: number;
-    options: { id: string; label: string; text: string; imageUrl: string | null; isCorrect: boolean; explanation: string }[];
+    options: {
+      id: string;
+      label: string;
+      text: string;
+      imageUrl: string | null;
+      feedbackImageUrl: string | null;
+      isCorrect: boolean;
+      explanation: string;
+    }[];
   }[];
 }) {
   return {
@@ -82,6 +90,7 @@ function serializeCase(row: {
           label: o.label,
           text: o.text,
           imageUrl: o.imageUrl ?? undefined,
+          feedbackImageUrl: o.feedbackImageUrl ?? undefined,
           isCorrect: o.isCorrect,
           explanation: o.explanation,
         })),
@@ -207,6 +216,7 @@ export async function createCase(input: CreateCase, userId: string) {
                 label: o.label,
                 text: o.text,
                 imageUrl: o.imageUrl ?? null,
+                feedbackImageUrl: o.feedbackImageUrl ?? null,
                 isCorrect: o.isCorrect,
                 explanation: o.explanation,
               })),
@@ -294,6 +304,7 @@ export async function updateCase(id: string, input: UpdateCase, userId: string) 
                 label: o.label,
                 text: o.text,
                 imageUrl: o.imageUrl ?? null,
+                feedbackImageUrl: o.feedbackImageUrl ?? null,
                 isCorrect: o.isCorrect,
                 explanation: o.explanation,
               })),

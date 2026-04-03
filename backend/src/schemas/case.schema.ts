@@ -4,6 +4,7 @@ const optionSchema = z.object({
   label: z.string(),
   text: z.string(),
   imageUrl: z.string().optional().nullable(),
+  feedbackImageUrl: z.string().optional().nullable(),
   isCorrect: z.boolean(),
   explanation: z.string(),
 });

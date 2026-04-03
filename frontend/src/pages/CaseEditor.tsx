@@ -29,7 +29,14 @@ interface QuestionForm {
   text: string;
   imageUrl: string;
   feedbackImageUrl: string;
-  options: { label: string; text: string; imageUrl: string; isCorrect: boolean; explanation: string }[];
+  options: {
+    label: string;
+    text: string;
+    imageUrl: string;
+    feedbackImageUrl: string;
+    isCorrect: boolean;
+    explanation: string;
+  }[];
   summary: string;
   bibliography: string;
   difficultyLevel: DifficultyLevelForm;
@@ -45,10 +52,10 @@ const emptyQuestion = (): QuestionForm => ({
   imageUrl: '',
   feedbackImageUrl: '',
   options: [
-    { label: 'A', text: '', imageUrl: '', isCorrect: false, explanation: '' },
-    { label: 'B', text: '', imageUrl: '', isCorrect: false, explanation: '' },
-    { label: 'C', text: '', imageUrl: '', isCorrect: false, explanation: '' },
-    { label: 'D', text: '', imageUrl: '', isCorrect: false, explanation: '' },
+    { label: 'A', text: '', imageUrl: '', feedbackImageUrl: '', isCorrect: false, explanation: '' },
+    { label: 'B', text: '', imageUrl: '', feedbackImageUrl: '', isCorrect: false, explanation: '' },
+    { label: 'C', text: '', imageUrl: '', feedbackImageUrl: '', isCorrect: false, explanation: '' },
+    { label: 'D', text: '', imageUrl: '', feedbackImageUrl: '', isCorrect: false, explanation: '' },
   ],
   summary: '',
   bibliography: '',
@@ -99,6 +106,7 @@ function mapCaseToForm(c: ClinicalCase): {
               label: o.label,
               text: o.text,
               imageUrl: o.imageUrl ?? '',
+              feedbackImageUrl: o.feedbackImageUrl ?? '',
               isCorrect: Boolean(o.isCorrect),
               explanation: o.explanation ?? '',
             })),
@@ -281,6 +289,19 @@ const CaseEditor = () => {
     }
   };
 
+  const onOptionFeedbackImagePick = async (qi: number, oi: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const url = await uploadImageFile(file);
+      updateOption(qi, oi, 'feedbackImageUrl', url);
+      toast.success('Imagen de feedback de la opción subida');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al subir');
+    }
+  };
+
   const buildPayload = useCallback(() => {
     return {
       specialtyId,
@@ -313,6 +334,7 @@ const CaseEditor = () => {
           label: o.label,
           text: textFormat === 'html' ? o.text : o.text.trim(),
           imageUrl: o.imageUrl.trim() || null,
+          feedbackImageUrl: o.feedbackImageUrl.trim() || null,
           isCorrect: o.isCorrect,
           explanation: textFormat === 'html' ? o.explanation : o.explanation.trim(),
         })),
@@ -834,6 +856,45 @@ const CaseEditor = () => {
                       onChange={(e) => updateOption(qi, oi, 'explanation', e.target.value)}
                     />
                   )}
+                  <div className="space-y-2 pl-11">
+                    <Label className="text-xs text-muted-foreground">Imagen de feedback (opcional)</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Se muestra con la explicación en Modo Estudio tras contestar.
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      id={`option-feedback-img-${qi}-${oi}`}
+                      onChange={(e) => void onOptionFeedbackImagePick(qi, oi, e)}
+                    />
+                    {opt.feedbackImageUrl ? (
+                      <div className="space-y-2">
+                        <img
+                          src={getUploadUrl(opt.feedbackImageUrl)}
+                          alt={`Feedback opción ${opt.label}`}
+                          className="max-h-32 rounded-lg border object-contain"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateOption(qi, oi, 'feedbackImageUrl', '')}
+                        >
+                          Quitar imagen
+                        </Button>
+                      </div>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => document.getElementById(`option-feedback-img-${qi}-${oi}`)?.click()}
+                    >
+                      <ImagePlus className="w-4 h-4" /> Subir imagen de feedback
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

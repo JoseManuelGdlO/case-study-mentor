@@ -40,6 +40,8 @@ export interface AnswerOption {
   label: string; // A, B, C, D
   text: string;
   imageUrl?: string;
+  /** Imagen mostrada con la explicación tras revelar (modo estudio / revisión). */
+  feedbackImageUrl?: string;
   isCorrect?: boolean;
   explanation?: string;
 }
@@ -191,7 +193,14 @@ export interface StudyPlanTask {
       question: {
         id: string;
         text: string;
-        options: { id: string; label: string; text: string; isCorrect: boolean; explanation: string }[];
+        options: {
+          id: string;
+          label: string;
+          text: string;
+          isCorrect: boolean;
+          explanation: string;
+          feedbackImageUrl?: string | null;
+        }[];
       } | null;
     }[];
     questions?: {
@@ -202,7 +211,14 @@ export interface StudyPlanTask {
       specialty: string;
       area: string;
       textFormat?: CaseTextFormat;
-      options?: { id: string; label: string; text: string; isCorrect: boolean; explanation?: string | null }[];
+      options?: {
+        id: string;
+        label: string;
+        text: string;
+        isCorrect: boolean;
+        explanation?: string | null;
+        feedbackImageUrl?: string | null;
+      }[];
     }[];
   };
 }

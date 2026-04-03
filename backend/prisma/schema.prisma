@@ -236,13 +236,14 @@ model Question {
 }
 
 model AnswerOption {
-  id          String  @id @default(uuid())
-  questionId  String  @map("question_id")
-  label       String
-  text        String  @db.Text
-  imageUrl    String? @map("image_url")
-  isCorrect   Boolean @default(false) @map("is_correct")
-  explanation String  @db.Text
+  id                 String  @id @default(uuid())
+  questionId         String  @map("question_id")
+  label              String
+  text               String  @db.Text
+  imageUrl           String? @map("image_url")
+  feedbackImageUrl   String? @map("feedback_image_url")
+  isCorrect          Boolean @default(false) @map("is_correct")
+  explanation        String  @db.Text
 
   question    Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
   userAnswers UserAnswer[]

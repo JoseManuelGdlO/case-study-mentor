@@ -20,6 +20,7 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
             topic: string;
             language: string;
             text: string;
+            textFormat: "plain" | "html";
             imageUrl?: string | null;
             generatedByIa: boolean;
             labResults: unknown[];
@@ -50,14 +51,16 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
             globalOrder: number;
             text: string;
             imageUrl: string | undefined;
+            feedbackImageUrl: string | undefined;
             options: Omit<{
                 id: string;
                 label: string;
                 text: string;
                 imageUrl: string | undefined;
+                feedbackImageUrl: string | undefined;
                 isCorrect: boolean;
                 explanation: string;
-            }, "isCorrect" | "explanation">[];
+            }, "isCorrect" | "feedbackImageUrl" | "explanation">[];
             summary: string;
             bibliography: string;
             difficultyLevel: number;
@@ -65,6 +68,7 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
             previousEnarmPresence: boolean;
             hint: string;
             caseText: string;
+            caseTextFormat: import("@prisma/client").$Enums.CaseTextFormat;
             caseImageUrl: string | null;
             specialty: string;
             area: string;
@@ -123,6 +127,7 @@ export declare function getExamById(userId: string, examId: string): Promise<{
             topic: string;
             language: string;
             text: string;
+            textFormat: "plain" | "html";
             imageUrl?: string | null;
             generatedByIa: boolean;
             labResults: unknown[];
@@ -153,14 +158,16 @@ export declare function getExamById(userId: string, examId: string): Promise<{
             globalOrder: number;
             text: string;
             imageUrl: string | undefined;
+            feedbackImageUrl: string | undefined;
             options: Omit<{
                 id: string;
                 label: string;
                 text: string;
                 imageUrl: string | undefined;
+                feedbackImageUrl: string | undefined;
                 isCorrect: boolean;
                 explanation: string;
-            }, "isCorrect" | "explanation">[];
+            }, "isCorrect" | "feedbackImageUrl" | "explanation">[];
             summary: string;
             bibliography: string;
             difficultyLevel: number;
@@ -168,6 +175,7 @@ export declare function getExamById(userId: string, examId: string): Promise<{
             previousEnarmPresence: boolean;
             hint: string;
             caseText: string;
+            caseTextFormat: import("@prisma/client").$Enums.CaseTextFormat;
             caseImageUrl: string | null;
             specialty: string;
             area: string;
@@ -192,12 +200,14 @@ export declare function submitAnswer(userId: string, examId: string, body: {
         saved: boolean;
         isCorrect: boolean;
         explanation: string;
+        feedbackImageUrl: string | undefined;
     };
 } | {
     data: {
         saved: boolean;
         isCorrect?: undefined;
         explanation?: undefined;
+        feedbackImageUrl?: undefined;
     };
 }>;
 export declare function completeExam(userId: string, examId: string, timeSpentSeconds?: number): Promise<{
@@ -219,6 +229,7 @@ export declare function completeExam(userId: string, examId: string, timeSpentSe
             topic: string;
             language: string;
             text: string;
+            textFormat: "plain" | "html";
             imageUrl?: string | null;
             generatedByIa: boolean;
             labResults: unknown[];
@@ -249,14 +260,16 @@ export declare function completeExam(userId: string, examId: string, timeSpentSe
             globalOrder: number;
             text: string;
             imageUrl: string | undefined;
+            feedbackImageUrl: string | undefined;
             options: Omit<{
                 id: string;
                 label: string;
                 text: string;
                 imageUrl: string | undefined;
+                feedbackImageUrl: string | undefined;
                 isCorrect: boolean;
                 explanation: string;
-            }, "isCorrect" | "explanation">[];
+            }, "isCorrect" | "feedbackImageUrl" | "explanation">[];
             summary: string;
             bibliography: string;
             difficultyLevel: number;
@@ -264,6 +277,7 @@ export declare function completeExam(userId: string, examId: string, timeSpentSe
             previousEnarmPresence: boolean;
             hint: string;
             caseText: string;
+            caseTextFormat: import("@prisma/client").$Enums.CaseTextFormat;
             caseImageUrl: string | null;
             specialty: string;
             area: string;
@@ -298,6 +312,7 @@ export declare function getExamResults(userId: string, examId: string): Promise<
             topic: string;
             language: string;
             text: string;
+            textFormat: "plain" | "html";
             imageUrl?: string | null;
             generatedByIa: boolean;
             labResults: unknown[];
@@ -328,14 +343,16 @@ export declare function getExamResults(userId: string, examId: string): Promise<
             globalOrder: number;
             text: string;
             imageUrl: string | undefined;
+            feedbackImageUrl: string | undefined;
             options: Omit<{
                 id: string;
                 label: string;
                 text: string;
                 imageUrl: string | undefined;
+                feedbackImageUrl: string | undefined;
                 isCorrect: boolean;
                 explanation: string;
-            }, "isCorrect" | "explanation">[];
+            }, "isCorrect" | "feedbackImageUrl" | "explanation">[];
             summary: string;
             bibliography: string;
             difficultyLevel: number;
@@ -343,6 +360,7 @@ export declare function getExamResults(userId: string, examId: string): Promise<
             previousEnarmPresence: boolean;
             hint: string;
             caseText: string;
+            caseTextFormat: import("@prisma/client").$Enums.CaseTextFormat;
             caseImageUrl: string | null;
             specialty: string;
             area: string;
@@ -367,14 +385,16 @@ export declare function getNextQuestion(userId: string, examId: string): Promise
             globalOrder: number;
             text: string;
             imageUrl: string | undefined;
+            feedbackImageUrl: string | undefined;
             options: Omit<{
                 id: string;
                 label: string;
                 text: string;
                 imageUrl: string | undefined;
+                feedbackImageUrl: string | undefined;
                 isCorrect: boolean;
                 explanation: string;
-            }, "isCorrect" | "explanation">[];
+            }, "isCorrect" | "feedbackImageUrl" | "explanation">[];
             summary: string;
             bibliography: string;
             difficultyLevel: number;
@@ -382,6 +402,7 @@ export declare function getNextQuestion(userId: string, examId: string): Promise
             previousEnarmPresence: boolean;
             hint: string;
             caseText: string;
+            caseTextFormat: import("@prisma/client").$Enums.CaseTextFormat;
             caseImageUrl: string | null;
             specialty: string;
             area: string;

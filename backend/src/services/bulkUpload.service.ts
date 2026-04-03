@@ -39,6 +39,10 @@ const rowSchema = z.object({
   expB: z.string().min(1),
   expC: z.string().min(1),
   expD: z.string().min(1),
+  feedbackImgA: z.string().optional().nullable(),
+  feedbackImgB: z.string().optional().nullable(),
+  feedbackImgC: z.string().optional().nullable(),
+  feedbackImgD: z.string().optional().nullable(),
   Resumen: z.string().min(1),
   Bibliografía: z.string().min(1),
   difficultyLevel: z.union([z.literal(1), z.literal(2), z.literal(3)]),
@@ -85,6 +89,38 @@ function normalizeRow(raw: Record<string, unknown>): Record<string, unknown> {
     expB: pick(['ExplicaciónB', 'Explicación B']),
     expC: pick(['ExplicaciónC', 'Explicación C']),
     expD: pick(['ExplicaciónD', 'Explicación D']),
+    feedbackImgA:
+      pick([
+        'Imagen feedback A',
+        'Imagen Feedback A',
+        'Feedback imagen A',
+        'feedbackImagenA',
+        'Imagen de feedback A',
+      ]) ?? null,
+    feedbackImgB:
+      pick([
+        'Imagen feedback B',
+        'Imagen Feedback B',
+        'Feedback imagen B',
+        'feedbackImagenB',
+        'Imagen de feedback B',
+      ]) ?? null,
+    feedbackImgC:
+      pick([
+        'Imagen feedback C',
+        'Imagen Feedback C',
+        'Feedback imagen C',
+        'feedbackImagenC',
+        'Imagen de feedback C',
+      ]) ?? null,
+    feedbackImgD:
+      pick([
+        'Imagen feedback D',
+        'Imagen Feedback D',
+        'Feedback imagen D',
+        'feedbackImagenD',
+        'Imagen de feedback D',
+      ]) ?? null,
     Resumen: pick(['Resumen']),
     Bibliografía: pick(['Bibliografía', 'Bibliografia']),
     difficultyLevel: parseDifficultyLevel(
@@ -145,6 +181,7 @@ export async function processBulkUpload(buffer: Buffer, userId: string): Promise
     const labels = ['A', 'B', 'C', 'D'] as const;
     const texts = [row.optA, row.optB, row.optC, row.optD];
     const expl = [row.expA, row.expB, row.expC, row.expD];
+    const feedbackImgs = [row.feedbackImgA, row.feedbackImgB, row.feedbackImgC, row.feedbackImgD];
 
     try {
       await prisma.$transaction(async (tx) => {
@@ -203,6 +240,11 @@ export async function processBulkUpload(buffer: Buffer, userId: string): Promise
                       text: texts[idx],
                       isCorrect: label === row.correcta,
                       explanation: expl[idx],
+                      feedbackImageUrl: (() => {
+                        const raw = feedbackImgs[idx];
+                        if (raw == null || String(raw).trim() === '') return null;
+                        return String(raw).trim();
+                      })(),
                     })),
                   },
                 },
