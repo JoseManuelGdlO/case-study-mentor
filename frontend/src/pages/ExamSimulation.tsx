@@ -51,6 +51,8 @@ const ExamSimulation = () => {
     try {
       const json = await apiJson<{ data: Exam }>(`/api/exams/${examId}`);
       setExam(json.data);
+      const flatLen = json.data.flatQuestions?.length ?? 0;
+      setCurrentIndex(Math.min(json.data.currentQuestionIndex, Math.max(0, flatLen - 1)));
       const m: Record<string, string> = {};
       for (const a of json.data.answers) {
         if (a.selectedOptionId) m[a.questionId] = a.selectedOptionId;

@@ -46,11 +46,16 @@ const ExamStudy = () => {
   const [answeredQuestions, setAnsweredQuestions] = useState<Record<string, LocalAnswer>>({});
   const [hintOpen, setHintOpen] = useState(false);
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (options?: { preservePosition?: boolean }) => {
     if (!examId) return;
+    const preservePosition = options?.preservePosition ?? false;
     try {
       const json = await apiJson<{ data: Exam }>(`/api/exams/${examId}`);
       setExam(json.data);
+      if (!preservePosition) {
+        const flatLen = json.data.flatQuestions?.length ?? 0;
+        setCurrentIndex(Math.min(json.data.currentQuestionIndex, Math.max(0, flatLen - 1)));
+      }
       const next: Record<string, LocalAnswer> = {};
       for (const a of json.data.answers) {
         if (a.selectedOptionId) {
@@ -103,7 +108,7 @@ const ExamStudy = () => {
         [question.id]: { selectedAnswer: optionId, revealed: true },
       }));
       void json;
-      await reload();
+      await reload({ preservePosition: true });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Error al guardar');
     }
