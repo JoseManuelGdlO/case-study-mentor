@@ -233,4 +233,24 @@ export declare const backofficeUsersQuerySchema: z.ZodObject<{
     limit?: number | undefined;
     page?: number | undefined;
 }>;
+export declare const examReviewsQuerySchema: z.ZodObject<{
+    page: z.ZodOptional<z.ZodNumber>;
+    limit: z.ZodOptional<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    limit?: number | undefined;
+    page?: number | undefined;
+}, {
+    limit?: number | undefined;
+    page?: number | undefined;
+}>;
+export declare const examReviewSubmitSchema: z.ZodObject<{
+    rating: z.ZodNumber;
+    comment: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    rating: number;
+    comment?: string | undefined;
+}, {
+    rating: number;
+    comment?: string | undefined;
+}>;
 //# sourceMappingURL=backoffice.schema.d.ts.map

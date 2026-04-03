@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { requireAdmin, requireCaseEditor } from '../middleware/roles.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
-import { areaCreateSchema, backofficeUserCreateSchema, backofficeUsersQuerySchema, examDateCreateSchema, examDateUpdateSchema, flashcardCreateSchema, flashcardUpdateSchema, phraseCreateSchema, phraseUpdateSchema, planCreateSchema, planUpdateSchema, specialtyCreateSchema, specialtyUpdateSchema, userRoleUpdateSchema, backofficeUserUpdateSchema, } from '../schemas/backoffice.schema.js';
+import { areaCreateSchema, backofficeUserCreateSchema, backofficeUsersQuerySchema, examDateCreateSchema, examDateUpdateSchema, flashcardCreateSchema, flashcardUpdateSchema, phraseCreateSchema, phraseUpdateSchema, planCreateSchema, planUpdateSchema, specialtyCreateSchema, specialtyUpdateSchema, userRoleUpdateSchema, backofficeUserUpdateSchema, examReviewsQuerySchema, examReviewSubmitSchema, } from '../schemas/backoffice.schema.js';
 import { prisma } from '../config/database.js';
 import { PAID_TIERS, TIER_CHECKOUT } from '../config/plans.js';
 import { createUserByAdmin } from '../services/auth.service.js';
@@ -11,6 +11,7 @@ import { paginationMeta, paginationParams, totalPages } from '../utils/helpers.j
 import { cacheService } from '../services/cache.service.js';
 import { invalidateSpecialtyCache } from '../services/specialty.service.js';
 import { paramString } from '../utils/params.js';
+import { getMentorReviewExamDetail, listPendingMentorReviews, submitMentorReview, } from '../services/exam-review.service.js';
 export const backofficeRouter = Router();
 backofficeRouter.use(authenticate);
 /* --- Specialties (editores: listar y crear especialidades/áreas; solo admin: editar/eliminar) --- */
@@ -713,6 +714,36 @@ backofficeRouter.get('/stats', requireAdmin(), async (_req, res, next) => {
                 abandonRate: 0,
             },
         });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.get('/exam-reviews', requireCaseEditor(), validateQuery(examReviewsQuerySchema), async (req, res, next) => {
+    try {
+        const q = req.query;
+        const result = await listPendingMentorReviews(q.page, q.limit);
+        res.json({ data: result });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.get('/exam-reviews/:examId', requireCaseEditor(), async (req, res, next) => {
+    try {
+        const result = await getMentorReviewExamDetail(paramString(req.params.examId));
+        res.json(result);
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.patch('/exam-reviews/:examId', requireCaseEditor(), validateBody(examReviewSubmitSchema), async (req, res, next) => {
+    try {
+        if (!req.user)
+            throw new Error('No user');
+        const result = await submitMentorReview(paramString(req.params.examId), req.user.id, req.body);
+        res.json(result);
     }
     catch (e) {
         next(e);

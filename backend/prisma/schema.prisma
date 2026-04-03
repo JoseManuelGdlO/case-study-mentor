@@ -91,6 +91,7 @@ model Profile {
   subscriptionCancellationFeedbacks SubscriptionCancellationFeedback[]
   createdClinicalCases              ClinicalCase[] @relation("ClinicalCaseCreatedBy")
   updatedClinicalCases              ClinicalCase[] @relation("ClinicalCaseUpdatedBy")
+  mentorExamReviews                 Exam[]         @relation("MentorExamReviews")
 
   @@map("profiles")
 }
@@ -272,7 +273,14 @@ model Exam {
   timeSpentSeconds Int       @default(0) @map("time_spent_seconds")
   createdAt        DateTime  @default(now()) @map("created_at")
 
+  mentorReviewEligible   Boolean   @default(false) @map("mentor_review_eligible")
+  mentorReviewRating     Int?      @map("mentor_review_rating")
+  mentorReviewComment    String?   @db.Text @map("mentor_review_comment")
+  mentorReviewedAt       DateTime? @map("mentor_reviewed_at")
+  mentorReviewedById     String?   @map("mentor_reviewed_by_id")
+
   user      Profile         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mentorReviewedBy Profile? @relation("MentorExamReviews", fields: [mentorReviewedById], references: [id], onDelete: SetNull)
   examCases    ExamCase[]
   examQuestions ExamQuestion[]
   answers      UserAnswer[]

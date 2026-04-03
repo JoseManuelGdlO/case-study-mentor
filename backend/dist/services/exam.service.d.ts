@@ -82,6 +82,11 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
                 normalRange: string;
             }[];
         }[];
+        mentorReview: {
+            rating: number;
+            comment: string;
+            reviewedAt: string;
+        } | null;
     };
 }>;
 export declare function listExams(userId: string, page: number, limit: number): Promise<{
@@ -189,6 +194,11 @@ export declare function getExamById(userId: string, examId: string): Promise<{
                 normalRange: string;
             }[];
         }[];
+        mentorReview: {
+            rating: number;
+            comment: string;
+            reviewedAt: string;
+        } | null;
     };
 }>;
 export declare function submitAnswer(userId: string, examId: string, body: {
@@ -291,6 +301,11 @@ export declare function completeExam(userId: string, examId: string, timeSpentSe
                 normalRange: string;
             }[];
         }[];
+        mentorReview: {
+            rating: number;
+            comment: string;
+            reviewedAt: string;
+        } | null;
     };
 }>;
 export declare function getExamResults(userId: string, examId: string): Promise<{
@@ -374,6 +389,11 @@ export declare function getExamResults(userId: string, examId: string): Promise<
                 normalRange: string;
             }[];
         }[];
+        mentorReview: {
+            rating: number;
+            comment: string;
+            reviewedAt: string;
+        } | null;
     };
 }>;
 export declare function getNextQuestion(userId: string, examId: string): Promise<{

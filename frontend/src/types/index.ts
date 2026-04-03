@@ -153,6 +153,12 @@ export interface Exam {
   completedAt: string | null;
   timeSpentSeconds: number;
   flatQuestions?: ExamFlatQuestion[];
+  /** Presente cuando un revisor del equipo ya envió retroalimentación */
+  mentorReview?: {
+    rating: number;
+    comment: string;
+    reviewedAt: string;
+  } | null;
 }
 
 export interface UserStats {

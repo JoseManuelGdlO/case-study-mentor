@@ -3,7 +3,20 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Trophy, BarChart3, Home, RotateCcw, CheckCircle2, XCircle, Share2, MessageCircle, Facebook, Instagram } from 'lucide-react';
+import {
+  Trophy,
+  BarChart3,
+  Home,
+  RotateCcw,
+  CheckCircle2,
+  XCircle,
+  Share2,
+  MessageCircle,
+  Facebook,
+  Instagram,
+  Star,
+  ClipboardCheck,
+} from 'lucide-react';
 import type { Exam, StudyPlan, UserStats } from '@/types';
 import { RichOrPlainBlock } from '@/components/RichOrPlainBlock';
 import { apiJson } from '@/lib/api';
@@ -241,6 +254,37 @@ const Results = () => {
             )}
           </div>
         </Card>
+
+        {exam.mentorReview && (
+          <Card className="border-0 shadow-md border-l-4 border-l-secondary">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ClipboardCheck className="w-5 h-5 text-secondary" />
+                Retroalimentación del equipo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-1" aria-label={`Valoración ${exam.mentorReview.rating} de 5`}>
+                {Array.from({ length: 5 }, (_, i) => (
+                  <Star
+                    key={i}
+                    className={`w-6 h-6 ${i < exam.mentorReview.rating ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground/30'}`}
+                  />
+                ))}
+              </div>
+              {exam.mentorReview.comment ? (
+                <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{exam.mentorReview.comment}</p>
+              ) : null}
+              <p className="text-xs text-muted-foreground">
+                Revisado el{' '}
+                {new Date(exam.mentorReview.reviewedAt).toLocaleString('es-MX', {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                })}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {byCategory.length > 0 && (
           <Card className="border-0 shadow-md">

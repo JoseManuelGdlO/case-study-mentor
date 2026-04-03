@@ -82,3 +82,13 @@ export const backofficeUsersQuerySchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
 });
+
+export const examReviewsQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+});
+
+export const examReviewSubmitSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(8000).optional(),
+});

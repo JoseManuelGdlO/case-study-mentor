@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { shuffleInPlace } from '../utils/helpers.js';
@@ -422,6 +423,14 @@ export async function getExamById(userId: string, examId: string) {
       completedAt: exam.completedAt?.toISOString() ?? null,
       timeSpentSeconds: exam.timeSpentSeconds,
       flatQuestions,
+      mentorReview:
+        exam.mentorReviewedAt != null && exam.mentorReviewRating != null
+          ? {
+              rating: exam.mentorReviewRating,
+              comment: exam.mentorReviewComment ?? '',
+              reviewedAt: exam.mentorReviewedAt.toISOString(),
+            }
+          : null,
     },
   };
 }
@@ -537,6 +546,16 @@ export async function completeExam(userId: string, examId: string, timeSpentSeco
     throw err;
   }
 
+  if (exam.status === 'completed') {
+    if (timeSpentSeconds != null) {
+      await prisma.exam.update({
+        where: { id: examId },
+        data: { timeSpentSeconds },
+      });
+    }
+    return getExamById(userId, examId);
+  }
+
   const answered = exam.answers.filter((a) => a.selectedOptionId != null);
   const correct = answered.filter((a) => a.isCorrect === true).length;
   const total = answered.length;
@@ -557,12 +576,15 @@ export async function completeExam(userId: string, examId: string, timeSpentSeco
       })
     : null;
 
+  const mentorReviewEligible = randomInt(0, 5) === 0;
+
   await prisma.exam.update({
     where: { id: examId },
     data: {
       status: 'completed',
       completedAt: new Date(),
       score,
+      mentorReviewEligible,
       ...(prediction
         ? {
             predictionSpecialty: prediction.specialtyName,

@@ -45,6 +45,7 @@ const ExamStudy = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answeredQuestions, setAnsweredQuestions] = useState<Record<string, LocalAnswer>>({});
   const [hintOpen, setHintOpen] = useState(false);
+  const [finishing, setFinishing] = useState(false);
 
   const reload = useCallback(async (options?: { preservePosition?: boolean }) => {
     if (!examId) return;
@@ -118,9 +119,20 @@ const ExamStudy = () => {
     setCurrentIndex(index);
   };
 
-  const nextQuestion = () => {
+  const nextQuestion = async () => {
     if (currentIndex === total - 1) {
-      navigate(`/results/${examId}`);
+      if (!examId || finishing) return;
+      setFinishing(true);
+      try {
+        await apiJson(`/api/exams/${examId}/complete`, {
+          method: 'PUT',
+          body: JSON.stringify({}),
+        });
+        navigate(`/results/${examId}`);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Error al finalizar');
+        setFinishing(false);
+      }
       return;
     }
     setCurrentIndex((i) => i + 1);
@@ -331,8 +343,12 @@ const ExamStudy = () => {
               <Button variant="outline" disabled={currentIndex === 0} onClick={() => goTo(currentIndex - 1)} className="flex-1 h-12 gap-2">
                 <ChevronLeft className="w-4 h-4" /> Anterior
               </Button>
-              <Button onClick={nextQuestion} className="flex-1 gradient-primary border-0 font-semibold h-12 gap-2">
-                {currentIndex === total - 1 ? 'Ver resultados' : 'Siguiente pregunta'}
+              <Button
+                onClick={() => void nextQuestion()}
+                disabled={finishing}
+                className="flex-1 gradient-primary border-0 font-semibold h-12 gap-2"
+              >
+                {finishing ? 'Guardando…' : currentIndex === total - 1 ? 'Ver resultados' : 'Siguiente pregunta'}
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
