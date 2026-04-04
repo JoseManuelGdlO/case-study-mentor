@@ -89,8 +89,11 @@ export const adminPushPreferencesSchema = z
     .object({
     notifyNewUser: z.boolean().optional(),
     notifyNewSubscription: z.boolean().optional(),
+    emailNotifyNewUser: z.boolean().optional(),
+    emailNotifyNewSubscription: z.boolean().optional(),
 })
-    .refine((d) => d.notifyNewUser !== undefined || d.notifyNewSubscription !== undefined, {
-    message: 'Envía al menos una preferencia',
-});
+    .refine((d) => d.notifyNewUser !== undefined ||
+    d.notifyNewSubscription !== undefined ||
+    d.emailNotifyNewUser !== undefined ||
+    d.emailNotifyNewSubscription !== undefined, { message: 'Envía al menos una preferencia' });
 //# sourceMappingURL=backoffice.schema.js.map

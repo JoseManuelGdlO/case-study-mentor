@@ -288,17 +288,27 @@ export declare const adminPushUnsubscribeSchema: z.ZodObject<{
 export declare const adminPushPreferencesSchema: z.ZodEffects<z.ZodObject<{
     notifyNewUser: z.ZodOptional<z.ZodBoolean>;
     notifyNewSubscription: z.ZodOptional<z.ZodBoolean>;
+    emailNotifyNewUser: z.ZodOptional<z.ZodBoolean>;
+    emailNotifyNewSubscription: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     notifyNewUser?: boolean | undefined;
     notifyNewSubscription?: boolean | undefined;
+    emailNotifyNewUser?: boolean | undefined;
+    emailNotifyNewSubscription?: boolean | undefined;
 }, {
     notifyNewUser?: boolean | undefined;
     notifyNewSubscription?: boolean | undefined;
+    emailNotifyNewUser?: boolean | undefined;
+    emailNotifyNewSubscription?: boolean | undefined;
 }>, {
     notifyNewUser?: boolean | undefined;
     notifyNewSubscription?: boolean | undefined;
+    emailNotifyNewUser?: boolean | undefined;
+    emailNotifyNewSubscription?: boolean | undefined;
 }, {
     notifyNewUser?: boolean | undefined;
     notifyNewSubscription?: boolean | undefined;
+    emailNotifyNewUser?: boolean | undefined;
+    emailNotifyNewSubscription?: boolean | undefined;
 }>;
 //# sourceMappingURL=backoffice.schema.d.ts.map

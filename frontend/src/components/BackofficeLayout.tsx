@@ -29,7 +29,7 @@ const navItems: {
   { title: 'Especialidades', url: '/backoffice/specialties', icon: FolderTree },
   { title: 'Usuarios', url: '/backoffice/users', icon: Users, adminOnly: true },
   { title: 'Cancelaciones', url: '/backoffice/subscription-cancellation-feedback', icon: MessageSquareText, adminOnly: true },
-  { title: 'Notificaciones push', url: '/backoffice/admin-notifications', icon: Bell, adminOnly: true },
+  { title: 'Avisos (push / correo)', url: '/backoffice/admin-notifications', icon: Bell, adminOnly: true },
   { title: 'Precios', url: '/backoffice/pricing', icon: CreditCard, adminOnly: true },
   { title: 'Frases', url: '/backoffice/phrases', icon: Sparkles },
   { title: 'Flashcards', url: '/backoffice/flashcards', icon: BookOpen },

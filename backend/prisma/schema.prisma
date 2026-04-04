@@ -81,6 +81,8 @@ model Profile {
   freeTrialExamsUsed             Int               @default(0) @map("free_trial_exams_used")
   adminPushNotifyNewUser         Boolean           @default(true) @map("admin_push_notify_new_user")
   adminPushNotifyNewSubscription Boolean           @default(true) @map("admin_push_notify_new_subscription")
+  adminEmailNotifyNewUser         Boolean           @default(false) @map("admin_email_notify_new_user")
+  adminEmailNotifyNewSubscription Boolean           @default(false) @map("admin_email_notify_new_subscription")
   createdAt             DateTime          @default(now()) @map("created_at")
   updatedAt             DateTime          @updatedAt @map("updated_at")
 

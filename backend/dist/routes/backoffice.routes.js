@@ -13,6 +13,7 @@ import { invalidateSpecialtyCache } from '../services/specialty.service.js';
 import { paramString } from '../utils/params.js';
 import { getMentorReviewExamDetail, listPendingMentorReviews, submitMentorReview, } from '../services/exam-review.service.js';
 import { getVapidPublicKey, isAdminPushConfigured, subscribeAdminPush, unsubscribeAdminPush, updateAdminPushPreferences, getAdminPushPreferences, } from '../services/admin-push.service.js';
+import { isSmtpConfigured } from '../services/email.service.js';
 export const backofficeRouter = Router();
 backofficeRouter.use(authenticate);
 /* --- Specialties (editores: listar y crear especialidades/áreas; solo admin: editar/eliminar) --- */
@@ -785,9 +786,12 @@ backofficeRouter.get('/admin-push', requireAdmin(), async (req, res, next) => {
         res.json({
             data: {
                 pushConfigured: isAdminPushConfigured(),
+                smtpConfigured: isSmtpConfigured(),
                 vapidPublicKey: getVapidPublicKey(),
                 notifyNewUser: prefs?.adminPushNotifyNewUser ?? true,
                 notifyNewSubscription: prefs?.adminPushNotifyNewSubscription ?? true,
+                emailNotifyNewUser: prefs?.adminEmailNotifyNewUser ?? false,
+                emailNotifyNewSubscription: prefs?.adminEmailNotifyNewSubscription ?? false,
             },
         });
     }
@@ -828,6 +832,8 @@ backofficeRouter.patch('/admin-push/preferences', requireAdmin(), validateBody(a
         const updated = await updateAdminPushPreferences(req.user.id, {
             notifyNewUser: req.body.notifyNewUser,
             notifyNewSubscription: req.body.notifyNewSubscription,
+            emailNotifyNewUser: req.body.emailNotifyNewUser,
+            emailNotifyNewSubscription: req.body.emailNotifyNewSubscription,
         });
         res.json({ data: updated });
     }

@@ -3,15 +3,25 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Bell, BellOff, Loader2 } from 'lucide-react';
+import { Bell, BellOff, Loader2, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch, apiJson } from '@/lib/api';
 
 type AdminPushState = {
   pushConfigured: boolean;
+  smtpConfigured: boolean;
   vapidPublicKey: string | null;
   notifyNewUser: boolean;
   notifyNewSubscription: boolean;
+  emailNotifyNewUser: boolean;
+  emailNotifyNewSubscription: boolean;
+};
+
+type PrefPatch = {
+  notifyNewUser?: boolean;
+  notifyNewSubscription?: boolean;
+  emailNotifyNewUser?: boolean;
+  emailNotifyNewSubscription?: boolean;
 };
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -81,8 +91,19 @@ export default function AdminNotifications() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const json = await apiJson<{ data: AdminPushState }>('/api/backoffice/admin-push');
-      setState(json.data);
+      const json = await apiJson<{ data: Partial<AdminPushState> & Pick<AdminPushState, 'pushConfigured' | 'notifyNewUser' | 'notifyNewSubscription'> }>(
+        '/api/backoffice/admin-push'
+      );
+      const d = json.data;
+      setState({
+        pushConfigured: d.pushConfigured,
+        smtpConfigured: d.smtpConfigured ?? false,
+        vapidPublicKey: d.vapidPublicKey ?? null,
+        notifyNewUser: d.notifyNewUser ?? true,
+        notifyNewSubscription: d.notifyNewSubscription ?? true,
+        emailNotifyNewUser: d.emailNotifyNewUser ?? false,
+        emailNotifyNewSubscription: d.emailNotifyNewSubscription ?? false,
+      });
       if ('serviceWorker' in navigator) {
         try {
           const reg = await navigator.serviceWorker.getRegistration();
@@ -173,10 +194,15 @@ export default function AdminNotifications() {
     }
   };
 
-  const patchPref = async (patch: { notifyNewUser?: boolean; notifyNewSubscription?: boolean }) => {
+  const patchPref = async (patch: PrefPatch) => {
     try {
       const json = await apiJson<{
-        data: { adminPushNotifyNewUser: boolean; adminPushNotifyNewSubscription: boolean };
+        data: {
+          adminPushNotifyNewUser: boolean;
+          adminPushNotifyNewSubscription: boolean;
+          adminEmailNotifyNewUser: boolean;
+          adminEmailNotifyNewSubscription: boolean;
+        };
       }>('/api/backoffice/admin-push/preferences', {
         method: 'PATCH',
         body: JSON.stringify(patch),
@@ -187,6 +213,8 @@ export default function AdminNotifications() {
               ...s,
               notifyNewUser: json.data.adminPushNotifyNewUser,
               notifyNewSubscription: json.data.adminPushNotifyNewSubscription,
+              emailNotifyNewUser: json.data.adminEmailNotifyNewUser,
+              emailNotifyNewSubscription: json.data.adminEmailNotifyNewSubscription,
             }
           : s
       );
@@ -208,10 +236,10 @@ export default function AdminNotifications() {
   return (
     <div className="max-w-xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Notificaciones push</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Avisos para administradores</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Recibe avisos en el navegador cuando hay un nuevo registro público o un usuario pasa a plan de pago. Solo
-          administradores.
+          Push en el navegador y/o correo al email de tu cuenta cuando alguien se registra en público o pasa a un plan
+          de pago. Solo cuentas con rol administrador.
         </p>
       </div>
 
@@ -285,8 +313,10 @@ export default function AdminNotifications() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Qué quieres recibir</CardTitle>
-          <CardDescription>Puedes desactivar cada tipo por separado.</CardDescription>
+          <CardTitle className="text-lg">Push (navegador)</CardTitle>
+          <CardDescription>
+            Solo se envía a dispositivos donde hayas pulsado «Activar notificaciones». Puedes usar push y correo a la vez.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between gap-4">
@@ -314,9 +344,62 @@ export default function AdminNotifications() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Correo electrónico
+          </CardTitle>
+          <CardDescription>
+            Los avisos llegan al correo de tu cuenta de administrador. El servidor usa las variables{' '}
+            <code className="text-xs">SMTP_HOST</code>, <code className="text-xs">SMTP_FROM</code>, etc.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {!state.smtpConfigured && (
+            <p className="text-sm text-amber-700 dark:text-amber-400">
+              <span className="font-medium">SMTP no configurado.</span> Define al menos SMTP_HOST y SMTP_FROM en el API;
+              sin eso no se enviarán correos aunque actives los interruptores.
+            </p>
+          )}
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="pref-email-user">Nuevos registros por correo</Label>
+              <p className="text-xs text-muted-foreground">Mismo criterio que en push (registro público).</p>
+            </div>
+            <Switch
+              id="pref-email-user"
+              checked={state.emailNotifyNewUser}
+              onCheckedChange={(v) => {
+                if (v && !state.smtpConfigured) {
+                  toast.warning('Configura SMTP en el servidor para recibir correos.');
+                }
+                void patchPref({ emailNotifyNewUser: v });
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="pref-email-sub">Nuevas suscripciones por correo</Label>
+              <p className="text-xs text-muted-foreground">Cuando un usuario pasa de plan gratis a uno de pago.</p>
+            </div>
+            <Switch
+              id="pref-email-sub"
+              checked={state.emailNotifyNewSubscription}
+              onCheckedChange={(v) => {
+                if (v && !state.smtpConfigured) {
+                  toast.warning('Configura SMTP en el servidor para recibir correos.');
+                }
+                void patchPref({ emailNotifyNewSubscription: v });
+              }}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <p className="text-xs text-muted-foreground">
-        Producción: URL con HTTPS. Móvil Android: Chrome actualizado. iOS: PWA en pantalla de inicio; Safari/Chrome en
-        pestaña normal suelen no permitir push.
+        Push: HTTPS en producción; en iOS a menudo hace falta PWA en inicio. Correo: revisa carpeta spam y que el remitente
+        SMTP sea válido.
       </p>
     </div>
   );

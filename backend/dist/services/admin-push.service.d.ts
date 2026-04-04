@@ -12,13 +12,19 @@ export declare function unsubscribeAdminPush(userId: string, endpoint: string): 
 export declare function updateAdminPushPreferences(userId: string, prefs: {
     notifyNewUser?: boolean;
     notifyNewSubscription?: boolean;
+    emailNotifyNewUser?: boolean;
+    emailNotifyNewSubscription?: boolean;
 }): Promise<{
     adminPushNotifyNewUser: boolean;
     adminPushNotifyNewSubscription: boolean;
+    adminEmailNotifyNewUser: boolean;
+    adminEmailNotifyNewSubscription: boolean;
 }>;
 export declare function getAdminPushPreferences(userId: string): Promise<{
     adminPushNotifyNewUser: boolean;
     adminPushNotifyNewSubscription: boolean;
+    adminEmailNotifyNewUser: boolean;
+    adminEmailNotifyNewSubscription: boolean;
 } | null>;
 export declare function notifyAdminsNewPublicUser(input: {
     userId: string;

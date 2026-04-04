@@ -46,6 +46,7 @@ import {
   updateAdminPushPreferences,
   getAdminPushPreferences,
 } from '../services/admin-push.service.js';
+import { isSmtpConfigured } from '../services/email.service.js';
 
 export const backofficeRouter = Router();
 
@@ -985,9 +986,12 @@ backofficeRouter.get('/admin-push', requireAdmin(), async (req, res, next) => {
     res.json({
       data: {
         pushConfigured: isAdminPushConfigured(),
+        smtpConfigured: isSmtpConfigured(),
         vapidPublicKey: getVapidPublicKey(),
         notifyNewUser: prefs?.adminPushNotifyNewUser ?? true,
         notifyNewSubscription: prefs?.adminPushNotifyNewSubscription ?? true,
+        emailNotifyNewUser: prefs?.adminEmailNotifyNewUser ?? false,
+        emailNotifyNewSubscription: prefs?.adminEmailNotifyNewSubscription ?? false,
       },
     });
   } catch (e) {
@@ -1039,6 +1043,8 @@ backofficeRouter.patch(
       const updated = await updateAdminPushPreferences(req.user.id, {
         notifyNewUser: req.body.notifyNewUser,
         notifyNewSubscription: req.body.notifyNewSubscription,
+        emailNotifyNewUser: req.body.emailNotifyNewUser,
+        emailNotifyNewSubscription: req.body.emailNotifyNewSubscription,
       });
       res.json({ data: updated });
     } catch (e) {

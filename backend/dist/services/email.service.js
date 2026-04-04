@@ -148,4 +148,89 @@ function escapeHtml(s) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
 }
+const backofficeUsersUrl = () => `${getFrontendBaseUrl()}/backoffice/users`;
+/** Aviso a administradores: registro público nuevo. */
+export async function sendAdminNewRegistrationEmail(to, payload) {
+    const usersUrl = backofficeUsersUrl();
+    const subject = 'Nuevo registro — ENARMX';
+    const who = payload.displayName || payload.email;
+    const text = [
+        'Hay un nuevo registro público en la plataforma.',
+        '',
+        `Nombre: ${who}`,
+        `Correo: ${payload.email}`,
+        `ID de usuario: ${payload.userId}`,
+        '',
+        `Revisa usuarios en: ${usersUrl}`,
+    ].join('\n');
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #111;">
+  <p><strong>Nuevo registro</strong> en ENARMX</p>
+  <ul>
+    <li>Nombre: ${escapeHtml(who)}</li>
+    <li>Correo: ${escapeHtml(payload.email)}</li>
+    <li>ID: <code>${escapeHtml(payload.userId)}</code></li>
+  </ul>
+  <p><a href="${usersUrl}">Abrir usuarios en el backoffice</a></p>
+</body>
+</html>`.trim();
+    const transporter = createTransporter();
+    if (!transporter) {
+        console.warn('[email] SMTP no configurado — aviso admin registro omitido', { to });
+        return;
+    }
+    await transporter.sendMail({
+        from: smtpFrom(),
+        to,
+        subject,
+        text,
+        html,
+    });
+}
+/** Aviso a administradores: usuario pasó a plan de pago. */
+export async function sendAdminNewSubscriptionEmail(to, payload) {
+    const usersUrl = backofficeUsersUrl();
+    const subject = 'Nueva suscripción de pago — ENARMX';
+    const who = payload.displayName || payload.email;
+    const text = [
+        'Un usuario activó o renovó acceso de pago (transición desde plan gratuito).',
+        '',
+        `Nombre: ${who}`,
+        `Correo: ${payload.email}`,
+        `Plan: ${payload.planLabel}`,
+        `ID de usuario: ${payload.userId}`,
+        '',
+        `Revisa usuarios en: ${usersUrl}`,
+    ].join('\n');
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #111;">
+  <p><strong>Nueva suscripción de pago</strong> en ENARMX</p>
+  <ul>
+    <li>Nombre: ${escapeHtml(who)}</li>
+    <li>Correo: ${escapeHtml(payload.email)}</li>
+    <li>Plan: ${escapeHtml(payload.planLabel)}</li>
+    <li>ID: <code>${escapeHtml(payload.userId)}</code></li>
+  </ul>
+  <p><a href="${usersUrl}">Abrir usuarios en el backoffice</a></p>
+</body>
+</html>`.trim();
+    const transporter = createTransporter();
+    if (!transporter) {
+        console.warn('[email] SMTP no configurado — aviso admin suscripción omitido', { to });
+        return;
+    }
+    await transporter.sendMail({
+        from: smtpFrom(),
+        to,
+        subject,
+        text,
+        html,
+    });
+}
 //# sourceMappingURL=email.service.js.map
