@@ -19,6 +19,35 @@ function getStripe(): Stripe {
   return stripeSdk;
 }
 
+function isStripeDuplicatePromotionCodeError(err: unknown): boolean {
+  const e = err as { code?: string; message?: string };
+  if (e?.code === 'resource_already_exists') return true;
+  const m = (e?.message ?? '').toLowerCase();
+  return (
+    m.includes('already been taken') ||
+    m.includes('already exists') ||
+    m.includes('duplicate') ||
+    m.includes('already been used')
+  );
+}
+
+/** El SDK Node no expone `del` en promotion_codes; la API REST permite borrar y liberar el texto del código. */
+async function deleteStripePromotionCodeRemote(stripePromotionCodeId: string): Promise<void> {
+  const key = env.STRIPE_SECRET_KEY;
+  if (!key) return;
+  const res = await fetch(
+    `https://api.stripe.com/v1/promotion_codes/${encodeURIComponent(stripePromotionCodeId)}`,
+    {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${key}` },
+    }
+  );
+  if (!res.ok && res.status !== 404) {
+    const text = await res.text().catch(() => '');
+    throw serviceError(`Stripe no permitió eliminar el código promocional (${res.status}): ${text}`, 502);
+  }
+}
+
 export function normalizePromotionCode(raw: string): string {
   return raw.trim().toUpperCase();
 }
@@ -137,8 +166,74 @@ async function deactivateAndDropStripePromotion(
   stripeCouponId: string
 ): Promise<void> {
   const stripe = getStripe();
-  await stripe.promotionCodes.update(stripePromotionCodeId, { active: false }).catch(() => undefined);
+  try {
+    await deleteStripePromotionCodeRemote(stripePromotionCodeId);
+  } catch {
+    await stripe.promotionCodes.update(stripePromotionCodeId, { active: false }).catch(() => undefined);
+  }
   await stripe.coupons.del(stripeCouponId).catch(() => undefined);
+}
+
+/** Reemplazo en Stripe al editar cupón/código/vigencia; si el texto del código no cambia, puede hacer falta borrar el promotion code anterior en la API. */
+async function createStripeCouponAndPromotionCodeForReplace(
+  existing: { stripePromotionCodeId: string; stripeCouponId: string; code: string },
+  normalized: string,
+  percentOff: number,
+  maxRedemptions: number | null,
+  validUntil: Date | null,
+  nextIsActive: boolean
+): Promise<{ coupon: Stripe.Coupon; promotion: Stripe.PromotionCode }> {
+  const stripe = getStripe();
+  const coupon = await stripe.coupons.create({
+    percent_off: percentOff,
+    duration: 'once',
+    name: `sub_first_invoice_${normalized.slice(0, 20)}`,
+  });
+
+  const promoParams: Stripe.PromotionCodeCreateParams = {
+    coupon: coupon.id,
+    code: normalized,
+    active: nextIsActive,
+  };
+  if (maxRedemptions != null) {
+    promoParams.max_redemptions = maxRedemptions;
+  }
+  if (validUntil) {
+    promoParams.expires_at = Math.floor(validUntil.getTime() / 1000);
+  }
+
+  const tryCreate = () => stripe.promotionCodes.create(promoParams);
+
+  let promotion: Stripe.PromotionCode;
+  try {
+    promotion = await tryCreate();
+  } catch (err) {
+    const sameText = normalized === existing.code;
+    if (sameText && isStripeDuplicatePromotionCodeError(err)) {
+      try {
+        await deleteStripePromotionCodeRemote(existing.stripePromotionCodeId);
+      } catch {
+        await stripe.promotionCodes.update(existing.stripePromotionCodeId, { active: false }).catch(() => undefined);
+      }
+      await stripe.coupons.del(existing.stripeCouponId).catch(() => undefined);
+      try {
+        promotion = await tryCreate();
+      } catch (err2) {
+        await stripe.coupons.del(coupon.id).catch(() => undefined);
+        const msg = err2 instanceof Error ? err2.message : 'Error en Stripe';
+        throw serviceError(
+          `${msg} Revisa Stripe o crea un código nuevo en el backoffice.`,
+          502
+        );
+      }
+    } else {
+      await stripe.coupons.del(coupon.id).catch(() => undefined);
+      const msg = err instanceof Error ? err.message : 'Error creando código en Stripe';
+      throw serviceError(msg, 502);
+    }
+  }
+
+  return { coupon, promotion };
 }
 
 export async function createPromotionCode(input: PromotionCodeCreateInput): Promise<PromotionCodeListRow> {
@@ -224,7 +319,12 @@ export async function updatePromotionCode(id: string, input: PromotionCodeUpdate
   const oldPromoId = row.stripePromotionCodeId;
   const oldCouponId = row.stripeCouponId;
 
-  const { coupon, promotion } = await createStripeCouponAndPromotionCode(
+  const { coupon, promotion } = await createStripeCouponAndPromotionCodeForReplace(
+    {
+      stripePromotionCodeId: row.stripePromotionCodeId,
+      stripeCouponId: row.stripeCouponId,
+      code: row.code,
+    },
     normalized,
     input.percentOff,
     maxRedemptions,
