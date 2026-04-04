@@ -35,6 +35,7 @@ import FlashcardsManagement from "./pages/backoffice/FlashcardsManagement";
 import ExamDatesManagement from "./pages/backoffice/ExamDatesManagement";
 import BulkUploadCases from "./pages/backoffice/BulkUploadCases";
 import SubscriptionCancellationFeedback from "./pages/backoffice/SubscriptionCancellationFeedback";
+import AdminNotifications from "./pages/backoffice/AdminNotifications";
 import ExamReviews from "./pages/backoffice/ExamReviews";
 import ExamReviewDetail from "./pages/backoffice/ExamReviewDetail";
 import Onboarding from "./pages/Onboarding";
@@ -176,6 +177,14 @@ const App = () => (
                   element={
                     <AdminRoute>
                       <SubscriptionCancellationFeedback />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="admin-notifications"
+                  element={
+                    <AdminRoute>
+                      <AdminNotifications />
                     </AdminRoute>
                   }
                 />

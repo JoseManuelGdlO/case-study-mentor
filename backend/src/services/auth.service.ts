@@ -4,6 +4,7 @@ import { OAuth2Client } from 'google-auth-library';
 import type { AuthProvider, SubscriptionTier } from '@prisma/client';
 import type { Response } from 'express';
 import { prisma } from '../config/database.js';
+import { notifyAdminsNewPublicUser } from './admin-push.service.js';
 import { env } from '../config/env.js';
 import { redis } from '../config/redis.js';
 import { isSmtpConfigured, sendGoogleAccountNoticeEmail, sendTemporaryPasswordEmail } from './email.service.js';
@@ -150,6 +151,12 @@ export async function register(
   });
   await setAuthCookies(res, user.id, user.email);
   const u = await publicUser(user.id);
+  const displayName = `${user.firstName} ${user.lastName}`.trim();
+  void notifyAdminsNewPublicUser({
+    userId: user.id,
+    email: user.email,
+    displayName,
+  }).catch((err) => console.warn('[admin-push] nuevo registro', err));
   return { data: { user: u, isNewUser: true } };
 }
 
@@ -314,6 +321,12 @@ export async function googleAuth(idToken: string, res: Response) {
       },
     });
     isNewUser = true;
+    const displayName = `${user.firstName} ${user.lastName}`.trim();
+    void notifyAdminsNewPublicUser({
+      userId: user.id,
+      email: user.email,
+      displayName,
+    }).catch((err) => console.warn('[admin-push] nuevo registro Google', err));
   }
   await setAuthCookies(res, user.id, user.email);
   const u = await publicUser(user.id);

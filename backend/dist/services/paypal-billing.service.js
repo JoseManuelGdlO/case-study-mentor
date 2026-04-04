@@ -3,6 +3,7 @@ import { requirePublicFrontendBaseUrlForPayments } from '../config/env.js';
 import { isPaidTier } from '../config/plans.js';
 import { paypalFetch } from './paypal-api.js';
 import { getActiveSubscriptionPlanForTier } from './subscription-plan.service.js';
+import { notifyAdminsNewSubscription } from './admin-push.service.js';
 function serviceError(message, status) {
     const e = new Error(message);
     e.status = status;
@@ -192,6 +193,12 @@ export async function syncProfileFromPayPalSubscriptionResource(sub) {
     if (status !== 'ACTIVE' && status !== 'APPROVAL_PENDING') {
         /* SUSPENDED etc.: mantener acceso según negocio; aquí solo actualizamos si hay fechas */
     }
+    const beforePaidSync = await prisma.profile.findUnique({
+        where: { id: parsed.userId },
+        select: { subscriptionTier: true, email: true, firstName: true, lastName: true },
+    });
+    if (!beforePaidSync)
+        return;
     await prisma.profile.update({
         where: { id: parsed.userId },
         data: {
@@ -201,6 +208,14 @@ export async function syncProfileFromPayPalSubscriptionResource(sub) {
             subscriptionCancelAtPeriodEnd: false,
         },
     });
+    if (beforePaidSync.subscriptionTier === 'free') {
+        void notifyAdminsNewSubscription({
+            userId: parsed.userId,
+            email: beforePaidSync.email,
+            displayName: `${beforePaidSync.firstName} ${beforePaidSync.lastName}`.trim(),
+            tier: parsed.tier,
+        }).catch((err) => console.warn('[admin-push] nueva suscripción (PayPal)', err));
+    }
 }
 async function assertNoConflictingSubscription(userId) {
     const p = await prisma.profile.findUnique({

@@ -79,10 +79,13 @@ model Profile {
   paypalSubscriptionId           String?           @unique @map("paypal_subscription_id")
   subscriptionCancelAtPeriodEnd  Boolean           @default(false) @map("subscription_cancel_at_period_end")
   freeTrialExamsUsed             Int               @default(0) @map("free_trial_exams_used")
+  adminPushNotifyNewUser         Boolean           @default(true) @map("admin_push_notify_new_user")
+  adminPushNotifyNewSubscription Boolean           @default(true) @map("admin_push_notify_new_subscription")
   createdAt             DateTime          @default(now()) @map("created_at")
   updatedAt             DateTime          @updatedAt @map("updated_at")
 
   roles    UserRole[]
+  adminWebPushSubscriptions AdminWebPushSubscription[]
   exams    Exam[]
   answers  UserAnswer[]
   studyPlans StudyPlan[]
@@ -144,6 +147,21 @@ model UserRole {
 
   @@unique([userId, role])
   @@map("user_roles")
+}
+
+model AdminWebPushSubscription {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  endpoint     String   @db.Text
+  endpointHash String   @unique @map("endpoint_hash") @db.VarChar(64)
+  p256dh       String   @map("p256dh") @db.VarChar(512)
+  auth         String   @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("admin_web_push_subscriptions")
 }
 
 model Specialty {

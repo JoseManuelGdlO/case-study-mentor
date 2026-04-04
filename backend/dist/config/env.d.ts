@@ -38,6 +38,11 @@ declare const envSchema: z.ZodObject<{
     ADAPTIVE_ROLLOUT_PERCENT: z.ZodDefault<z.ZodNumber>;
     /** Rollout gradual para planificador diario (0-100). */
     STUDY_PLAN_ROLLOUT_PERCENT: z.ZodDefault<z.ZodNumber>;
+    /** Web Push (VAPID) para notificaciones a administradores. Las tres deben definirse para activar el envío. */
+    VAPID_PUBLIC_KEY: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    VAPID_PRIVATE_KEY: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    /** Ej.: mailto:soporte@tudominio.com */
+    VAPID_SUBJECT: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
 }, "strip", z.ZodTypeAny, {
     NODE_ENV: "development" | "production" | "test";
     PORT: number;
@@ -64,6 +69,9 @@ declare const envSchema: z.ZodObject<{
     SMTP_PASS?: string | undefined;
     SMTP_FROM?: string | undefined;
     SMTP_SECURE?: boolean | undefined;
+    VAPID_PUBLIC_KEY?: string | undefined;
+    VAPID_PRIVATE_KEY?: string | undefined;
+    VAPID_SUBJECT?: string | undefined;
 }, {
     DATABASE_URL: string;
     REDIS_URL: string;
@@ -90,6 +98,9 @@ declare const envSchema: z.ZodObject<{
     RATE_LIMIT_ENABLED?: unknown;
     ADAPTIVE_ROLLOUT_PERCENT?: number | undefined;
     STUDY_PLAN_ROLLOUT_PERCENT?: number | undefined;
+    VAPID_PUBLIC_KEY?: unknown;
+    VAPID_PRIVATE_KEY?: unknown;
+    VAPID_SUBJECT?: unknown;
 }>;
 export type Env = z.infer<typeof envSchema>;
 export declare const env: {
@@ -118,6 +129,9 @@ export declare const env: {
     SMTP_PASS?: string | undefined;
     SMTP_FROM?: string | undefined;
     SMTP_SECURE?: boolean | undefined;
+    VAPID_PUBLIC_KEY?: string | undefined;
+    VAPID_PRIVATE_KEY?: string | undefined;
+    VAPID_SUBJECT?: string | undefined;
 };
 /**
  * URL pública del frontend (sin barra final): enlaces en correos, redirects de pago, etc.

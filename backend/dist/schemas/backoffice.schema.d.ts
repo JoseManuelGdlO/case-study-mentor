@@ -253,4 +253,52 @@ export declare const examReviewSubmitSchema: z.ZodObject<{
     rating: number;
     comment?: string | undefined;
 }>;
+export declare const adminPushSubscribeSchema: z.ZodObject<{
+    endpoint: z.ZodString;
+    keys: z.ZodObject<{
+        p256dh: z.ZodString;
+        auth: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        p256dh: string;
+        auth: string;
+    }, {
+        p256dh: string;
+        auth: string;
+    }>;
+}, "strip", z.ZodTypeAny, {
+    keys: {
+        p256dh: string;
+        auth: string;
+    };
+    endpoint: string;
+}, {
+    keys: {
+        p256dh: string;
+        auth: string;
+    };
+    endpoint: string;
+}>;
+export declare const adminPushUnsubscribeSchema: z.ZodObject<{
+    endpoint: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    endpoint: string;
+}, {
+    endpoint: string;
+}>;
+export declare const adminPushPreferencesSchema: z.ZodEffects<z.ZodObject<{
+    notifyNewUser: z.ZodOptional<z.ZodBoolean>;
+    notifyNewSubscription: z.ZodOptional<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    notifyNewUser?: boolean | undefined;
+    notifyNewSubscription?: boolean | undefined;
+}, {
+    notifyNewUser?: boolean | undefined;
+    notifyNewSubscription?: boolean | undefined;
+}>, {
+    notifyNewUser?: boolean | undefined;
+    notifyNewSubscription?: boolean | undefined;
+}, {
+    notifyNewUser?: boolean | undefined;
+    notifyNewSubscription?: boolean | undefined;
+}>;
 //# sourceMappingURL=backoffice.schema.d.ts.map

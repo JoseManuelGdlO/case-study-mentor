@@ -61,6 +61,11 @@ const envSchema = z.object({
   ADAPTIVE_ROLLOUT_PERCENT: z.coerce.number().min(0).max(100).default(100),
   /** Rollout gradual para planificador diario (0-100). */
   STUDY_PLAN_ROLLOUT_PERCENT: z.coerce.number().min(0).max(100).default(100),
+  /** Web Push (VAPID) para notificaciones a administradores. Las tres deben definirse para activar el envío. */
+  VAPID_PUBLIC_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  VAPID_PRIVATE_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  /** Ej.: mailto:soporte@tudominio.com */
+  VAPID_SUBJECT: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
 });
 
 export type Env = z.infer<typeof envSchema>;

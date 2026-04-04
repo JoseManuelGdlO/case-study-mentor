@@ -17,6 +17,7 @@ import {
   getPayPalSubscription,
   syncProfileFromPayPalSubscriptionResource,
 } from './paypal-billing.service.js';
+import { notifyAdminsNewSubscription } from './admin-push.service.js';
 import { paypalAccessToken, paypalApiBase, paypalFetch } from './paypal-api.js';
 
 function serviceError(message: string, status: number): Error & { status: number } {
@@ -70,6 +71,10 @@ export async function applyCompletedPayment(input: {
     throw serviceError('Moneda no soportada', 400);
   }
 
+  let notifyNewSubscription = false;
+  let subscriberEmail = '';
+  let subscriberDisplayName = '';
+
   await prisma.$transaction(async (tx) => {
     const existing = await tx.payment.findUnique({
       where: {
@@ -111,6 +116,11 @@ export async function applyCompletedPayment(input: {
     const profile = await tx.profile.findUnique({ where: { id: input.userId } });
     if (!profile) throw serviceError('Usuario no encontrado', 404);
 
+    const wasFree = profile.subscriptionTier === 'free';
+    notifyNewSubscription = wasFree;
+    subscriberEmail = profile.email;
+    subscriberDisplayName = `${profile.firstName} ${profile.lastName}`.trim();
+
     const now = new Date();
     const base =
       profile.subscriptionExpiresAt && profile.subscriptionExpiresAt > now
@@ -127,6 +137,15 @@ export async function applyCompletedPayment(input: {
       },
     });
   });
+
+  if (notifyNewSubscription) {
+    void notifyAdminsNewSubscription({
+      userId: input.userId,
+      email: subscriberEmail,
+      displayName: subscriberDisplayName,
+      tier: input.tier as SubscriptionTier,
+    }).catch((err) => console.warn('[admin-push] nueva suscripción (pago)', err));
+  }
 }
 
 export async function createStripeCheckoutSession(userId: string, tier: PaidTier): Promise<{ url: string }> {
@@ -238,6 +257,12 @@ async function syncStripeSubscriptionToProfile(sub: Stripe.Subscription): Promis
     return;
   }
 
+  const before = await prisma.profile.findUnique({
+    where: { id: userId },
+    select: { subscriptionTier: true, email: true, firstName: true, lastName: true },
+  });
+  if (!before) return;
+
   const customerId =
     typeof sub.customer === 'string' ? sub.customer : (sub.customer as Stripe.Customer | null)?.id ?? null;
   const periodEnd = sub.current_period_end;
@@ -255,6 +280,15 @@ async function syncStripeSubscriptionToProfile(sub: Stripe.Subscription): Promis
       subscriptionCancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
     },
   });
+
+  if (before.subscriptionTier === 'free') {
+    void notifyAdminsNewSubscription({
+      userId,
+      email: before.email,
+      displayName: `${before.firstName} ${before.lastName}`.trim(),
+      tier: tier as SubscriptionTier,
+    }).catch((err) => console.warn('[admin-push] nueva suscripción (Stripe)', err));
+  }
 }
 
 async function handleStripeCheckoutSessionSubscriptionCompleted(session: Stripe.Checkout.Session): Promise<void> {

@@ -92,3 +92,24 @@ export const examReviewSubmitSchema = z.object({
   rating: z.number().int().min(1).max(5),
   comment: z.string().max(8000).optional(),
 });
+
+export const adminPushSubscribeSchema = z.object({
+  endpoint: z.string().min(1),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+});
+
+export const adminPushUnsubscribeSchema = z.object({
+  endpoint: z.string().min(1),
+});
+
+export const adminPushPreferencesSchema = z
+  .object({
+    notifyNewUser: z.boolean().optional(),
+    notifyNewSubscription: z.boolean().optional(),
+  })
+  .refine((d) => d.notifyNewUser !== undefined || d.notifyNewSubscription !== undefined, {
+    message: 'Envía al menos una preferencia',
+  });

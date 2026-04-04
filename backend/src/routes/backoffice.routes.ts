@@ -21,6 +21,9 @@ import {
   backofficeUserUpdateSchema,
   examReviewsQuerySchema,
   examReviewSubmitSchema,
+  adminPushSubscribeSchema,
+  adminPushUnsubscribeSchema,
+  adminPushPreferencesSchema,
 } from '../schemas/backoffice.schema.js';
 import { prisma } from '../config/database.js';
 import { PAID_TIERS, TIER_CHECKOUT, type PaidTier } from '../config/plans.js';
@@ -35,6 +38,14 @@ import {
   listPendingMentorReviews,
   submitMentorReview,
 } from '../services/exam-review.service.js';
+import {
+  getVapidPublicKey,
+  isAdminPushConfigured,
+  subscribeAdminPush,
+  unsubscribeAdminPush,
+  updateAdminPushPreferences,
+  getAdminPushPreferences,
+} from '../services/admin-push.service.js';
 
 export const backofficeRouter = Router();
 
@@ -961,6 +972,75 @@ backofficeRouter.get(
           })),
         },
       });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+backofficeRouter.get('/admin-push', requireAdmin(), async (req, res, next) => {
+  try {
+    if (!req.user) throw new Error('No user');
+    const prefs = await getAdminPushPreferences(req.user.id);
+    res.json({
+      data: {
+        pushConfigured: isAdminPushConfigured(),
+        vapidPublicKey: getVapidPublicKey(),
+        notifyNewUser: prefs?.adminPushNotifyNewUser ?? true,
+        notifyNewSubscription: prefs?.adminPushNotifyNewSubscription ?? true,
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+backofficeRouter.post(
+  '/admin-push/subscription',
+  requireAdmin(),
+  validateBody(adminPushSubscribeSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) throw new Error('No user');
+      if (!isAdminPushConfigured()) {
+        res.status(503).json({ error: 'Web Push no está configurado en el servidor (VAPID)' });
+        return;
+      }
+      await subscribeAdminPush(req.user.id, req.body);
+      res.status(201).json({ data: { ok: true } });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+backofficeRouter.delete(
+  '/admin-push/subscription',
+  requireAdmin(),
+  validateBody(adminPushUnsubscribeSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) throw new Error('No user');
+      await unsubscribeAdminPush(req.user.id, req.body.endpoint);
+      res.json({ data: { ok: true } });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+backofficeRouter.patch(
+  '/admin-push/preferences',
+  requireAdmin(),
+  validateBody(adminPushPreferencesSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) throw new Error('No user');
+      const updated = await updateAdminPushPreferences(req.user.id, {
+        notifyNewUser: req.body.notifyNewUser,
+        notifyNewSubscription: req.body.notifyNewSubscription,
+      });
+      res.json({ data: updated });
     } catch (e) {
       next(e);
     }
