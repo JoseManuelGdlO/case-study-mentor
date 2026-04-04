@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiJson } from '@/lib/api';
 
@@ -32,17 +32,54 @@ function formatDate(iso: string | null): string {
   }
 }
 
+/** Valor para input datetime-local en hora local. */
+function toDatetimeLocalValue(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 const PromotionCodesManagement = () => {
   const [rows, setRows] = useState<PromoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
+  const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [newCode, setNewCode] = useState('');
   const [newPercent, setNewPercent] = useState('10');
   const [newMax, setNewMax] = useState('');
   const [newValidFrom, setNewValidFrom] = useState('');
   const [newValidUntil, setNewValidUntil] = useState('');
+  const [formIsActive, setFormIsActive] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const openCreateDialog = () => {
+    setDialogMode('create');
+    setEditId(null);
+    setNewCode('');
+    setNewPercent('10');
+    setNewMax('');
+    setNewValidFrom('');
+    setNewValidUntil('');
+    setFormIsActive(true);
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (r: PromoRow) => {
+    setDialogMode('edit');
+    setEditId(r.id);
+    setNewCode(r.code);
+    setNewPercent(String(r.percentOff));
+    setNewMax(r.maxRedemptions != null ? String(r.maxRedemptions) : '');
+    setNewValidFrom(toDatetimeLocalValue(r.validFrom));
+    setNewValidUntil(toDatetimeLocalValue(r.validUntil));
+    setFormIsActive(r.isActive);
+    setDialogOpen(true);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,49 +97,72 @@ const PromotionCodesManagement = () => {
     void load();
   }, [load]);
 
-  const createCode = async () => {
+  const buildPayload = () => {
     const percentOff = Math.floor(Number(newPercent));
     if (!newCode.trim()) {
       toast.error('Ingresa un código');
-      return;
+      return null;
     }
     if (!Number.isFinite(percentOff) || percentOff < 1 || percentOff > 100) {
       toast.error('El descuento debe ser entre 1 y 100%');
-      return;
+      return null;
     }
     let maxRedemptions: number | null = null;
     if (newMax.trim()) {
       const m = Math.floor(Number(newMax));
       if (!Number.isFinite(m) || m < 1) {
         toast.error('Límite de usos inválido');
-        return;
+        return null;
       }
       maxRedemptions = m;
     }
+    return {
+      code: newCode.trim(),
+      percentOff,
+      maxRedemptions,
+      validFrom: newValidFrom ? new Date(newValidFrom).toISOString() : null,
+      validUntil: newValidUntil ? new Date(newValidUntil).toISOString() : null,
+    };
+  };
+
+  const saveDialog = async () => {
+    const payload = buildPayload();
+    if (!payload) return;
     setSaving(true);
     try {
-      await apiJson('/api/backoffice/promotion-codes', {
-        method: 'POST',
-        body: JSON.stringify({
-          code: newCode.trim(),
-          percentOff,
-          maxRedemptions,
-          validFrom: newValidFrom ? new Date(newValidFrom).toISOString() : null,
-          validUntil: newValidUntil ? new Date(newValidUntil).toISOString() : null,
-        }),
-      });
-      toast.success('Código creado en Stripe');
+      if (dialogMode === 'create') {
+        await apiJson('/api/backoffice/promotion-codes', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        toast.success('Código creado en Stripe');
+      } else if (editId) {
+        await apiJson(`/api/backoffice/promotion-codes/${editId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ ...payload, isActive: formIsActive }),
+        });
+        toast.success('Código actualizado');
+      }
       setDialogOpen(false);
-      setNewCode('');
-      setNewPercent('10');
-      setNewMax('');
-      setNewValidFrom('');
-      setNewValidUntil('');
       await load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Error al crear');
+      toast.error(e instanceof Error ? e.message : dialogMode === 'create' ? 'Error al crear' : 'Error al guardar');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deleteCode = async (id: string, code: string) => {
+    if (!confirm(`¿Eliminar el código "${code}"? Se desactivará en Stripe y se borrará del listado.`)) return;
+    setDeletingId(id);
+    try {
+      await apiJson(`/api/backoffice/promotion-codes/${id}`, { method: 'DELETE' });
+      toast.success('Código eliminado');
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al eliminar');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -131,15 +191,23 @@ const PromotionCodesManagement = () => {
             Descuento en la primera factura de la suscripción Stripe (renovaciones al precio completo).
           </p>
         </div>
-        <Button className="gradient-primary border-0 gap-2" onClick={() => setDialogOpen(true)}>
+        <Button className="gradient-primary border-0 gap-2" onClick={openCreateDialog}>
           <Plus className="w-4 h-4" /> Nuevo código
         </Button>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) setEditId(null);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Nuevo código promocional</DialogTitle>
+            <DialogTitle>
+              {dialogMode === 'create' ? 'Nuevo código promocional' : 'Editar código promocional'}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
@@ -174,13 +242,34 @@ const PromotionCodesManagement = () => {
               <Label>Válido hasta (opcional)</Label>
               <Input type="datetime-local" value={newValidUntil} onChange={(e) => setNewValidUntil(e.target.value)} />
             </div>
+            {dialogMode === 'edit' && (
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <Label>Activo</Label>
+                  <p className="text-xs text-muted-foreground">Sincronizado con Stripe</p>
+                </div>
+                <Switch checked={formIsActive} onCheckedChange={setFormIsActive} disabled={saving} />
+              </div>
+            )}
+            {dialogMode === 'edit' && (
+              <p className="text-xs text-muted-foreground">
+                Si cambias el texto del código, el porcentaje, el límite de usos o la vigencia final, se generan nuevos
+                objetos en Stripe y se desactivan los anteriores.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
               Cancelar
             </Button>
-            <Button className="gradient-primary border-0" onClick={() => void createCode()} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crear en Stripe'}
+            <Button className="gradient-primary border-0" onClick={() => void saveDialog()} disabled={saving}>
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : dialogMode === 'create' ? (
+                'Crear en Stripe'
+              ) : (
+                'Guardar'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -206,6 +295,7 @@ const PromotionCodesManagement = () => {
                     <TableHead>Usos</TableHead>
                     <TableHead>Vigencia</TableHead>
                     <TableHead>Activo</TableHead>
+                    <TableHead className="w-[140px] text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -236,6 +326,35 @@ const PromotionCodesManagement = () => {
                             onCheckedChange={(v) => void setActive(r.id, v)}
                           />
                           {!r.isActive && <Badge variant="secondary">Off</Badge>}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            title="Editar"
+                            onClick={() => openEditDialog(r)}
+                            disabled={!!deletingId}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
+                            title="Eliminar"
+                            disabled={deletingId === r.id}
+                            onClick={() => void deleteCode(r.id, r.code)}
+                          >
+                            {deletingId === r.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

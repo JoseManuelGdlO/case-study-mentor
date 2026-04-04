@@ -17,6 +17,7 @@ import {
   planUpdateSchema,
   promotionCodeCreateSchema,
   promotionCodePatchSchema,
+  promotionCodePutSchema,
   specialtyCreateSchema,
   specialtyUpdateSchema,
   userRoleUpdateSchema,
@@ -51,8 +52,10 @@ import {
 import { isSmtpConfigured } from '../services/email.service.js';
 import {
   createPromotionCode,
+  deletePromotionCode,
   listPromotionCodes,
   setPromotionCodeActive,
+  updatePromotionCode,
 } from '../services/promotion-code.service.js';
 
 export const backofficeRouter = Router();
@@ -544,6 +547,37 @@ backofficeRouter.patch(
     }
   }
 );
+
+backofficeRouter.put(
+  '/promotion-codes/:id',
+  requireAdmin(),
+  validateBody(promotionCodePutSchema),
+  async (req, res, next) => {
+    try {
+      const body = req.body as z.infer<typeof promotionCodePutSchema>;
+      const row = await updatePromotionCode(paramString(req.params.id), {
+        code: body.code,
+        percentOff: body.percentOff,
+        maxRedemptions: body.maxRedemptions ?? null,
+        validFrom: body.validFrom ? new Date(body.validFrom) : null,
+        validUntil: body.validUntil ? new Date(body.validUntil) : null,
+        isActive: body.isActive,
+      });
+      res.json({ data: row });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+backofficeRouter.delete('/promotion-codes/:id', requireAdmin(), async (req, res, next) => {
+  try {
+    await deletePromotionCode(paramString(req.params.id));
+    res.json({ data: { ok: true } });
+  } catch (e) {
+    next(e);
+  }
+});
 
 /* --- Users --- */
 backofficeRouter.post(

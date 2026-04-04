@@ -56,7 +56,12 @@ function assertCodeShape(code: string): void {
   }
 }
 
-export async function createPromotionCode(input: PromotionCodeCreateInput): Promise<PromotionCodeListRow> {
+function validatePromotionInput(input: PromotionCodeCreateInput): {
+  normalized: string;
+  maxRedemptions: number | null;
+  validFrom: Date | null;
+  validUntil: Date | null;
+} {
   assertCodeShape(input.code);
   const normalized = normalizePromotionCode(input.code);
   if (input.percentOff < 1 || input.percentOff > 100 || !Number.isInteger(input.percentOff)) {
@@ -68,16 +73,38 @@ export async function createPromotionCode(input: PromotionCodeCreateInput): Prom
     }
   }
   const now = new Date();
-  if (input.validFrom && input.validUntil && input.validUntil < input.validFrom) {
+  const validFrom = input.validFrom ?? null;
+  const validUntil = input.validUntil ?? null;
+  if (validFrom && validUntil && validUntil < validFrom) {
     throw serviceError('La vigencia final debe ser posterior al inicio', 400);
   }
-  if (input.validUntil && input.validUntil < now) {
+  if (validUntil && validUntil < now) {
     throw serviceError('La vigencia final ya pasó', 400);
   }
+  return {
+    normalized,
+    maxRedemptions: input.maxRedemptions ?? null,
+    validFrom,
+    validUntil,
+  };
+}
 
+function sameUtcInstant(a: Date | null, b: Date | null): boolean {
+  if (a == null && b == null) return true;
+  if (a == null || b == null) return false;
+  return a.getTime() === b.getTime();
+}
+
+async function createStripeCouponAndPromotionCode(
+  normalized: string,
+  percentOff: number,
+  maxRedemptions: number | null,
+  validUntil: Date | null,
+  promoActive: boolean
+): Promise<{ coupon: Stripe.Coupon; promotion: Stripe.PromotionCode }> {
   const stripe = getStripe();
   const coupon = await stripe.coupons.create({
-    percent_off: input.percentOff,
+    percent_off: percentOff,
     duration: 'once',
     name: `sub_first_invoice_${normalized.slice(0, 20)}`,
   });
@@ -85,13 +112,13 @@ export async function createPromotionCode(input: PromotionCodeCreateInput): Prom
   const promoParams: Stripe.PromotionCodeCreateParams = {
     coupon: coupon.id,
     code: normalized,
-    active: true,
+    active: promoActive,
   };
-  if (input.maxRedemptions != null) {
-    promoParams.max_redemptions = input.maxRedemptions;
+  if (maxRedemptions != null) {
+    promoParams.max_redemptions = maxRedemptions;
   }
-  if (input.validUntil) {
-    promoParams.expires_at = Math.floor(input.validUntil.getTime() / 1000);
+  if (validUntil) {
+    promoParams.expires_at = Math.floor(validUntil.getTime() / 1000);
   }
 
   let promotion: Stripe.PromotionCode;
@@ -102,15 +129,36 @@ export async function createPromotionCode(input: PromotionCodeCreateInput): Prom
     const msg = err instanceof Error ? err.message : 'Error creando código en Stripe';
     throw serviceError(msg, 502);
   }
+  return { coupon, promotion };
+}
+
+async function deactivateAndDropStripePromotion(
+  stripePromotionCodeId: string,
+  stripeCouponId: string
+): Promise<void> {
+  const stripe = getStripe();
+  await stripe.promotionCodes.update(stripePromotionCodeId, { active: false }).catch(() => undefined);
+  await stripe.coupons.del(stripeCouponId).catch(() => undefined);
+}
+
+export async function createPromotionCode(input: PromotionCodeCreateInput): Promise<PromotionCodeListRow> {
+  const { normalized, maxRedemptions, validFrom, validUntil } = validatePromotionInput(input);
+  const { coupon, promotion } = await createStripeCouponAndPromotionCode(
+    normalized,
+    input.percentOff,
+    maxRedemptions,
+    validUntil,
+    true
+  );
 
   try {
     const row = await prisma.promotionCode.create({
       data: {
         code: normalized,
         percentOff: input.percentOff,
-        maxRedemptions: input.maxRedemptions ?? null,
-        validFrom: input.validFrom ?? null,
-        validUntil: input.validUntil ?? null,
+        maxRedemptions,
+        validFrom,
+        validUntil,
         isActive: true,
         stripeCouponId: coupon.id,
         stripePromotionCodeId: promotion.id,
@@ -118,13 +166,102 @@ export async function createPromotionCode(input: PromotionCodeCreateInput): Prom
     });
     return await toListRow(row);
   } catch (err) {
-    await stripe.promotionCodes.update(promotion.id, { active: false }).catch(() => undefined);
-    await stripe.coupons.del(coupon.id).catch(() => undefined);
+    await deactivateAndDropStripePromotion(promotion.id, coupon.id);
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
       throw serviceError('Ya existe un código promocional con ese texto', 409);
     }
     throw err;
   }
+}
+
+export type PromotionCodeUpdateInput = PromotionCodeCreateInput & { isActive?: boolean };
+
+export async function updatePromotionCode(id: string, input: PromotionCodeUpdateInput): Promise<PromotionCodeListRow> {
+  const row = await prisma.promotionCode.findUnique({ where: { id } });
+  if (!row) throw serviceError('Código promocional no encontrado', 404);
+
+  const { normalized, maxRedemptions, validFrom, validUntil } = validatePromotionInput(input);
+  const nextIsActive = input.isActive ?? row.isActive;
+
+  if (normalized !== row.code) {
+    const conflict = await prisma.promotionCode.findUnique({ where: { code: normalized } });
+    if (conflict && conflict.id !== id) {
+      throw serviceError('Ya existe un código promocional con ese texto', 409);
+    }
+  }
+
+  const stripeFieldsChanged =
+    normalized !== row.code ||
+    input.percentOff !== row.percentOff ||
+    maxRedemptions !== (row.maxRedemptions ?? null) ||
+    !sameUtcInstant(validUntil, row.validUntil);
+
+  const nothingChanged =
+    !stripeFieldsChanged &&
+    nextIsActive === row.isActive &&
+    sameUtcInstant(validFrom, row.validFrom);
+
+  if (nothingChanged) {
+    return toListRow(row);
+  }
+
+  if (!stripeFieldsChanged) {
+    const stripe = getStripe();
+    if (nextIsActive !== row.isActive) {
+      await stripe.promotionCodes.update(row.stripePromotionCodeId, { active: nextIsActive });
+    }
+    const updated = await prisma.promotionCode.update({
+      where: { id },
+      data: {
+        validFrom,
+        validUntil,
+        isActive: nextIsActive,
+      },
+    });
+    return toListRow(updated);
+  }
+
+  const oldPromoId = row.stripePromotionCodeId;
+  const oldCouponId = row.stripeCouponId;
+
+  const { coupon, promotion } = await createStripeCouponAndPromotionCode(
+    normalized,
+    input.percentOff,
+    maxRedemptions,
+    validUntil,
+    nextIsActive
+  );
+
+  try {
+    const updated = await prisma.promotionCode.update({
+      where: { id },
+      data: {
+        code: normalized,
+        percentOff: input.percentOff,
+        maxRedemptions,
+        validFrom,
+        validUntil,
+        isActive: nextIsActive,
+        stripeCouponId: coupon.id,
+        stripePromotionCodeId: promotion.id,
+      },
+    });
+    await deactivateAndDropStripePromotion(oldPromoId, oldCouponId);
+    return toListRow(updated);
+  } catch (err) {
+    await deactivateAndDropStripePromotion(promotion.id, coupon.id);
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      throw serviceError('Ya existe un código promocional con ese texto', 409);
+    }
+    throw err;
+  }
+}
+
+export async function deletePromotionCode(id: string): Promise<void> {
+  const row = await prisma.promotionCode.findUnique({ where: { id } });
+  if (!row) throw serviceError('Código promocional no encontrado', 404);
+  await deactivateAndDropStripePromotion(row.stripePromotionCodeId, row.stripeCouponId);
+  await prisma.promotionCode.delete({ where: { id } });
 }
 
 async function toListRow(row: {

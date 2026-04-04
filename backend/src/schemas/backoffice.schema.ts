@@ -66,6 +66,11 @@ export const promotionCodePatchSchema = z.object({
   isActive: z.boolean(),
 });
 
+/** Edición completa (mismos campos que crear + activo opcional). */
+export const promotionCodePutSchema = promotionCodeCreateSchema.extend({
+  isActive: z.boolean().optional(),
+});
+
 export const userRoleUpdateSchema = z.object({
   roles: z.array(z.enum(['admin', 'editor', 'user'])).min(1),
 });
