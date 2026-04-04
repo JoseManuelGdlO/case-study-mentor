@@ -13,24 +13,13 @@ import {
 } from '@/components/ui/dialog';
 import { useUser, type UserPlan } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { paidPlanFeatureBullets, subscriptionPricingPlans } from '@/constants/pricingPlans';
 import { apiFetch, apiJson } from '@/lib/api';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Check, Crown, CreditCard, ArrowLeft, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
-const plans: {
-  id: UserPlan;
-  name: string;
-  price: number;
-  period: string;
-  monthly: number;
-  savings?: string;
-  popular?: boolean;
-}[] = [
-  { id: 'monthly', name: 'Mensual', price: 200, period: '/mes', monthly: 200 },
-  { id: 'semester', name: 'Semestral', price: 1000, period: '/6 meses', monthly: 167, savings: 'Ahorra $200' },
-  { id: 'annual', name: 'Anual', price: 2100, period: '/año', monthly: 175, savings: 'Ahorra $300', popular: true },
-];
+const plans = subscriptionPricingPlans;
 
 /** Desactivar temporalmente el botón de checkout PayPal; poner en true cuando los pagos estén resueltos. */
 const SHOW_PAYPAL_CHECKOUT = false;
@@ -199,7 +188,7 @@ const Subscription = () => {
     }
   };
 
-  const planForPayment = selectedPlan ? plans.find((p) => p.id === selectedPlan) : undefined;
+  const planForPayment = selectedPlan && selectedPlan !== 'free' ? plans.find((p) => p.id === selectedPlan) : undefined;
   const fromDailyPlan = searchParams.get('from') === 'daily-plan';
 
   return (
@@ -327,14 +316,7 @@ const Subscription = () => {
                   </div>
                   {plan.id !== 'monthly' && <p className="text-sm text-muted-foreground">${plan.monthly} MXN/mes</p>}
                   <ul className="text-left space-y-2">
-                    {[
-                      'Plan de hoy completo (bloque diario)',
-                      'Exámenes ilimitados',
-                      'Todas las preguntas',
-                      'Estadísticas completas',
-                      'Explicaciones detalladas',
-                      'Bibliografía incluida',
-                    ].map((feature) => (
+                    {paidPlanFeatureBullets.map((feature) => (
                       <li key={feature} className="flex items-center gap-2 text-sm text-foreground">
                         <Check className="w-4 h-4 text-success flex-shrink-0" />
                         {feature}

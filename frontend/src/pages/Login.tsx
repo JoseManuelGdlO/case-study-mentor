@@ -317,6 +317,10 @@ const Login = () => {
               </p>
 
               <p className="text-center text-xs text-muted-foreground mt-4">
+                <Link to="/precios" className="underline underline-offset-2 hover:text-primary">
+                  Planes y precios
+                </Link>
+                <span className="mx-2">·</span>
                 <Link to="/terminos" className="underline underline-offset-2 hover:text-primary">
                   Términos y condiciones
                 </Link>
