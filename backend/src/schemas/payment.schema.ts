@@ -4,6 +4,14 @@ export const checkoutTierSchema = z.object({
   tier: z.enum(['monthly', 'semester', 'annual']),
 });
 
+export const subscriptionCheckoutSchema = checkoutTierSchema.extend({
+  promotionCode: z.string().min(1).max(50).optional(),
+});
+
+export const validatePromotionCodeBodySchema = z.object({
+  code: z.string().min(1).max(50),
+});
+
 export const paypalCaptureSchema = z.object({
   orderId: z.string().min(1),
 });

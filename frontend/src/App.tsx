@@ -28,6 +28,7 @@ import BackofficeLayout from "./components/BackofficeLayout";
 import BackofficeDashboard from "./pages/backoffice/BackofficeDashboard";
 import UserManagement from "./pages/backoffice/UserManagement";
 import PricingConfig from "./pages/backoffice/PricingConfig";
+import PromotionCodesManagement from "./pages/backoffice/PromotionCodesManagement";
 import SpecialtyManagement from "./pages/backoffice/SpecialtyManagement";
 import SystemStats from "./pages/backoffice/SystemStats";
 import PhrasesManagement from "./pages/backoffice/PhrasesManagement";
@@ -156,6 +157,14 @@ const App = () => (
                   element={
                     <AdminRoute>
                       <PricingConfig />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="promotion-codes"
+                  element={
+                    <AdminRoute>
+                      <PromotionCodesManagement />
                     </AdminRoute>
                   }
                 />

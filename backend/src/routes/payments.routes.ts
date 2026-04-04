@@ -8,9 +8,15 @@ import {
   paypalCaptureSchema,
   paypalSubscriptionConfirmSchema,
   subscriptionCancelFeedbackSchema,
+  subscriptionCheckoutSchema,
+  validatePromotionCodeBodySchema,
 } from '../schemas/payment.schema.js';
 import * as paypalBillingService from '../services/paypal-billing.service.js';
 import * as paymentService from '../services/payment.service.js';
+import {
+  resolvePromotionCodeForCheckout,
+  validatePromotionCodeForUser,
+} from '../services/promotion-code.service.js';
 
 export async function stripeWebhookHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -91,14 +97,38 @@ paymentsRouter.post(
 );
 
 paymentsRouter.post(
-  '/stripe/subscription-checkout',
+  '/stripe/validate-promotion-code',
   authenticate,
-  validateBody(checkoutTierSchema),
+  validateBody(validatePromotionCodeBodySchema),
   async (req, res, next) => {
     try {
       if (!req.user) throw new Error('No user');
-      const { tier } = req.body as { tier: 'monthly' | 'semester' | 'annual' };
-      const { url } = await paymentService.createStripeSubscriptionCheckoutSession(req.user.id, tier);
+      const { code } = req.body as { code: string };
+      const result = await validatePromotionCodeForUser(req.user.id, code);
+      res.json({ data: result });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+paymentsRouter.post(
+  '/stripe/subscription-checkout',
+  authenticate,
+  validateBody(subscriptionCheckoutSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) throw new Error('No user');
+      const { tier, promotionCode } = req.body as {
+        tier: 'monthly' | 'semester' | 'annual';
+        promotionCode?: string;
+      };
+      const promotion = await resolvePromotionCodeForCheckout(req.user.id, promotionCode);
+      const { url } = await paymentService.createStripeSubscriptionCheckoutSession(
+        req.user.id,
+        tier,
+        promotion
+      );
       res.json({ data: { url } });
     } catch (e) {
       next(e);

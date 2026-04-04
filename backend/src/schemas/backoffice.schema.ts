@@ -54,6 +54,18 @@ export const planCreateSchema = z.object({
 
 export const planUpdateSchema = planCreateSchema.partial();
 
+export const promotionCodeCreateSchema = z.object({
+  code: z.string().min(1),
+  percentOff: z.number().int().min(1).max(100),
+  maxRedemptions: z.number().int().positive().optional().nullable(),
+  validFrom: z.string().datetime().optional().nullable(),
+  validUntil: z.string().datetime().optional().nullable(),
+});
+
+export const promotionCodePatchSchema = z.object({
+  isActive: z.boolean(),
+});
+
 export const userRoleUpdateSchema = z.object({
   roles: z.array(z.enum(['admin', 'editor', 'user'])).min(1),
 });

@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -43,6 +45,9 @@ const Subscription = () => {
   const [showPayment, setShowPayment] = useState(false);
   const [payBusy, setPayBusy] = useState<'stripe' | 'paypal' | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [promoInput, setPromoInput] = useState('');
+  const [promoApplied, setPromoApplied] = useState<{ code: string; percentOff: number } | null>(null);
+  const [promoBusy, setPromoBusy] = useState(false);
 
   const clearPaymentQueryParams = useCallback(() => {
     const next = new URLSearchParams(searchParams);
@@ -156,6 +161,37 @@ const Subscription = () => {
     if (planId === 'free') return;
     setSelectedPlan(planId);
     setShowPayment(true);
+    setPromoInput('');
+    setPromoApplied(null);
+  };
+
+  const applyPromoCode = async () => {
+    const code = promoInput.trim();
+    if (!code) {
+      toast.message('Código vacío', { description: 'Escribe un código o continúa sin descuento.' });
+      return;
+    }
+    setPromoBusy(true);
+    try {
+      const json = await apiJson<{
+        data: { valid: true; percentOff: number } | { valid: false; message: string };
+      }>('/api/payments/stripe/validate-promotion-code', {
+        method: 'POST',
+        body: JSON.stringify({ code }),
+      });
+      if (json.data.valid) {
+        setPromoApplied({ code, percentOff: json.data.percentOff });
+        toast.success(`Código aplicado: ${json.data.percentOff}% en tu primer pago`);
+      } else {
+        setPromoApplied(null);
+        toast.error(json.data.message);
+      }
+    } catch (e) {
+      setPromoApplied(null);
+      toast.error(e instanceof Error ? e.message : 'No se pudo validar el código.');
+    } finally {
+      setPromoBusy(false);
+    }
   };
 
   const startStripe = async () => {
@@ -164,7 +200,10 @@ const Subscription = () => {
     try {
       const json = await apiJson<{ data: { url: string } }>('/api/payments/stripe/subscription-checkout', {
         method: 'POST',
-        body: JSON.stringify({ tier: selectedPlan }),
+        body: JSON.stringify({
+          tier: selectedPlan,
+          ...(promoApplied ? { promotionCode: promoApplied.code } : {}),
+        }),
       });
       window.location.href = json.data.url;
     } catch (e) {
@@ -225,6 +264,40 @@ const Subscription = () => {
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="promo-code">Código promocional (opcional)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="promo-code"
+                    placeholder="Ej. ENARM2026"
+                    value={promoInput}
+                    onChange={(e) => {
+                      setPromoInput(e.target.value);
+                      setPromoApplied(null);
+                    }}
+                    disabled={!!payBusy || promoBusy}
+                    className="font-mono"
+                    autoCapitalize="characters"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="shrink-0"
+                    disabled={!!payBusy || promoBusy || !promoInput.trim()}
+                    onClick={() => void applyPromoCode()}
+                  >
+                    {promoBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aplicar'}
+                  </Button>
+                </div>
+                {promoApplied && (
+                  <p className="text-sm text-success">
+                    Descuento del {promoApplied.percentOff}% en la primera factura; las renovaciones al precio del plan.
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Si tienes código, aplícalo antes de pagar. Solo aplica a nuevas suscripciones con Stripe.
+                </p>
+              </div>
               <Button
                 className="w-full h-14 text-base font-semibold gap-3 bg-[#635BFF] hover:bg-[#5851DB] text-white"
                 onClick={() => void startStripe()}

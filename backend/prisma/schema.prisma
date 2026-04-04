@@ -529,3 +529,21 @@ model SubscriptionPlan {
   @@index([tier])
   @@map("subscription_plans")
 }
+
+/** Código promocional Stripe (primer periodo): cupón `once` + promotion code en Stripe. */
+model PromotionCode {
+  id                    String    @id @default(uuid())
+  /** Código en mayúsculas para búsqueda estable. */
+  code                  String    @unique
+  percentOff            Int       @map("percent_off")
+  maxRedemptions        Int?      @map("max_redemptions")
+  validFrom             DateTime? @map("valid_from")
+  validUntil            DateTime? @map("valid_until")
+  isActive              Boolean   @default(true) @map("is_active")
+  stripeCouponId        String    @map("stripe_coupon_id")
+  stripePromotionCodeId String    @unique @map("stripe_promotion_code_id")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@map("promotion_codes")
+}

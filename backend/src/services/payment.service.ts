@@ -178,7 +178,8 @@ export async function createStripeCheckoutSession(userId: string, tier: PaidTier
 
 export async function createStripeSubscriptionCheckoutSession(
   userId: string,
-  tier: PaidTier
+  tier: PaidTier,
+  promotion?: { stripePromotionCodeId: string; promotionCodeId: string } | null
 ): Promise<{ url: string }> {
   const stripe = getStripe();
   const plan = await getActiveSubscriptionPlanForTier(tier);
@@ -192,6 +193,12 @@ export async function createStripeSubscriptionCheckoutSession(
   if (profile.paypalSubscriptionId) {
     throw serviceError('Ya tienes una suscripción con PayPal. Cancélala antes de usar Stripe.', 409);
   }
+
+  const metaBase = {
+    userId,
+    tier,
+    ...(promotion ? { promotionCodeId: promotion.promotionCodeId } : {}),
+  } satisfies Record<string, string>;
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'subscription',
@@ -213,11 +220,15 @@ export async function createStripeSubscriptionCheckoutSession(
     success_url: `${base}/dashboard/subscription?paid=stripe&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/dashboard/subscription?canceled=stripe`,
     client_reference_id: userId,
-    metadata: { userId, tier },
+    metadata: metaBase,
     subscription_data: {
-      metadata: { userId, tier },
+      metadata: metaBase,
     },
   };
+
+  if (promotion) {
+    sessionParams.discounts = [{ promotion_code: promotion.stripePromotionCodeId }];
+  }
 
   if (profile.stripeCustomerId) {
     sessionParams.customer = profile.stripeCustomerId;

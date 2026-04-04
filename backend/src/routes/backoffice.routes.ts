@@ -15,6 +15,8 @@ import {
   phraseUpdateSchema,
   planCreateSchema,
   planUpdateSchema,
+  promotionCodeCreateSchema,
+  promotionCodePatchSchema,
   specialtyCreateSchema,
   specialtyUpdateSchema,
   userRoleUpdateSchema,
@@ -47,6 +49,11 @@ import {
   getAdminPushPreferences,
 } from '../services/admin-push.service.js';
 import { isSmtpConfigured } from '../services/email.service.js';
+import {
+  createPromotionCode,
+  listPromotionCodes,
+  setPromotionCodeActive,
+} from '../services/promotion-code.service.js';
 
 export const backofficeRouter = Router();
 
@@ -491,6 +498,52 @@ backofficeRouter.delete('/pricing/:id', requireAdmin(), async (req, res, next) =
     next(e);
   }
 });
+
+/* --- Códigos de promoción (Stripe, primer periodo) --- */
+backofficeRouter.get('/promotion-codes', requireAdmin(), async (_req, res, next) => {
+  try {
+    const data = await listPromotionCodes();
+    res.json({ data });
+  } catch (e) {
+    next(e);
+  }
+});
+
+backofficeRouter.post(
+  '/promotion-codes',
+  requireAdmin(),
+  validateBody(promotionCodeCreateSchema),
+  async (req, res, next) => {
+    try {
+      const body = req.body as z.infer<typeof promotionCodeCreateSchema>;
+      const row = await createPromotionCode({
+        code: body.code,
+        percentOff: body.percentOff,
+        maxRedemptions: body.maxRedemptions ?? null,
+        validFrom: body.validFrom ? new Date(body.validFrom) : null,
+        validUntil: body.validUntil ? new Date(body.validUntil) : null,
+      });
+      res.status(201).json({ data: row });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+backofficeRouter.patch(
+  '/promotion-codes/:id',
+  requireAdmin(),
+  validateBody(promotionCodePatchSchema),
+  async (req, res, next) => {
+    try {
+      const { isActive } = req.body as z.infer<typeof promotionCodePatchSchema>;
+      const row = await setPromotionCodeActive(paramString(req.params.id), isActive);
+      res.json({ data: row });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
 
 /* --- Users --- */
 backofficeRouter.post(
