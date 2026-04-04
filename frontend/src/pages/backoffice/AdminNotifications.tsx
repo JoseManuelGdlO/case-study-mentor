@@ -25,6 +25,53 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+/**
+ * Heurística síncrona; en algunos móviles el motor no expone bien `pushManager` en el prototype.
+ * No debe usarse para deshabilitar el botón si ya hay contexto seguro + service workers.
+ */
+function hasWebPushApiSync(): boolean {
+  try {
+    if (!('serviceWorker' in navigator)) return false;
+    if (typeof globalThis !== 'undefined' && 'PushManager' in globalThis) return true;
+    if (typeof ServiceWorkerRegistration === 'undefined') return false;
+    const proto = ServiceWorkerRegistration.prototype;
+    if ('pushManager' in proto) return true;
+    const d = Object.getOwnPropertyDescriptor(proto, 'pushManager');
+    return Boolean(d?.get ?? d?.value);
+  } catch {
+    return false;
+  }
+}
+
+function formatPushSubscribeError(e: unknown): string {
+  if (!(e instanceof Error)) return 'No se pudo activar';
+  const name = (e as DOMException).name;
+  const msg = e.message;
+  if (name === 'NotSupportedError' || /not supported/i.test(msg)) {
+    return 'Este navegador no permite suscripción push aquí (en iPhone suele hacer falta la web instalada en inicio, iOS 16.4+).';
+  }
+  if (name === 'SecurityError' || /secure context|insecure/i.test(msg)) {
+    return 'El navegador bloquea push por seguridad. Usa HTTPS con certificado válido, sin iframe de otro origen.';
+  }
+  return msg || 'No se pudo activar';
+}
+
+function isLikelyIOS(): boolean {
+  const ua = navigator.userAgent || '';
+  return (
+    /iPhone|iPad|iPod/i.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+}
+
+/** HTTPS, localhost o 127.0.0.1. `http://192.168…` no es contexto seguro: el push fallará aunque sea “Chrome”. */
+function isSecureEnoughForPush(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (window.isSecureContext) return true;
+  const h = window.location.hostname;
+  return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+}
+
 export default function AdminNotifications() {
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState<AdminPushState | null>(null);
@@ -36,10 +83,14 @@ export default function AdminNotifications() {
     try {
       const json = await apiJson<{ data: AdminPushState }>('/api/backoffice/admin-push');
       setState(json.data);
-      if ('serviceWorker' in navigator && 'PushManager' in window) {
-        const reg = await navigator.serviceWorker.getRegistration();
-        const sub = await reg?.pushManager.getSubscription();
-        setLocalSubscribed(!!sub);
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.getRegistration();
+          const sub = await reg?.pushManager?.getSubscription();
+          setLocalSubscribed(!!sub);
+        } catch {
+          setLocalSubscribed(false);
+        }
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Error al cargar');
@@ -52,15 +103,22 @@ export default function AdminNotifications() {
     load();
   }, [load]);
 
-  const pushSupported =
+  const secureForPush = isSecureEnoughForPush();
+  const pushApiHeuristic = hasWebPushApiSync();
+  /** Con HTTPS real basta para intentar; la API se comprueba al pulsar. */
+  const canTryPush = secureForPush && 'serviceWorker' in navigator;
+  const httpsButNotSecureContext =
     typeof window !== 'undefined' &&
-    'serviceWorker' in navigator &&
-    'PushManager' in window &&
-    (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    window.location.protocol === 'https:' &&
+    !window.isSecureContext;
 
   const enablePush = async () => {
     if (!state?.vapidPublicKey || !state.pushConfigured) {
       toast.error('Web Push no está configurado en el servidor');
+      return;
+    }
+    if (!('serviceWorker' in navigator)) {
+      toast.error('Tu navegador no soporta service workers; no se puede usar push.');
       return;
     }
     setSubscribing(true);
@@ -91,7 +149,7 @@ export default function AdminNotifications() {
       setLocalSubscribed(true);
       toast.success('Notificaciones activadas en este navegador');
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'No se pudo activar');
+      toast.error(formatPushSubscribeError(e));
     } finally {
       setSubscribing(false);
     }
@@ -157,9 +215,36 @@ export default function AdminNotifications() {
         </p>
       </div>
 
-      {!pushSupported && (
+      {httpsButNotSecureContext && (
         <p className="text-sm text-amber-700 dark:text-amber-400">
-          Tu navegador no soporta notificaciones push o necesitas HTTPS (excepto en localhost).
+          <span className="font-medium">La URL es https pero el navegador no considera la página segura</span>{' '}
+          (<code className="text-xs">isSecureContext === false</code>). Suele pasar con certificados no confiables,
+          ventanas dentro de <strong>iframes</strong>, o políticas del sistema. Abre el backoffice en una pestaña
+          normal del mismo dominio.
+        </p>
+      )}
+      {!secureForPush && !httpsButNotSecureContext && (
+        <p className="text-sm text-amber-700 dark:text-amber-400">
+          <span className="font-medium">Conexión no segura para push.</span> Hay que abrir el sitio con{' '}
+          <strong>https://</strong> y un dominio válido. Si entras por <strong>http://</strong> o por una IP local (
+          <code className="text-xs">192.168…</code>, <code className="text-xs">10.…</code>), el navegador bloquea el
+          push aunque uses Chrome. En desarrollo, usa localhost en el mismo equipo o un túnel HTTPS (ngrok, etc.).
+        </p>
+      )}
+      {secureForPush && !pushApiHeuristic && (
+        <p className="text-sm text-muted-foreground border border-border rounded-md p-3 bg-muted/40">
+          {isLikelyIOS() ? (
+            <>
+              <span className="font-medium text-foreground">iPhone/iPad:</span> el motor es el de Safari. El push web
+              suele funcionar solo con la web <strong>añadida a la pantalla de inicio</strong> (PWA), iOS 16.4+.
+              Igual puedes pulsar <strong>Activar</strong> por si tu versión ya lo permite.
+            </>
+          ) : (
+            <>
+              No pudimos detectar la API de push de forma automática; en <strong>HTTPS</strong> puedes pulsar{' '}
+              <strong>Activar</strong> igualmente. Si falla, actualiza Chrome o prueba otro navegador.
+            </>
+          )}
         </p>
       )}
 
@@ -188,7 +273,7 @@ export default function AdminNotifications() {
             <Button
               type="button"
               className="gradient-primary border-0 gap-2"
-              disabled={!pushSupported || !state.pushConfigured || subscribing}
+              disabled={!canTryPush || !state.pushConfigured || subscribing}
               onClick={() => void enablePush()}
             >
               {subscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
@@ -230,7 +315,8 @@ export default function AdminNotifications() {
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        Safari tiene soporte limitado para Web Push. Se recomienda Chrome o Edge en escritorio o Android.
+        Producción: URL con HTTPS. Móvil Android: Chrome actualizado. iOS: PWA en pantalla de inicio; Safari/Chrome en
+        pestaña normal suelen no permitir push.
       </p>
     </div>
   );
