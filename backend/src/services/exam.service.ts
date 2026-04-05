@@ -456,6 +456,12 @@ export async function submitAnswer(
     throw err;
   }
 
+  if (exam.status === 'completed') {
+    const err = new Error('El examen ya está finalizado') as Error & { status: number };
+    err.status = 400;
+    throw err;
+  }
+
   let isCorrect: boolean | null = null;
   let explanation: string | undefined;
   let selectedOption:

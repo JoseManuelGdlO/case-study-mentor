@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,6 +40,8 @@ function enrichFlat(flat: ExamFlatQuestion[]): ExamFlatQuestion[] {
 const ExamStudy = () => {
   const { examId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const focusQuestionId = searchParams.get('questionId') ?? undefined;
   const [exam, setExam] = useState<Exam | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -55,7 +57,13 @@ const ExamStudy = () => {
       setExam(json.data);
       if (!preservePosition) {
         const flatLen = json.data.flatQuestions?.length ?? 0;
-        setCurrentIndex(Math.min(json.data.currentQuestionIndex, Math.max(0, flatLen - 1)));
+        const enriched = enrichFlat(json.data.flatQuestions ?? []);
+        let idx = Math.min(json.data.currentQuestionIndex, Math.max(0, flatLen - 1));
+        if (focusQuestionId) {
+          const i = enriched.findIndex((x) => x.id === focusQuestionId);
+          if (i >= 0) idx = i;
+        }
+        setCurrentIndex(idx);
       }
       const next: Record<string, LocalAnswer> = {};
       for (const a of json.data.answers) {
@@ -68,7 +76,7 @@ const ExamStudy = () => {
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : 'Error');
     }
-  }, [examId]);
+  }, [examId, focusQuestionId]);
 
   useEffect(() => {
     reload();
@@ -95,8 +103,10 @@ const ExamStudy = () => {
 
   const caseFmt = question?.caseTextFormat ?? 'plain';
 
+  const readOnly = exam?.status === 'completed';
+
   const handleSelect = async (optionId: string) => {
-    if (!examId || !question || revealed) return;
+    if (readOnly || !examId || !question || revealed) return;
     try {
       const json = await apiJson<{
         data: { saved: boolean; isCorrect?: boolean; explanation?: string; feedbackImageUrl?: string };
@@ -122,6 +132,10 @@ const ExamStudy = () => {
   const nextQuestion = async () => {
     if (currentIndex === total - 1) {
       if (!examId || finishing) return;
+      if (exam.status === 'completed') {
+        navigate(`/results/${examId}`);
+        return;
+      }
       setFinishing(true);
       try {
         await apiJson(`/api/exams/${examId}/complete`, {
@@ -154,6 +168,13 @@ const ExamStudy = () => {
     );
   }
 
+  const reviewBadgeLabel =
+    exam.status === 'completed'
+      ? exam.config.mode === 'simulation'
+        ? 'Revisión del simulacro'
+        : 'Revisión del examen'
+      : 'Modo Estudio';
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="border-b border-border bg-card px-6 py-3 flex items-center justify-between sticky top-0 z-10">
@@ -162,7 +183,7 @@ const ExamStudy = () => {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <Badge className="gradient-primary text-primary-foreground border-0 gap-1">
-            <BookOpen className="w-3 h-3" /> Modo Estudio
+            <BookOpen className="w-3 h-3" /> {reviewBadgeLabel}
           </Badge>
           <span className="text-sm text-muted-foreground">
             Pregunta <strong className="text-foreground">{currentIndex + 1}</strong> de{' '}
@@ -283,7 +304,7 @@ const ExamStudy = () => {
                       key={opt.id}
                       type="button"
                       onClick={() => handleSelect(opt.id)}
-                      disabled={revealed}
+                      disabled={revealed || readOnly}
                       className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-start gap-3 ${borderClass} ${bgClass}`}
                     >
                       <span
@@ -338,7 +359,7 @@ const ExamStudy = () => {
             </CardContent>
           </Card>
 
-          {revealed && (
+          {(revealed || readOnly) && (
             <div className="flex gap-3 animate-fade-in">
               <Button variant="outline" disabled={currentIndex === 0} onClick={() => goTo(currentIndex - 1)} className="flex-1 h-12 gap-2">
                 <ChevronLeft className="w-4 h-4" /> Anterior
@@ -348,7 +369,13 @@ const ExamStudy = () => {
                 disabled={finishing}
                 className="flex-1 gradient-primary border-0 font-semibold h-12 gap-2"
               >
-                {finishing ? 'Guardando…' : currentIndex === total - 1 ? 'Ver resultados' : 'Siguiente pregunta'}
+                {finishing
+                  ? 'Guardando…'
+                  : currentIndex === total - 1
+                    ? exam.status === 'completed'
+                      ? 'Volver a resultados'
+                      : 'Ver resultados'
+                    : 'Siguiente pregunta'}
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>

@@ -373,6 +373,9 @@ const Results = () => {
         <Card className="border-0 shadow-md">
           <CardHeader>
             <CardTitle>Revisión de preguntas</CardTitle>
+            <p className="text-sm text-muted-foreground font-normal mt-1">
+              Toca una pregunta para verla en el examen con tu respuesta y el feedback.
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
             {flat.map((q) => {
@@ -380,10 +383,21 @@ const Results = () => {
               const isCorrect = a?.isCorrect === true;
               const answered = a?.selectedOptionId != null;
               const fmt = q.caseTextFormat ?? 'plain';
+              const openInExam = () => {
+                navigate(`/exam/${exam.id}/study?questionId=${encodeURIComponent(q.id)}`);
+              };
               return (
-                <div
+                <button
                   key={q.id}
-                  className={`p-4 rounded-xl border-2 ${
+                  type="button"
+                  onClick={openInExam}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openInExam();
+                    }
+                  }}
+                  className={`w-full text-left p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-md hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                     !answered
                       ? 'border-muted'
                       : isCorrect
@@ -426,7 +440,7 @@ const Results = () => {
                       )}
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </CardContent>
