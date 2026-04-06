@@ -141,7 +141,11 @@ export async function listCases(query: {
         createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
         updatedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
         labResults: true,
-        questions: { include: { options: true }, orderBy: { orderIndex: 'asc' } },
+        questions: {
+          where: { deletedAt: null },
+          include: { options: true },
+          orderBy: { orderIndex: 'asc' },
+        },
       },
     }),
   ]);
@@ -164,7 +168,11 @@ export async function getCaseById(id: string) {
       createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
       updatedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
       labResults: true,
-      questions: { include: { options: true }, orderBy: { orderIndex: 'asc' } },
+      questions: {
+        where: { deletedAt: null },
+        include: { options: true },
+        orderBy: { orderIndex: 'asc' },
+      },
     },
   });
   if (!row) {
@@ -230,7 +238,11 @@ export async function createCase(input: CreateCase, userId: string) {
         createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
         updatedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
         labResults: true,
-        questions: { include: { options: true }, orderBy: { orderIndex: 'asc' } },
+        questions: {
+          where: { deletedAt: null },
+          include: { options: true },
+          orderBy: { orderIndex: 'asc' },
+        },
       },
     });
     return c;
@@ -280,10 +292,10 @@ export async function updateCase(id: string, input: UpdateCase, userId: string) 
     }
 
     if (sanitized.questions) {
-      await tx.answerOption.deleteMany({
-        where: { question: { caseId: id } },
+      await tx.question.updateMany({
+        where: { caseId: id, deletedAt: null },
+        data: { deletedAt: new Date() },
       });
-      await tx.question.deleteMany({ where: { caseId: id } });
       for (let qi = 0; qi < sanitized.questions.length; qi++) {
         const q = sanitized.questions[qi];
         await tx.question.create({

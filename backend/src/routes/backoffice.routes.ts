@@ -785,7 +785,7 @@ backofficeRouter.get('/stats', requireAdmin(), async (_req, res, next) => {
       prisma.profile.count(),
       prisma.exam.count(),
       prisma.clinicalCase.count(),
-      prisma.question.count(),
+      prisma.question.count({ where: { deletedAt: null } }),
       prisma.clinicalCase.count({ where: { status: 'published' } }),
       prisma.specialty.findMany({
         select: {

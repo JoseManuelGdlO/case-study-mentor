@@ -38,7 +38,10 @@ export async function generateExam(userId: string, input: GenerateInput) {
     prisma.clinicalCase.findMany({
       where: caseWhere,
       include: {
-        questions: { select: { id: true, difficultyLevel: true } },
+        questions: {
+          where: { deletedAt: null },
+          select: { id: true, difficultyLevel: true },
+        },
       },
     }),
   ]);
