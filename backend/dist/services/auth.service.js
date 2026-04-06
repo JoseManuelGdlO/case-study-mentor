@@ -8,7 +8,7 @@ import { redis } from '../config/redis.js';
 import { isSmtpConfigured, sendGoogleAccountNoticeEmail, sendTemporaryPasswordEmail } from './email.service.js';
 import { FREE_TRIAL_MAX_EXAMS } from '../constants/freeTrial.js';
 import { effectivePlanFromProfile } from './profile.service.js';
-import { REFRESH_TTL_SEC, signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
+import { REFRESH_TTL_SEC, impersonationFromPayload, signAccessToken, signRefreshToken, verifyRefreshToken, } from '../utils/jwt.js';
 const BCRYPT_ROUNDS = 12;
 const FORGOT_PASSWORD_GENERIC_MESSAGE = 'Si ese correo está registrado, recibirás un mensaje con instrucciones en los próximos minutos.';
 const ACCESS_COOKIE = 'accessToken';
@@ -27,26 +27,49 @@ function refreshRedisKey(userId, jti) {
 export function sessionActiveKey(userId) {
     return `session:active:${userId}`;
 }
-export async function setAuthCookies(res, userId, email) {
+export async function setAuthCookies(res, userId, email, impersonation) {
     const oldJti = await redis.get(sessionActiveKey(userId));
     if (oldJti) {
         await redis.del(refreshRedisKey(userId, oldJti));
     }
     const jti = randomUUID();
-    const access = signAccessToken(userId, email, jti);
-    const { token: refresh } = signRefreshToken(userId, jti);
+    const access = signAccessToken(userId, email, jti, impersonation);
+    const { token: refresh } = signRefreshToken(userId, jti, impersonation);
     await redis.setex(refreshRedisKey(userId, jti), REFRESH_TTL_SEC, '1');
     await redis.setex(sessionActiveKey(userId), REFRESH_TTL_SEC, jti);
     const base = cookieBase();
     res.cookie(ACCESS_COOKIE, access, { ...base, maxAge: 15 * 60 * 1000 });
     res.cookie(REFRESH_COOKIE, refresh, { ...base, maxAge: REFRESH_TTL_SEC * 1000 });
 }
+/** Target must exist and must not be admin/editor. */
+export async function assertImpersonableTargetUser(targetUserId) {
+    const p = await prisma.profile.findUnique({
+        where: { id: targetUserId },
+        select: {
+            id: true,
+            email: true,
+            roles: { select: { role: true } },
+        },
+    });
+    if (!p) {
+        const err = new Error('Usuario no encontrado');
+        err.status = 404;
+        throw err;
+    }
+    const privileged = p.roles.some((r) => r.role === 'admin' || r.role === 'editor');
+    if (privileged) {
+        const err = new Error('No se puede ver como este usuario');
+        err.status = 403;
+        throw err;
+    }
+    return { userId: p.id, email: p.email };
+}
 export function clearAuthCookies(res) {
     const base = cookieBase();
     res.clearCookie(ACCESS_COOKIE, base);
     res.clearCookie(REFRESH_COOKIE, base);
 }
-async function publicUser(userId) {
+export async function publicUser(userId) {
     const profile = await prisma.profile.findUnique({
         where: { id: userId },
         select: {
@@ -202,8 +225,27 @@ export async function refreshTokens(refreshCookie, res) {
         err.status = 401;
         throw err;
     }
-    await setAuthCookies(res, profile.id, profile.email);
-    const u = await publicUser(profile.id);
+    let impersonation = impersonationFromPayload(payload);
+    if (impersonation) {
+        try {
+            const ok = await assertImpersonableTargetUser(impersonation.userId);
+            if (ok.email !== impersonation.email)
+                impersonation = undefined;
+            else
+                impersonation = ok;
+        }
+        catch {
+            impersonation = undefined;
+        }
+    }
+    await setAuthCookies(res, profile.id, profile.email, impersonation);
+    const effectiveId = impersonation?.userId ?? profile.id;
+    const u = await publicUser(effectiveId);
+    if (!u) {
+        const err = new Error('Usuario no encontrado');
+        err.status = 401;
+        throw err;
+    }
     return { data: { user: u } };
 }
 export async function requestPasswordReset(email) {

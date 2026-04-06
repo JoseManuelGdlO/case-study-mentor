@@ -6,9 +6,19 @@ import * as profileService from '../services/profile.service.js';
 export const profileRouter = Router();
 profileRouter.get('/', authenticate, async (req, res, next) => {
     try {
-        if (!req.user)
+        if (!req.user || !req.actor)
             throw new Error('No user');
         const result = await profileService.getProfile(req.user.id);
+        if (req.actor.id !== req.user.id) {
+            res.json({
+                ...result,
+                data: {
+                    ...result.data,
+                    impersonation: { actorEmail: req.actor.email },
+                },
+            });
+            return;
+        }
         res.json(result);
     }
     catch (e) {
@@ -17,8 +27,12 @@ profileRouter.get('/', authenticate, async (req, res, next) => {
 });
 profileRouter.put('/', authenticate, validateBody(profileUpdateSchema), async (req, res, next) => {
     try {
-        if (!req.user)
+        if (!req.user || !req.actor)
             throw new Error('No user');
+        if (req.actor.id !== req.user.id) {
+            res.status(403).json({ error: 'No puedes editar el perfil en modo vista' });
+            return;
+        }
         const result = await profileService.updateProfile(req.user.id, req.body);
         res.json(result);
     }
@@ -28,8 +42,12 @@ profileRouter.put('/', authenticate, validateBody(profileUpdateSchema), async (r
 });
 profileRouter.post('/password', authenticate, validateBody(changePasswordSchema), async (req, res, next) => {
     try {
-        if (!req.user)
+        if (!req.user || !req.actor)
             throw new Error('No user');
+        if (req.actor.id !== req.user.id) {
+            res.status(403).json({ error: 'No puedes cambiar la contraseña en modo vista' });
+            return;
+        }
         const { currentPassword, newPassword } = req.body;
         const result = await profileService.changePassword(req.user.id, {
             currentPassword,
@@ -43,8 +61,12 @@ profileRouter.post('/password', authenticate, validateBody(changePasswordSchema)
 });
 profileRouter.put('/onboarding', authenticate, async (req, res, next) => {
     try {
-        if (!req.user)
+        if (!req.user || !req.actor)
             throw new Error('No user');
+        if (req.actor.id !== req.user.id) {
+            res.status(403).json({ error: 'No puedes completar el onboarding en modo vista' });
+            return;
+        }
         const result = await profileService.completeOnboarding(req.user.id);
         res.json(result);
     }

@@ -24,13 +24,15 @@ export type AuthUser = {
   freeTrialExamsUsed?: number;
   /** Cuántos exámenes de prueba quedan; null si hay suscripción activa. */
   freeTrialExamsRemaining?: number | null;
+  /** Presente cuando un admin está viendo el portal como este usuario. */
+  impersonation?: { actorEmail: string };
 };
 
 type AuthContextType = {
   user: AuthUser | null;
   loading: boolean;
   setUser: (u: AuthUser | null) => void;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<AuthUser | null>;
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (data: { email: string; password: string; firstName: string; lastName: string }) => Promise<{ isNewUser: boolean }>;
   logout: () => Promise<void>;
@@ -43,17 +45,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async (): Promise<AuthUser | null> => {
     try {
       const res = await apiFetch('/api/profile');
       if (!res.ok) {
         setUser(null);
-        return;
+        return null;
       }
       const json = (await res.json()) as { data: AuthUser };
       setUser(json.data);
+      return json.data;
     } catch {
       setUser(null);
+      return null;
     }
   }, []);
 

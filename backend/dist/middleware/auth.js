@@ -1,6 +1,11 @@
 import { redis } from '../config/redis.js';
 import { sessionActiveKey } from '../services/auth.service.js';
-import { verifyAccessToken } from '../utils/jwt.js';
+import { impersonationFromPayload, verifyAccessToken } from '../utils/jwt.js';
+function attachActorAndUser(req, payload) {
+    req.actor = { id: payload.sub, email: payload.email };
+    const imp = impersonationFromPayload(payload);
+    req.user = imp ? { id: imp.userId, email: imp.email } : { ...req.actor };
+}
 export function authenticate(req, res, next) {
     void (async () => {
         const token = req.cookies?.accessToken;
@@ -15,7 +20,7 @@ export function authenticate(req, res, next) {
                 res.status(401).json({ error: 'Sesión revocada' });
                 return;
             }
-            req.user = { id: payload.sub, email: payload.email };
+            attachActorAndUser(req, payload);
             next();
         }
         catch {
@@ -35,7 +40,7 @@ export function optionalAuthenticate(req, _res, next) {
                 const payload = verifyAccessToken(token);
                 const current = await redis.get(sessionActiveKey(payload.sub));
                 if (current === payload.jti) {
-                    req.user = { id: payload.sub, email: payload.email };
+                    attachActorAndUser(req, payload);
                 }
             }
             catch {

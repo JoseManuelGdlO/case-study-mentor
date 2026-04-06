@@ -10,7 +10,15 @@ import { redis } from '../config/redis.js';
 import { isSmtpConfigured, sendGoogleAccountNoticeEmail, sendTemporaryPasswordEmail } from './email.service.js';
 import { FREE_TRIAL_MAX_EXAMS } from '../constants/freeTrial.js';
 import { effectivePlanFromProfile } from './profile.service.js';
-import { REFRESH_TTL_SEC, signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
+import {
+  REFRESH_TTL_SEC,
+  impersonationFromPayload,
+  signAccessToken,
+  signRefreshToken,
+  verifyRefreshToken,
+  type ImpersonationClaims,
+  type RefreshPayload,
+} from '../utils/jwt.js';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -36,19 +44,48 @@ export function sessionActiveKey(userId: string): string {
   return `session:active:${userId}`;
 }
 
-export async function setAuthCookies(res: Response, userId: string, email: string): Promise<void> {
+export async function setAuthCookies(
+  res: Response,
+  userId: string,
+  email: string,
+  impersonation?: ImpersonationClaims
+): Promise<void> {
   const oldJti = await redis.get(sessionActiveKey(userId));
   if (oldJti) {
     await redis.del(refreshRedisKey(userId, oldJti));
   }
   const jti = randomUUID();
-  const access = signAccessToken(userId, email, jti);
-  const { token: refresh } = signRefreshToken(userId, jti);
+  const access = signAccessToken(userId, email, jti, impersonation);
+  const { token: refresh } = signRefreshToken(userId, jti, impersonation);
   await redis.setex(refreshRedisKey(userId, jti), REFRESH_TTL_SEC, '1');
   await redis.setex(sessionActiveKey(userId), REFRESH_TTL_SEC, jti);
   const base = cookieBase();
   res.cookie(ACCESS_COOKIE, access, { ...base, maxAge: 15 * 60 * 1000 });
   res.cookie(REFRESH_COOKIE, refresh, { ...base, maxAge: REFRESH_TTL_SEC * 1000 });
+}
+
+/** Target must exist and must not be admin/editor. */
+export async function assertImpersonableTargetUser(targetUserId: string): Promise<ImpersonationClaims> {
+  const p = await prisma.profile.findUnique({
+    where: { id: targetUserId },
+    select: {
+      id: true,
+      email: true,
+      roles: { select: { role: true } },
+    },
+  });
+  if (!p) {
+    const err = new Error('Usuario no encontrado') as Error & { status: number };
+    err.status = 404;
+    throw err;
+  }
+  const privileged = p.roles.some((r) => r.role === 'admin' || r.role === 'editor');
+  if (privileged) {
+    const err = new Error('No se puede ver como este usuario') as Error & { status: number };
+    err.status = 403;
+    throw err;
+  }
+  return { userId: p.id, email: p.email };
 }
 
 export function clearAuthCookies(res: Response): void {
@@ -57,7 +94,7 @@ export function clearAuthCookies(res: Response): void {
   res.clearCookie(REFRESH_COOKIE, base);
 }
 
-async function publicUser(userId: string) {
+export async function publicUser(userId: string) {
   const profile = await prisma.profile.findUnique({
     where: { id: userId },
     select: {
@@ -222,7 +259,7 @@ export async function refreshTokens(refreshCookie: string | undefined, res: Resp
     err.status = 401;
     throw err;
   }
-  let payload: { sub: string; jti: string };
+  let payload: RefreshPayload;
   try {
     payload = verifyRefreshToken(refreshCookie);
   } catch {
@@ -244,8 +281,24 @@ export async function refreshTokens(refreshCookie: string | undefined, res: Resp
     err.status = 401;
     throw err;
   }
-  await setAuthCookies(res, profile.id, profile.email);
-  const u = await publicUser(profile.id);
+  let impersonation = impersonationFromPayload(payload);
+  if (impersonation) {
+    try {
+      const ok = await assertImpersonableTargetUser(impersonation.userId);
+      if (ok.email !== impersonation.email) impersonation = undefined;
+      else impersonation = ok;
+    } catch {
+      impersonation = undefined;
+    }
+  }
+  await setAuthCookies(res, profile.id, profile.email, impersonation);
+  const effectiveId = impersonation?.userId ?? profile.id;
+  const u = await publicUser(effectiveId);
+  if (!u) {
+    const err = new Error('Usuario no encontrado') as Error & { status: number };
+    err.status = 401;
+    throw err;
+  }
   return { data: { user: u } };
 }
 

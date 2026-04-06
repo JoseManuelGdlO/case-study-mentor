@@ -1,7 +1,13 @@
 import type { NextFunction, Request, Response } from 'express';
 import { redis } from '../config/redis.js';
 import { sessionActiveKey } from '../services/auth.service.js';
-import { verifyAccessToken } from '../utils/jwt.js';
+import { impersonationFromPayload, verifyAccessToken } from '../utils/jwt.js';
+
+function attachActorAndUser(req: Request, payload: ReturnType<typeof verifyAccessToken>): void {
+  req.actor = { id: payload.sub, email: payload.email };
+  const imp = impersonationFromPayload(payload);
+  req.user = imp ? { id: imp.userId, email: imp.email } : { ...req.actor };
+}
 
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
   void (async () => {
@@ -17,7 +23,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
         res.status(401).json({ error: 'Sesión revocada' });
         return;
       }
-      req.user = { id: payload.sub, email: payload.email };
+      attachActorAndUser(req, payload);
       next();
     } catch {
       res.status(401).json({ error: 'Token inválido' });
@@ -37,7 +43,7 @@ export function optionalAuthenticate(req: Request, _res: Response, next: NextFun
         const payload = verifyAccessToken(token);
         const current = await redis.get(sessionActiveKey(payload.sub));
         if (current === payload.jti) {
-          req.user = { id: payload.sub, email: payload.email };
+          attachActorAndUser(req, payload);
         }
       } catch {
         /* ignore */

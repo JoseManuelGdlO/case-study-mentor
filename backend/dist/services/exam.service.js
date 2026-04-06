@@ -22,7 +22,10 @@ export async function generateExam(userId, input) {
         prisma.clinicalCase.findMany({
             where: caseWhere,
             include: {
-                questions: { select: { id: true, difficultyLevel: true } },
+                questions: {
+                    where: { deletedAt: null },
+                    select: { id: true, difficultyLevel: true },
+                },
             },
         }),
     ]);
@@ -369,6 +372,11 @@ export async function submitAnswer(userId, examId, body) {
     const eqMatch = exam?.examQuestions.find((eq) => eq.questionId === body.questionId);
     if (!exam || !eqMatch) {
         const err = new Error('Pregunta no pertenece a este examen');
+        err.status = 400;
+        throw err;
+    }
+    if (exam.status === 'completed') {
+        const err = new Error('El examen ya está finalizado');
         err.status = 400;
         throw err;
     }

@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { ImpersonationBanner } from '@/components/ImpersonationBanner';
 
 const navItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
@@ -154,7 +155,8 @@ const StudentLayout = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
+          <ImpersonationBanner />
           <header className="h-14 flex items-center border-b border-border px-4 bg-background">
             <SidebarTrigger className="mr-4" />
             <div className="ml-auto flex items-center gap-3">

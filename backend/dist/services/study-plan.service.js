@@ -324,6 +324,7 @@ async function selectQuestionIds(specialtyId, areaId, count) {
         return [];
     const rows = await prisma.question.findMany({
         where: {
+            deletedAt: null,
             clinicalCase: {
                 status: 'published',
                 ...(specialtyId ? { specialtyId } : {}),
@@ -423,6 +424,7 @@ async function enrichTaskPayload(taskType, payload) {
                 specialty: { select: { name: true } },
                 area: { select: { name: true } },
                 questions: {
+                    where: { deletedAt: null },
                     take: 1,
                     orderBy: { orderIndex: 'asc' },
                     select: {

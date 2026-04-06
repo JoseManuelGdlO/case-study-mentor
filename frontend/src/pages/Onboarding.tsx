@@ -9,6 +9,7 @@ import { GraduationCap, ArrowRight, Stethoscope, Building2 } from 'lucide-react'
 import type { Category } from '@/types';
 import { toast } from 'sonner';
 import { apiJson } from '@/lib/api';
+import { ImpersonationBanner } from '@/components/ImpersonationBanner';
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 15 }, (_, i) => String(currentYear - 10 + i));
@@ -167,7 +168,9 @@ const Onboarding = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background flex flex-col">
+      <ImpersonationBanner />
+      <div className="flex-1 flex items-center justify-center p-6">
       <div className="w-full max-w-lg animate-fade-in">
         <div className="flex items-center gap-2 mb-8">
           {steps.map((_, i) => (
@@ -212,6 +215,7 @@ const Onboarding = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );

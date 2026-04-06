@@ -196,7 +196,7 @@ export async function sendAdminNewSubscriptionEmail(to, payload) {
     const subject = 'Nueva suscripción de pago — ENARMX';
     const who = payload.displayName || payload.email;
     const text = [
-        'Un usuario activó o renovó acceso de pago (transición desde plan gratuito).',
+        'Un usuario pasó de plan gratuito a un plan de pago.',
         '',
         `Nombre: ${who}`,
         `Correo: ${payload.email}`,
@@ -210,7 +210,7 @@ export async function sendAdminNewSubscriptionEmail(to, payload) {
 <html>
 <head><meta charset="utf-8" /></head>
 <body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #111;">
-  <p><strong>Nueva suscripción de pago</strong> en ENARMX</p>
+  <p><strong>Nueva suscripción de pago</strong> en ENARMX (usuario pasó de gratuito a pago).</p>
   <ul>
     <li>Nombre: ${escapeHtml(who)}</li>
     <li>Correo: ${escapeHtml(payload.email)}</li>

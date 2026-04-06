@@ -1,11 +1,12 @@
 import { prisma } from '../config/database.js';
 export function requireRole(...roles) {
     return async (req, res, next) => {
-        if (!req.user?.id) {
+        const principalId = req.actor?.id;
+        if (!principalId) {
             res.status(401).json({ error: 'No autenticado' });
             return;
         }
-        const userRoles = await prisma.userRole.findMany({ where: { userId: req.user.id } });
+        const userRoles = await prisma.userRole.findMany({ where: { userId: principalId } });
         const hasRole = userRoles.some((ur) => roles.includes(ur.role));
         if (!hasRole) {
             res.status(403).json({ error: 'Sin permisos' });

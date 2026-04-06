@@ -27,10 +27,16 @@ import {
   adminPushSubscribeSchema,
   adminPushUnsubscribeSchema,
   adminPushPreferencesSchema,
+  backofficeImpersonateSchema,
 } from '../schemas/backoffice.schema.js';
 import { prisma } from '../config/database.js';
 import { PAID_TIERS, TIER_CHECKOUT, type PaidTier } from '../config/plans.js';
-import { createUserByAdmin } from '../services/auth.service.js';
+import {
+  assertImpersonableTargetUser,
+  createUserByAdmin,
+  publicUser,
+  setAuthCookies,
+} from '../services/auth.service.js';
 import { effectivePlanFromProfile } from '../services/profile.service.js';
 import { paginationMeta, paginationParams, totalPages } from '../utils/helpers.js';
 import { cacheService } from '../services/cache.service.js';
@@ -594,6 +600,28 @@ backofficeRouter.post(
   }
 );
 
+backofficeRouter.post(
+  '/impersonate',
+  requireAdmin(),
+  validateBody(backofficeImpersonateSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.actor) throw new Error('No autenticado');
+      const target = await assertImpersonableTargetUser(req.body.userId);
+      await setAuthCookies(res, req.actor.id, req.actor.email, target);
+      const u = await publicUser(target.userId);
+      if (!u) {
+        const err = new Error('Usuario no encontrado') as Error & { status: number };
+        err.status = 404;
+        throw err;
+      }
+      res.json({ data: { user: u } });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
 backofficeRouter.get(
   '/users',
   requireAdmin(),
@@ -1026,8 +1054,8 @@ backofficeRouter.patch(
   validateBody(examReviewSubmitSchema),
   async (req, res, next) => {
     try {
-      if (!req.user) throw new Error('No user');
-      const result = await submitMentorReview(paramString(req.params.examId), req.user.id, req.body);
+      if (!req.actor) throw new Error('No user');
+      const result = await submitMentorReview(paramString(req.params.examId), req.actor.id, req.body);
       res.json(result);
     } catch (e) {
       next(e);
@@ -1068,8 +1096,8 @@ backofficeRouter.get(
 
 backofficeRouter.get('/admin-push', requireAdmin(), async (req, res, next) => {
   try {
-    if (!req.user) throw new Error('No user');
-    const prefs = await getAdminPushPreferences(req.user.id);
+    if (!req.actor) throw new Error('No user');
+    const prefs = await getAdminPushPreferences(req.actor.id);
     res.json({
       data: {
         pushConfigured: isAdminPushConfigured(),
@@ -1092,12 +1120,12 @@ backofficeRouter.post(
   validateBody(adminPushSubscribeSchema),
   async (req, res, next) => {
     try {
-      if (!req.user) throw new Error('No user');
+      if (!req.actor) throw new Error('No user');
       if (!isAdminPushConfigured()) {
         res.status(503).json({ error: 'Web Push no está configurado en el servidor (VAPID)' });
         return;
       }
-      await subscribeAdminPush(req.user.id, req.body);
+      await subscribeAdminPush(req.actor.id, req.body);
       res.status(201).json({ data: { ok: true } });
     } catch (e) {
       next(e);
@@ -1111,8 +1139,8 @@ backofficeRouter.delete(
   validateBody(adminPushUnsubscribeSchema),
   async (req, res, next) => {
     try {
-      if (!req.user) throw new Error('No user');
-      await unsubscribeAdminPush(req.user.id, req.body.endpoint);
+      if (!req.actor) throw new Error('No user');
+      await unsubscribeAdminPush(req.actor.id, req.body.endpoint);
       res.json({ data: { ok: true } });
     } catch (e) {
       next(e);
@@ -1126,8 +1154,8 @@ backofficeRouter.patch(
   validateBody(adminPushPreferencesSchema),
   async (req, res, next) => {
     try {
-      if (!req.user) throw new Error('No user');
-      const updated = await updateAdminPushPreferences(req.user.id, {
+      if (!req.actor) throw new Error('No user');
+      const updated = await updateAdminPushPreferences(req.actor.id, {
         notifyNewUser: req.body.notifyNewUser,
         notifyNewSubscription: req.body.notifyNewSubscription,
         emailNotifyNewUser: req.body.emailNotifyNewUser,

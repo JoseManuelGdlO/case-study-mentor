@@ -23,6 +23,7 @@ import { apiJson } from '@/lib/api';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { ImpersonationBanner } from '@/components/ImpersonationBanner';
 import {
   buildPlatformUrl,
   buildPredictionShareText,
@@ -214,7 +215,9 @@ const Results = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background flex flex-col">
+      <ImpersonationBanner />
+      <div className="flex-1 p-6">
       <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
         <Card className="border-0 shadow-xl overflow-hidden">
           <div className="gradient-hero p-8 text-center text-white">
@@ -459,6 +462,7 @@ const Results = () => {
             <RotateCcw className="w-4 h-4" /> {isFreeTrialExhausted ? 'Suscribirme' : 'Nuevo examen'}
           </Button>
         </div>
+      </div>
       </div>
     </div>
   );

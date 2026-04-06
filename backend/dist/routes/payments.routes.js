@@ -2,9 +2,10 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import { PaymentProvider } from '@prisma/client';
-import { checkoutTierSchema, paypalCaptureSchema, paypalSubscriptionConfirmSchema, subscriptionCancelFeedbackSchema, } from '../schemas/payment.schema.js';
+import { checkoutTierSchema, paypalCaptureSchema, paypalSubscriptionConfirmSchema, subscriptionCancelFeedbackSchema, subscriptionCheckoutSchema, validatePromotionCodeBodySchema, } from '../schemas/payment.schema.js';
 import * as paypalBillingService from '../services/paypal-billing.service.js';
 import * as paymentService from '../services/payment.service.js';
+import { resolvePromotionCodeForCheckout, validatePromotionCodeForUser, } from '../services/promotion-code.service.js';
 export async function stripeWebhookHandler(req, res, next) {
     try {
         const sig = req.headers['stripe-signature'];
@@ -75,12 +76,25 @@ paymentsRouter.post('/stripe/checkout-session', authenticate, validateBody(check
         next(e);
     }
 });
-paymentsRouter.post('/stripe/subscription-checkout', authenticate, validateBody(checkoutTierSchema), async (req, res, next) => {
+paymentsRouter.post('/stripe/validate-promotion-code', authenticate, validateBody(validatePromotionCodeBodySchema), async (req, res, next) => {
     try {
         if (!req.user)
             throw new Error('No user');
-        const { tier } = req.body;
-        const { url } = await paymentService.createStripeSubscriptionCheckoutSession(req.user.id, tier);
+        const { code } = req.body;
+        const result = await validatePromotionCodeForUser(req.user.id, code);
+        res.json({ data: result });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+paymentsRouter.post('/stripe/subscription-checkout', authenticate, validateBody(subscriptionCheckoutSchema), async (req, res, next) => {
+    try {
+        if (!req.user)
+            throw new Error('No user');
+        const { tier, promotionCode } = req.body;
+        const promotion = await resolvePromotionCodeForCheckout(req.user.id, promotionCode);
+        const { url } = await paymentService.createStripeSubscriptionCheckoutSession(req.user.id, tier, promotion);
         res.json({ data: { url } });
     }
     catch (e) {

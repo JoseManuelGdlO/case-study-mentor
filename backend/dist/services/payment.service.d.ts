@@ -13,7 +13,10 @@ export declare function applyCompletedPayment(input: {
 export declare function createStripeCheckoutSession(userId: string, tier: PaidTier): Promise<{
     url: string;
 }>;
-export declare function createStripeSubscriptionCheckoutSession(userId: string, tier: PaidTier): Promise<{
+export declare function createStripeSubscriptionCheckoutSession(userId: string, tier: PaidTier, promotion?: {
+    stripePromotionCodeId: string;
+    promotionCodeId: string;
+} | null): Promise<{
     url: string;
 }>;
 export declare function recordSubscriptionCancellationFeedback(userId: string, provider: PaymentProvider, feedback: {

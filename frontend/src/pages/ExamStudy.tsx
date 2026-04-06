@@ -24,6 +24,7 @@ import type { Exam, ExamFlatQuestion } from '@/types';
 import { apiJson } from '@/lib/api';
 import { getUploadUrl } from '@/lib/api';
 import { toast } from 'sonner';
+import { ImpersonationBanner } from '@/components/ImpersonationBanner';
 
 type LocalAnswer = { selectedAnswer: string; revealed: boolean };
 
@@ -177,6 +178,7 @@ const ExamStudy = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <ImpersonationBanner />
       <div className="border-b border-border bg-card px-6 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="rounded-full">

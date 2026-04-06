@@ -93,6 +93,10 @@ export const backofficeUserCreateSchema = z.object({
   roles: z.array(z.enum(['admin', 'editor', 'user'])).min(1),
 });
 
+export const backofficeImpersonateSchema = z.object({
+  userId: z.string().uuid(),
+});
+
 export const backofficeUsersQuerySchema = z.object({
   search: z.string().optional(),
   role: z.enum(['admin', 'editor', 'user']).optional(),

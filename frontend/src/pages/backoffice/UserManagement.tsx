@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, UserPlus, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiJson } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import type { PaginatedResponse } from '@/types';
 
 type AppRole = 'admin' | 'editor' | 'user';
@@ -35,7 +37,13 @@ function rolesSignature(roles: AppRole[]): string {
   return [...roles].sort().join(',');
 }
 
+function canViewAsStudent(roles: AppRole[]): boolean {
+  return !roles.includes('admin') && !roles.includes('editor');
+}
+
 const UserManagement = () => {
+  const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const [users, setUsers] = useState<BackofficeUserRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [hasNext, setHasNext] = useState(false);
@@ -53,6 +61,7 @@ const UserManagement = () => {
   const [creating, setCreating] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, { email: string; role: AppRole }>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [viewAsId, setViewAsId] = useState<string | null>(null);
   const limit = 20;
 
   useEffect(() => {
@@ -125,6 +134,25 @@ const UserManagement = () => {
       toast.error(e instanceof Error ? e.message : 'Error al guardar');
     } finally {
       setSavingId(null);
+    }
+  };
+
+  const viewAsStudent = async (u: BackofficeUserRow) => {
+    if (!canViewAsStudent(u.roles)) return;
+    setViewAsId(u.id);
+    try {
+      await apiJson('/api/backoffice/impersonate', {
+        method: 'POST',
+        body: JSON.stringify({ userId: u.id }),
+      });
+      const next = await refreshUser();
+      if (next) {
+        navigate(next.onboardingDone ? '/dashboard' : '/onboarding');
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo iniciar la vista de estudiante');
+    } finally {
+      setViewAsId(null);
     }
   };
 
@@ -280,7 +308,7 @@ const UserManagement = () => {
                   <TableHead>Registro</TableHead>
                   <TableHead>Última actividad</TableHead>
                   <TableHead>Exámenes</TableHead>
-                  <TableHead className="w-[120px]">Acciones</TableHead>
+                  <TableHead className="w-[220px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -336,15 +364,31 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell className="text-center">{u.examsCompleted}</TableCell>
                     <TableCell>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        disabled={savingId === u.id}
-                        onClick={() => void saveUser(u)}
-                      >
-                        {savingId === u.id ? 'Guardando…' : 'Guardar'}
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        {canViewAsStudent(u.roles) && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                            disabled={viewAsId === u.id || savingId === u.id}
+                            onClick={() => void viewAsStudent(u)}
+                            title="Ver el portal como este estudiante"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            {viewAsId === u.id ? 'Abriendo…' : 'Ver como'}
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={savingId === u.id || viewAsId === u.id}
+                          onClick={() => void saveUser(u)}
+                        >
+                          {savingId === u.id ? 'Guardando…' : 'Guardar'}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

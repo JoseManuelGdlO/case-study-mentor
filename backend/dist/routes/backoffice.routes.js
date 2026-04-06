@@ -2,10 +2,10 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { requireAdmin, requireCaseEditor } from '../middleware/roles.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
-import { areaCreateSchema, backofficeUserCreateSchema, backofficeUsersQuerySchema, examDateCreateSchema, examDateUpdateSchema, flashcardCreateSchema, flashcardUpdateSchema, phraseCreateSchema, phraseUpdateSchema, planCreateSchema, planUpdateSchema, specialtyCreateSchema, specialtyUpdateSchema, userRoleUpdateSchema, backofficeUserUpdateSchema, examReviewsQuerySchema, examReviewSubmitSchema, adminPushSubscribeSchema, adminPushUnsubscribeSchema, adminPushPreferencesSchema, } from '../schemas/backoffice.schema.js';
+import { areaCreateSchema, backofficeUserCreateSchema, backofficeUsersQuerySchema, examDateCreateSchema, examDateUpdateSchema, flashcardCreateSchema, flashcardUpdateSchema, phraseCreateSchema, phraseUpdateSchema, planCreateSchema, planUpdateSchema, promotionCodeCreateSchema, promotionCodePatchSchema, promotionCodePutSchema, specialtyCreateSchema, specialtyUpdateSchema, userRoleUpdateSchema, backofficeUserUpdateSchema, examReviewsQuerySchema, examReviewSubmitSchema, adminPushSubscribeSchema, adminPushUnsubscribeSchema, adminPushPreferencesSchema, backofficeImpersonateSchema, } from '../schemas/backoffice.schema.js';
 import { prisma } from '../config/database.js';
 import { PAID_TIERS, TIER_CHECKOUT } from '../config/plans.js';
-import { createUserByAdmin } from '../services/auth.service.js';
+import { assertImpersonableTargetUser, createUserByAdmin, publicUser, setAuthCookies, } from '../services/auth.service.js';
 import { effectivePlanFromProfile } from '../services/profile.service.js';
 import { paginationMeta, paginationParams, totalPages } from '../utils/helpers.js';
 import { cacheService } from '../services/cache.service.js';
@@ -14,6 +14,7 @@ import { paramString } from '../utils/params.js';
 import { getMentorReviewExamDetail, listPendingMentorReviews, submitMentorReview, } from '../services/exam-review.service.js';
 import { getVapidPublicKey, isAdminPushConfigured, subscribeAdminPush, unsubscribeAdminPush, updateAdminPushPreferences, getAdminPushPreferences, } from '../services/admin-push.service.js';
 import { isSmtpConfigured } from '../services/email.service.js';
+import { createPromotionCode, deletePromotionCode, listPromotionCodes, setPromotionCodeActive, updatePromotionCode, } from '../services/promotion-code.service.js';
 export const backofficeRouter = Router();
 backofficeRouter.use(authenticate);
 /* --- Specialties (editores: listar y crear especialidades/áreas; solo admin: editar/eliminar) --- */
@@ -367,11 +368,91 @@ backofficeRouter.delete('/pricing/:id', requireAdmin(), async (req, res, next) =
         next(e);
     }
 });
+/* --- Códigos de promoción (Stripe, primer periodo) --- */
+backofficeRouter.get('/promotion-codes', requireAdmin(), async (_req, res, next) => {
+    try {
+        const data = await listPromotionCodes();
+        res.json({ data });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.post('/promotion-codes', requireAdmin(), validateBody(promotionCodeCreateSchema), async (req, res, next) => {
+    try {
+        const body = req.body;
+        const row = await createPromotionCode({
+            code: body.code,
+            percentOff: body.percentOff,
+            maxRedemptions: body.maxRedemptions ?? null,
+            validFrom: body.validFrom ? new Date(body.validFrom) : null,
+            validUntil: body.validUntil ? new Date(body.validUntil) : null,
+        });
+        res.status(201).json({ data: row });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.patch('/promotion-codes/:id', requireAdmin(), validateBody(promotionCodePatchSchema), async (req, res, next) => {
+    try {
+        const { isActive } = req.body;
+        const row = await setPromotionCodeActive(paramString(req.params.id), isActive);
+        res.json({ data: row });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.put('/promotion-codes/:id', requireAdmin(), validateBody(promotionCodePutSchema), async (req, res, next) => {
+    try {
+        const body = req.body;
+        const row = await updatePromotionCode(paramString(req.params.id), {
+            code: body.code,
+            percentOff: body.percentOff,
+            maxRedemptions: body.maxRedemptions ?? null,
+            validFrom: body.validFrom ? new Date(body.validFrom) : null,
+            validUntil: body.validUntil ? new Date(body.validUntil) : null,
+            isActive: body.isActive,
+        });
+        res.json({ data: row });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.delete('/promotion-codes/:id', requireAdmin(), async (req, res, next) => {
+    try {
+        await deletePromotionCode(paramString(req.params.id));
+        res.json({ data: { ok: true } });
+    }
+    catch (e) {
+        next(e);
+    }
+});
 /* --- Users --- */
 backofficeRouter.post('/users', requireAdmin(), validateBody(backofficeUserCreateSchema), async (req, res, next) => {
     try {
         const result = await createUserByAdmin(req.body);
         res.status(201).json(result);
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.post('/impersonate', requireAdmin(), validateBody(backofficeImpersonateSchema), async (req, res, next) => {
+    try {
+        if (!req.actor)
+            throw new Error('No autenticado');
+        const target = await assertImpersonableTargetUser(req.body.userId);
+        await setAuthCookies(res, req.actor.id, req.actor.email, target);
+        const u = await publicUser(target.userId);
+        if (!u) {
+            const err = new Error('Usuario no encontrado');
+            err.status = 404;
+            throw err;
+        }
+        res.json({ data: { user: u } });
     }
     catch (e) {
         next(e);
@@ -531,7 +612,7 @@ backofficeRouter.get('/stats', requireAdmin(), async (_req, res, next) => {
             prisma.profile.count(),
             prisma.exam.count(),
             prisma.clinicalCase.count(),
-            prisma.question.count(),
+            prisma.question.count({ where: { deletedAt: null } }),
             prisma.clinicalCase.count({ where: { status: 'published' } }),
             prisma.specialty.findMany({
                 select: {
@@ -742,9 +823,9 @@ backofficeRouter.get('/exam-reviews/:examId', requireCaseEditor(), async (req, r
 });
 backofficeRouter.patch('/exam-reviews/:examId', requireCaseEditor(), validateBody(examReviewSubmitSchema), async (req, res, next) => {
     try {
-        if (!req.user)
+        if (!req.actor)
             throw new Error('No user');
-        const result = await submitMentorReview(paramString(req.params.examId), req.user.id, req.body);
+        const result = await submitMentorReview(paramString(req.params.examId), req.actor.id, req.body);
         res.json(result);
     }
     catch (e) {
@@ -780,9 +861,9 @@ backofficeRouter.get('/subscription-cancellation-feedback', requireAdmin(), asyn
 });
 backofficeRouter.get('/admin-push', requireAdmin(), async (req, res, next) => {
     try {
-        if (!req.user)
+        if (!req.actor)
             throw new Error('No user');
-        const prefs = await getAdminPushPreferences(req.user.id);
+        const prefs = await getAdminPushPreferences(req.actor.id);
         res.json({
             data: {
                 pushConfigured: isAdminPushConfigured(),
@@ -801,13 +882,13 @@ backofficeRouter.get('/admin-push', requireAdmin(), async (req, res, next) => {
 });
 backofficeRouter.post('/admin-push/subscription', requireAdmin(), validateBody(adminPushSubscribeSchema), async (req, res, next) => {
     try {
-        if (!req.user)
+        if (!req.actor)
             throw new Error('No user');
         if (!isAdminPushConfigured()) {
             res.status(503).json({ error: 'Web Push no está configurado en el servidor (VAPID)' });
             return;
         }
-        await subscribeAdminPush(req.user.id, req.body);
+        await subscribeAdminPush(req.actor.id, req.body);
         res.status(201).json({ data: { ok: true } });
     }
     catch (e) {
@@ -816,9 +897,9 @@ backofficeRouter.post('/admin-push/subscription', requireAdmin(), validateBody(a
 });
 backofficeRouter.delete('/admin-push/subscription', requireAdmin(), validateBody(adminPushUnsubscribeSchema), async (req, res, next) => {
     try {
-        if (!req.user)
+        if (!req.actor)
             throw new Error('No user');
-        await unsubscribeAdminPush(req.user.id, req.body.endpoint);
+        await unsubscribeAdminPush(req.actor.id, req.body.endpoint);
         res.json({ data: { ok: true } });
     }
     catch (e) {
@@ -827,9 +908,9 @@ backofficeRouter.delete('/admin-push/subscription', requireAdmin(), validateBody
 });
 backofficeRouter.patch('/admin-push/preferences', requireAdmin(), validateBody(adminPushPreferencesSchema), async (req, res, next) => {
     try {
-        if (!req.user)
+        if (!req.actor)
             throw new Error('No user');
-        const updated = await updateAdminPushPreferences(req.user.id, {
+        const updated = await updateAdminPushPreferences(req.actor.id, {
             notifyNewUser: req.body.notifyNewUser,
             notifyNewSubscription: req.body.notifyNewSubscription,
             emailNotifyNewUser: req.body.emailNotifyNewUser,

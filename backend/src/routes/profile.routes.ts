@@ -8,8 +8,18 @@ export const profileRouter = Router();
 
 profileRouter.get('/', authenticate, async (req, res, next) => {
   try {
-    if (!req.user) throw new Error('No user');
+    if (!req.user || !req.actor) throw new Error('No user');
     const result = await profileService.getProfile(req.user.id);
+    if (req.actor.id !== req.user.id) {
+      res.json({
+        ...result,
+        data: {
+          ...result.data,
+          impersonation: { actorEmail: req.actor.email },
+        },
+      });
+      return;
+    }
     res.json(result);
   } catch (e) {
     next(e);
@@ -22,7 +32,11 @@ profileRouter.put(
   validateBody(profileUpdateSchema),
   async (req, res, next) => {
     try {
-      if (!req.user) throw new Error('No user');
+      if (!req.user || !req.actor) throw new Error('No user');
+      if (req.actor.id !== req.user.id) {
+        res.status(403).json({ error: 'No puedes editar el perfil en modo vista' });
+        return;
+      }
       const result = await profileService.updateProfile(req.user.id, req.body);
       res.json(result);
     } catch (e) {
@@ -37,7 +51,11 @@ profileRouter.post(
   validateBody(changePasswordSchema),
   async (req, res, next) => {
     try {
-      if (!req.user) throw new Error('No user');
+      if (!req.user || !req.actor) throw new Error('No user');
+      if (req.actor.id !== req.user.id) {
+        res.status(403).json({ error: 'No puedes cambiar la contraseña en modo vista' });
+        return;
+      }
       const { currentPassword, newPassword } = req.body;
       const result = await profileService.changePassword(req.user.id, {
         currentPassword,
@@ -52,7 +70,11 @@ profileRouter.post(
 
 profileRouter.put('/onboarding', authenticate, async (req, res, next) => {
   try {
-    if (!req.user) throw new Error('No user');
+    if (!req.user || !req.actor) throw new Error('No user');
+    if (req.actor.id !== req.user.id) {
+      res.status(403).json({ error: 'No puedes completar el onboarding en modo vista' });
+      return;
+    }
     const result = await profileService.completeOnboarding(req.user.id);
     res.json(result);
   } catch (e) {

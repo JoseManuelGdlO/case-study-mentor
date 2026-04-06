@@ -144,7 +144,7 @@ export async function createStripeCheckoutSession(userId, tier) {
         throw serviceError('Stripe no devolvió URL de checkout', 502);
     return { url: session.url };
 }
-export async function createStripeSubscriptionCheckoutSession(userId, tier) {
+export async function createStripeSubscriptionCheckoutSession(userId, tier, promotion) {
     const stripe = getStripe();
     const plan = await getActiveSubscriptionPlanForTier(tier);
     const base = requirePublicFrontendBaseUrlForPayments();
@@ -157,6 +157,11 @@ export async function createStripeSubscriptionCheckoutSession(userId, tier) {
     if (profile.paypalSubscriptionId) {
         throw serviceError('Ya tienes una suscripción con PayPal. Cancélala antes de usar Stripe.', 409);
     }
+    const metaBase = {
+        userId,
+        tier,
+        ...(promotion ? { promotionCodeId: promotion.promotionCodeId } : {}),
+    };
     const sessionParams = {
         mode: 'subscription',
         payment_method_types: ['card'],
@@ -177,11 +182,14 @@ export async function createStripeSubscriptionCheckoutSession(userId, tier) {
         success_url: `${base}/dashboard/subscription?paid=stripe&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${base}/dashboard/subscription?canceled=stripe`,
         client_reference_id: userId,
-        metadata: { userId, tier },
+        metadata: metaBase,
         subscription_data: {
-            metadata: { userId, tier },
+            metadata: metaBase,
         },
     };
+    if (promotion) {
+        sessionParams.discounts = [{ promotion_code: promotion.stripePromotionCodeId }];
+    }
     if (profile.stripeCustomerId) {
         sessionParams.customer = profile.stripeCustomerId;
     }

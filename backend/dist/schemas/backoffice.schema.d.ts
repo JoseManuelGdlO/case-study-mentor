@@ -174,6 +174,56 @@ export declare const planUpdateSchema: z.ZodObject<{
     highlighted?: boolean | undefined;
     paypalPlanId?: string | undefined;
 }>;
+export declare const promotionCodeCreateSchema: z.ZodObject<{
+    code: z.ZodString;
+    percentOff: z.ZodNumber;
+    maxRedemptions: z.ZodNullable<z.ZodOptional<z.ZodNumber>>;
+    validFrom: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    validUntil: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+}, "strip", z.ZodTypeAny, {
+    code: string;
+    percentOff: number;
+    maxRedemptions?: number | null | undefined;
+    validFrom?: string | null | undefined;
+    validUntil?: string | null | undefined;
+}, {
+    code: string;
+    percentOff: number;
+    maxRedemptions?: number | null | undefined;
+    validFrom?: string | null | undefined;
+    validUntil?: string | null | undefined;
+}>;
+export declare const promotionCodePatchSchema: z.ZodObject<{
+    isActive: z.ZodBoolean;
+}, "strip", z.ZodTypeAny, {
+    isActive: boolean;
+}, {
+    isActive: boolean;
+}>;
+/** Edición completa (mismos campos que crear + activo opcional). */
+export declare const promotionCodePutSchema: z.ZodObject<{
+    code: z.ZodString;
+    percentOff: z.ZodNumber;
+    maxRedemptions: z.ZodNullable<z.ZodOptional<z.ZodNumber>>;
+    validFrom: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    validUntil: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+} & {
+    isActive: z.ZodOptional<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    code: string;
+    percentOff: number;
+    isActive?: boolean | undefined;
+    maxRedemptions?: number | null | undefined;
+    validFrom?: string | null | undefined;
+    validUntil?: string | null | undefined;
+}, {
+    code: string;
+    percentOff: number;
+    isActive?: boolean | undefined;
+    maxRedemptions?: number | null | undefined;
+    validFrom?: string | null | undefined;
+    validUntil?: string | null | undefined;
+}>;
 export declare const userRoleUpdateSchema: z.ZodObject<{
     roles: z.ZodArray<z.ZodEnum<["admin", "editor", "user"]>, "many">;
 }, "strip", z.ZodTypeAny, {
@@ -216,6 +266,13 @@ export declare const backofficeUserCreateSchema: z.ZodObject<{
     firstName: string;
     lastName: string;
     roles: ("admin" | "editor" | "user")[];
+}>;
+export declare const backofficeImpersonateSchema: z.ZodObject<{
+    userId: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    userId: string;
+}, {
+    userId: string;
 }>;
 export declare const backofficeUsersQuerySchema: z.ZodObject<{
     search: z.ZodOptional<z.ZodString>;

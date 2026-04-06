@@ -42,6 +42,20 @@ export const planCreateSchema = z.object({
     paypalPlanId: z.string().min(1).optional(),
 });
 export const planUpdateSchema = planCreateSchema.partial();
+export const promotionCodeCreateSchema = z.object({
+    code: z.string().min(1),
+    percentOff: z.number().int().min(1).max(100),
+    maxRedemptions: z.number().int().positive().optional().nullable(),
+    validFrom: z.string().datetime().optional().nullable(),
+    validUntil: z.string().datetime().optional().nullable(),
+});
+export const promotionCodePatchSchema = z.object({
+    isActive: z.boolean(),
+});
+/** Edición completa (mismos campos que crear + activo opcional). */
+export const promotionCodePutSchema = promotionCodeCreateSchema.extend({
+    isActive: z.boolean().optional(),
+});
 export const userRoleUpdateSchema = z.object({
     roles: z.array(z.enum(['admin', 'editor', 'user'])).min(1),
 });
@@ -60,6 +74,9 @@ export const backofficeUserCreateSchema = z.object({
     firstName: z.string().min(1),
     lastName: z.string().min(1),
     roles: z.array(z.enum(['admin', 'editor', 'user'])).min(1),
+});
+export const backofficeImpersonateSchema = z.object({
+    userId: z.string().uuid(),
 });
 export const backofficeUsersQuerySchema = z.object({
     search: z.string().optional(),
