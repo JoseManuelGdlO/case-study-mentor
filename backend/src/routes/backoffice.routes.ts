@@ -1,4 +1,6 @@
+import { timingSafeEqual } from 'node:crypto';
 import { Router } from 'express';
+import type { SubscriptionTier } from '@prisma/client';
 import type { z } from 'zod';
 import { authenticate } from '../middleware/auth.js';
 import { requireAdmin, requireCaseEditor } from '../middleware/roles.js';
@@ -30,6 +32,7 @@ import {
   backofficeImpersonateSchema,
 } from '../schemas/backoffice.schema.js';
 import { prisma } from '../config/database.js';
+import { env } from '../config/env.js';
 import { PAID_TIERS, TIER_CHECKOUT, type PaidTier } from '../config/plans.js';
 import {
   assertImpersonableTargetUser,
@@ -38,6 +41,7 @@ import {
   setAuthCookies,
 } from '../services/auth.service.js';
 import { effectivePlanFromProfile } from '../services/profile.service.js';
+import { getActiveSubscriptionPlanForTier } from '../services/subscription-plan.service.js';
 import { paginationMeta, paginationParams, totalPages } from '../utils/helpers.js';
 import { cacheService } from '../services/cache.service.js';
 import { invalidateSpecialtyCache } from '../services/specialty.service.js';
@@ -692,6 +696,12 @@ backofficeRouter.get(
   }
 );
 
+function adminPlanChangePasswordMatches(input: string | undefined, expected: string): boolean {
+  const a = input ?? '';
+  if (a.length !== expected.length) return false;
+  return timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(expected, 'utf8'));
+}
+
 backofficeRouter.patch(
   '/users/:id',
   requireAdmin(),
@@ -699,7 +709,12 @@ backofficeRouter.patch(
   async (req, res, next) => {
     try {
       const userId = paramString(req.params.id);
-      const body = req.body as { email?: string; roles?: ('admin' | 'editor' | 'user')[] };
+      const body = req.body as {
+        email?: string;
+        roles?: ('admin' | 'editor' | 'user')[];
+        subscriptionTier?: 'free' | 'monthly' | 'semester' | 'annual';
+        confirmationPassword?: string;
+      };
       const profile = await prisma.profile.findUnique({
         where: { id: userId },
         include: { roles: true },
@@ -708,6 +723,27 @@ backofficeRouter.patch(
         const err = new Error('Usuario no encontrado') as Error & { status: number };
         err.status = 404;
         throw err;
+      }
+
+      const effective = effectivePlanFromProfile(profile);
+      const requestedTier = body.subscriptionTier;
+      const planChangeRequested =
+        requestedTier !== undefined && requestedTier !== effective.plan;
+
+      if (planChangeRequested) {
+        const pwd = body.confirmationPassword;
+        if (pwd === undefined || pwd.length === 0) {
+          const err = new Error(
+            'Se requiere la contraseña de confirmación para cambiar el plan del usuario'
+          ) as Error & { status: number };
+          err.status = 400;
+          throw err;
+        }
+        if (!adminPlanChangePasswordMatches(pwd, env.ADMIN_PLAN_CHANGE_PASSWORD)) {
+          const err = new Error('Contraseña de confirmación incorrecta') as Error & { status: number };
+          err.status = 403;
+          throw err;
+        }
       }
 
       const newEmail = body.email?.trim();
@@ -734,11 +770,41 @@ backofficeRouter.patch(
       const nextRolesSorted =
         roleList !== undefined ? [...new Set(roleList)].sort().join(',') : prevRolesSorted;
 
+      let subscriptionTier: SubscriptionTier | undefined;
+      let subscriptionExpiresAt: Date | null | undefined;
+      if (planChangeRequested && requestedTier !== undefined) {
+        if (requestedTier === 'free') {
+          subscriptionTier = 'free';
+          subscriptionExpiresAt = null;
+        } else {
+          const pricePlan = await getActiveSubscriptionPlanForTier(requestedTier as PaidTier);
+          const now = new Date();
+          const base =
+            profile.subscriptionExpiresAt && profile.subscriptionExpiresAt > now
+              ? profile.subscriptionExpiresAt
+              : now;
+          subscriptionExpiresAt = new Date(base.getTime() + pricePlan.duration * 86_400_000);
+          subscriptionTier = requestedTier as SubscriptionTier;
+        }
+      }
+
       await prisma.$transaction(async (tx) => {
+        const profilePatch: {
+          email?: string;
+          subscriptionTier?: SubscriptionTier;
+          subscriptionExpiresAt?: Date | null;
+        } = {};
         if (newEmail !== undefined && newEmail !== profile.email) {
+          profilePatch.email = newEmail;
+        }
+        if (planChangeRequested && subscriptionTier !== undefined) {
+          profilePatch.subscriptionTier = subscriptionTier;
+          profilePatch.subscriptionExpiresAt = subscriptionExpiresAt ?? null;
+        }
+        if (Object.keys(profilePatch).length > 0) {
           await tx.profile.update({
             where: { id: userId },
-            data: { email: newEmail },
+            data: profilePatch,
           });
         }
         if (roleList !== undefined && prevRolesSorted !== nextRolesSorted) {
@@ -758,6 +824,7 @@ backofficeRouter.patch(
           id: p?.id,
           email: p?.email,
           roles: p?.roles?.map((r) => r.role) ?? [],
+          plan: p ? effectivePlanFromProfile(p).plan : undefined,
         },
       });
     } catch (e) {

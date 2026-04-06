@@ -6,6 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Search, ChevronLeft, ChevronRight, UserPlus, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiJson } from '@/lib/api';
@@ -20,13 +28,20 @@ function primaryRole(roles: AppRole[]): AppRole {
   return 'user';
 }
 
+type UserPlan = 'free' | 'monthly' | 'semester' | 'annual';
+
+function normalizeUserPlan(p: string): UserPlan {
+  if (p === 'free' || p === 'monthly' || p === 'semester' || p === 'annual') return p;
+  return 'free';
+}
+
 type BackofficeUserRow = {
   id: string;
   name: string;
   email: string;
   authProvider: 'email' | 'google';
   roles: AppRole[];
-  plan: string;
+  plan: UserPlan;
   status: string;
   registeredAt: string;
   lastAccess: string;
@@ -59,9 +74,13 @@ const UserManagement = () => {
   const [createLastName, setCreateLastName] = useState('');
   const [createRole, setCreateRole] = useState<AppRole>('user');
   const [creating, setCreating] = useState(false);
-  const [drafts, setDrafts] = useState<Record<string, { email: string; role: AppRole }>>({});
+  const [drafts, setDrafts] = useState<
+    Record<string, { email: string; role: AppRole; plan: UserPlan }>
+  >({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [viewAsId, setViewAsId] = useState<string | null>(null);
+  const [planConfirmUser, setPlanConfirmUser] = useState<BackofficeUserRow | null>(null);
+  const [planConfirmPassword, setPlanConfirmPassword] = useState('');
   const limit = 20;
 
   useEffect(() => {
@@ -101,11 +120,16 @@ const UserManagement = () => {
 
   useEffect(() => {
     setDrafts(
-      Object.fromEntries(users.map((u) => [u.id, { email: u.email, role: primaryRole(u.roles) }]))
+      Object.fromEntries(
+        users.map((u) => [
+          u.id,
+          { email: u.email, role: primaryRole(u.roles), plan: normalizeUserPlan(u.plan) },
+        ])
+      )
     );
   }, [users]);
 
-  const saveUser = async (u: BackofficeUserRow) => {
+  const commitSave = async (u: BackofficeUserRow, planPassword?: string) => {
     const d = drafts[u.id];
     if (!d) return;
     const emailTrim = d.email.trim();
@@ -115,13 +139,23 @@ const UserManagement = () => {
     }
     const emailChanged = u.authProvider === 'email' && emailTrim !== u.email;
     const rolesChanged = rolesSignature(u.roles) !== rolesSignature([d.role]);
-    if (!emailChanged && !rolesChanged) {
+    const planChanged = d.plan !== normalizeUserPlan(u.plan);
+    if (!emailChanged && !rolesChanged && !planChanged) {
       toast.info('Sin cambios');
       return;
     }
-    const payload: { email?: string; roles?: AppRole[] } = {};
+    const payload: {
+      email?: string;
+      roles?: AppRole[];
+      subscriptionTier?: UserPlan;
+      confirmationPassword?: string;
+    } = {};
     if (emailChanged) payload.email = emailTrim;
     if (rolesChanged) payload.roles = [d.role];
+    if (planChanged) {
+      payload.subscriptionTier = d.plan;
+      if (planPassword !== undefined) payload.confirmationPassword = planPassword;
+    }
     setSavingId(u.id);
     try {
       await apiJson(`/api/backoffice/users/${u.id}`, {
@@ -129,12 +163,42 @@ const UserManagement = () => {
         body: JSON.stringify(payload),
       });
       toast.success('Usuario actualizado');
+      setPlanConfirmUser(null);
+      setPlanConfirmPassword('');
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Error al guardar');
     } finally {
       setSavingId(null);
     }
+  };
+
+  const saveUser = (u: BackofficeUserRow) => {
+    const d = drafts[u.id];
+    if (!d) return;
+    const emailTrim = d.email.trim();
+    if (!emailTrim) {
+      toast.error('El correo no puede estar vacío');
+      return;
+    }
+    const emailChanged = u.authProvider === 'email' && emailTrim !== u.email;
+    const rolesChanged = rolesSignature(u.roles) !== rolesSignature([d.role]);
+    const planChanged = d.plan !== normalizeUserPlan(u.plan);
+    if (!emailChanged && !rolesChanged && !planChanged) {
+      toast.info('Sin cambios');
+      return;
+    }
+    if (planChanged) {
+      setPlanConfirmUser(u);
+      setPlanConfirmPassword('');
+      return;
+    }
+    void commitSave(u);
+  };
+
+  const confirmPlanSave = () => {
+    if (!planConfirmUser) return;
+    void commitSave(planConfirmUser, planConfirmPassword);
   };
 
   const viewAsStudent = async (u: BackofficeUserRow) => {
@@ -196,7 +260,10 @@ const UserManagement = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Gestión de Usuarios</h1>
-        <p className="text-muted-foreground">Lista de perfiles y asignación de roles (admin / editor / estudiante)</p>
+        <p className="text-muted-foreground">
+          Lista de perfiles, roles (admin / editor / estudiante) y plan de suscripción. El cambio de plan
+          requiere contraseña de confirmación.
+        </p>
       </div>
 
       <Card>
@@ -328,7 +395,11 @@ const UserManagement = () => {
                         }
                         onChange={(e) =>
                           setDrafts((prev) => {
-                            const cur = prev[u.id] ?? { email: u.email, role: primaryRole(u.roles) };
+                            const cur = prev[u.id] ?? {
+                              email: u.email,
+                              role: primaryRole(u.roles),
+                              plan: normalizeUserPlan(u.plan),
+                            };
                             return { ...prev, [u.id]: { ...cur, email: e.target.value } };
                           })
                         }
@@ -340,7 +411,11 @@ const UserManagement = () => {
                         value={drafts[u.id]?.role ?? primaryRole(u.roles)}
                         onValueChange={(v) =>
                           setDrafts((prev) => {
-                            const cur = prev[u.id] ?? { email: u.email, role: primaryRole(u.roles) };
+                            const cur = prev[u.id] ?? {
+                              email: u.email,
+                              role: primaryRole(u.roles),
+                              plan: normalizeUserPlan(u.plan),
+                            };
                             return { ...prev, [u.id]: { ...cur, role: v as AppRole } };
                           })
                         }
@@ -355,7 +430,31 @@ const UserManagement = () => {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell className="text-sm capitalize">{u.plan}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={drafts[u.id]?.plan ?? normalizeUserPlan(u.plan)}
+                        onValueChange={(v) =>
+                          setDrafts((prev) => {
+                            const cur = prev[u.id] ?? {
+                              email: u.email,
+                              role: primaryRole(u.roles),
+                              plan: normalizeUserPlan(u.plan),
+                            };
+                            return { ...prev, [u.id]: { ...cur, plan: v as UserPlan } };
+                          })
+                        }
+                      >
+                        <SelectTrigger className="w-[140px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free">Gratis</SelectItem>
+                          <SelectItem value="monthly">Mensual</SelectItem>
+                          <SelectItem value="semester">Semestral</SelectItem>
+                          <SelectItem value="annual">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(u.registeredAt).toLocaleDateString('es-MX')}
                     </TableCell>
@@ -383,8 +482,10 @@ const UserManagement = () => {
                           type="button"
                           size="sm"
                           variant="secondary"
-                          disabled={savingId === u.id || viewAsId === u.id}
-                          onClick={() => void saveUser(u)}
+                          disabled={
+                            savingId === u.id || viewAsId === u.id || planConfirmUser?.id === u.id
+                          }
+                          onClick={() => saveUser(u)}
                         >
                           {savingId === u.id ? 'Guardando…' : 'Guardar'}
                         </Button>
@@ -411,6 +512,64 @@ const UserManagement = () => {
           </Button>
         </div>
       )}
+
+      <Dialog
+        open={planConfirmUser !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPlanConfirmUser(null);
+            setPlanConfirmPassword('');
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar cambio de plan</DialogTitle>
+            <DialogDescription>
+              Introduce la contraseña de confirmación del backoffice para aplicar el nuevo plan al usuario.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="plan-confirm-pwd">Contraseña de confirmación</Label>
+            <Input
+              id="plan-confirm-pwd"
+              type="password"
+              autoComplete="off"
+              value={planConfirmPassword}
+              onChange={(e) => setPlanConfirmPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  confirmPlanSave();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setPlanConfirmUser(null);
+                setPlanConfirmPassword('');
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="gradient-primary border-0"
+              disabled={
+                !planConfirmPassword ||
+                (planConfirmUser !== null && savingId === planConfirmUser.id)
+              }
+              onClick={() => confirmPlanSave()}
+            >
+              {planConfirmUser !== null && savingId === planConfirmUser.id ? 'Guardando…' : 'Confirmar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

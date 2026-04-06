@@ -66,6 +66,14 @@ const envSchema = z.object({
   VAPID_PRIVATE_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   /** Ej.: mailto:soporte@tudominio.com */
   VAPID_SUBJECT: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  /**
+   * Confirmación al cambiar el plan de un usuario desde el backoffice.
+   * Por defecto `admin123` para desarrollo; en producción define un valor fuerte en `.env`.
+   */
+  ADMIN_PLAN_CHANGE_PASSWORD: z.preprocess(
+    (v) => (v === '' || v === undefined ? 'admin123' : String(v)),
+    z.string().min(1)
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;

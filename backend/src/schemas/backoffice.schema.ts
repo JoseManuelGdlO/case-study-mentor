@@ -75,14 +75,16 @@ export const userRoleUpdateSchema = z.object({
   roles: z.array(z.enum(['admin', 'editor', 'user'])).min(1),
 });
 
-/** Admin: actualizar correo y/o rol(es). Al menos uno de los dos. */
+/** Admin: actualizar correo, rol(es) y/o plan de suscripción. Al menos uno. */
 export const backofficeUserUpdateSchema = z
   .object({
     email: z.string().email().optional(),
     roles: z.array(z.enum(['admin', 'editor', 'user'])).min(1).optional(),
+    subscriptionTier: z.enum(['free', 'monthly', 'semester', 'annual']).optional(),
+    confirmationPassword: z.string().optional(),
   })
-  .refine((d) => d.email !== undefined || d.roles !== undefined, {
-    message: 'Debe enviar email o roles',
+  .refine((d) => d.email !== undefined || d.roles !== undefined || d.subscriptionTier !== undefined, {
+    message: 'Debe enviar email, roles o subscriptionTier',
   });
 
 export const backofficeUserCreateSchema = z.object({
