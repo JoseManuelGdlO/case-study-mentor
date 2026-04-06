@@ -231,22 +231,32 @@ export declare const userRoleUpdateSchema: z.ZodObject<{
 }, {
     roles: ("admin" | "editor" | "user")[];
 }>;
-/** Admin: actualizar correo y/o rol(es). Al menos uno de los dos. */
+/** Admin: actualizar correo, rol(es) y/o plan de suscripción. Al menos uno. */
 export declare const backofficeUserUpdateSchema: z.ZodEffects<z.ZodObject<{
     email: z.ZodOptional<z.ZodString>;
     roles: z.ZodOptional<z.ZodArray<z.ZodEnum<["admin", "editor", "user"]>, "many">>;
+    subscriptionTier: z.ZodOptional<z.ZodEnum<["free", "monthly", "semester", "annual"]>>;
+    confirmationPassword: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     email?: string | undefined;
+    subscriptionTier?: "free" | "monthly" | "semester" | "annual" | undefined;
     roles?: ("admin" | "editor" | "user")[] | undefined;
+    confirmationPassword?: string | undefined;
 }, {
     email?: string | undefined;
+    subscriptionTier?: "free" | "monthly" | "semester" | "annual" | undefined;
     roles?: ("admin" | "editor" | "user")[] | undefined;
+    confirmationPassword?: string | undefined;
 }>, {
     email?: string | undefined;
+    subscriptionTier?: "free" | "monthly" | "semester" | "annual" | undefined;
     roles?: ("admin" | "editor" | "user")[] | undefined;
+    confirmationPassword?: string | undefined;
 }, {
     email?: string | undefined;
+    subscriptionTier?: "free" | "monthly" | "semester" | "annual" | undefined;
     roles?: ("admin" | "editor" | "user")[] | undefined;
+    confirmationPassword?: string | undefined;
 }>;
 export declare const backofficeUserCreateSchema: z.ZodObject<{
     email: z.ZodString;

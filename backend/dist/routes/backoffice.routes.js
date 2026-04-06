@@ -1,12 +1,15 @@
+import { timingSafeEqual } from 'node:crypto';
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { requireAdmin, requireCaseEditor } from '../middleware/roles.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { areaCreateSchema, backofficeUserCreateSchema, backofficeUsersQuerySchema, examDateCreateSchema, examDateUpdateSchema, flashcardCreateSchema, flashcardUpdateSchema, phraseCreateSchema, phraseUpdateSchema, planCreateSchema, planUpdateSchema, promotionCodeCreateSchema, promotionCodePatchSchema, promotionCodePutSchema, specialtyCreateSchema, specialtyUpdateSchema, userRoleUpdateSchema, backofficeUserUpdateSchema, examReviewsQuerySchema, examReviewSubmitSchema, adminPushSubscribeSchema, adminPushUnsubscribeSchema, adminPushPreferencesSchema, backofficeImpersonateSchema, } from '../schemas/backoffice.schema.js';
 import { prisma } from '../config/database.js';
+import { env } from '../config/env.js';
 import { PAID_TIERS, TIER_CHECKOUT } from '../config/plans.js';
 import { assertImpersonableTargetUser, createUserByAdmin, publicUser, setAuthCookies, } from '../services/auth.service.js';
 import { effectivePlanFromProfile } from '../services/profile.service.js';
+import { getActiveSubscriptionPlanForTier } from '../services/subscription-plan.service.js';
 import { paginationMeta, paginationParams, totalPages } from '../utils/helpers.js';
 import { cacheService } from '../services/cache.service.js';
 import { invalidateSpecialtyCache } from '../services/specialty.service.js';
@@ -499,6 +502,15 @@ backofficeRouter.get('/users', requireAdmin(), validateQuery(backofficeUsersQuer
                 },
             }),
         ]);
+        const profileIds = profiles.map((p) => p.id);
+        const completedByUser = profileIds.length > 0
+            ? await prisma.exam.groupBy({
+                by: ['userId'],
+                where: { userId: { in: profileIds }, status: 'completed' },
+                _count: { _all: true },
+            })
+            : [];
+        const examsCompletedMap = new Map(completedByUser.map((r) => [r.userId, r._count._all]));
         const data = profiles.map((p) => ({
             id: p.id,
             name: `${p.firstName} ${p.lastName}`.trim(),
@@ -509,7 +521,7 @@ backofficeRouter.get('/users', requireAdmin(), validateQuery(backofficeUsersQuer
             status: 'active',
             registeredAt: p.createdAt.toISOString(),
             lastAccess: p.updatedAt.toISOString(),
-            examsCompleted: 0,
+            examsCompleted: examsCompletedMap.get(p.id) ?? 0,
         }));
         const meta = paginationMeta(total, page, limit);
         res.json({ data, total, page, totalPages: meta.totalPages, meta });
@@ -518,6 +530,12 @@ backofficeRouter.get('/users', requireAdmin(), validateQuery(backofficeUsersQuer
         next(e);
     }
 });
+function adminPlanChangePasswordMatches(input, expected) {
+    const a = input ?? '';
+    if (a.length !== expected.length)
+        return false;
+    return timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(expected, 'utf8'));
+}
 backofficeRouter.patch('/users/:id', requireAdmin(), validateBody(backofficeUserUpdateSchema), async (req, res, next) => {
     try {
         const userId = paramString(req.params.id);
@@ -530,6 +548,22 @@ backofficeRouter.patch('/users/:id', requireAdmin(), validateBody(backofficeUser
             const err = new Error('Usuario no encontrado');
             err.status = 404;
             throw err;
+        }
+        const effective = effectivePlanFromProfile(profile);
+        const requestedTier = body.subscriptionTier;
+        const planChangeRequested = requestedTier !== undefined && requestedTier !== effective.plan;
+        if (planChangeRequested) {
+            const pwd = body.confirmationPassword;
+            if (pwd === undefined || pwd.length === 0) {
+                const err = new Error('Se requiere la contraseña de confirmación para cambiar el plan del usuario');
+                err.status = 400;
+                throw err;
+            }
+            if (!adminPlanChangePasswordMatches(pwd, env.ADMIN_PLAN_CHANGE_PASSWORD)) {
+                const err = new Error('Contraseña de confirmación incorrecta');
+                err.status = 403;
+                throw err;
+            }
         }
         const newEmail = body.email?.trim();
         if (newEmail !== undefined && newEmail !== profile.email) {
@@ -550,11 +584,36 @@ backofficeRouter.patch('/users/:id', requireAdmin(), validateBody(backofficeUser
         const roleList = body.roles;
         const prevRolesSorted = [...profile.roles.map((r) => r.role)].sort().join(',');
         const nextRolesSorted = roleList !== undefined ? [...new Set(roleList)].sort().join(',') : prevRolesSorted;
+        let subscriptionTier;
+        let subscriptionExpiresAt;
+        if (planChangeRequested && requestedTier !== undefined) {
+            if (requestedTier === 'free') {
+                subscriptionTier = 'free';
+                subscriptionExpiresAt = null;
+            }
+            else {
+                const pricePlan = await getActiveSubscriptionPlanForTier(requestedTier);
+                const now = new Date();
+                const base = profile.subscriptionExpiresAt && profile.subscriptionExpiresAt > now
+                    ? profile.subscriptionExpiresAt
+                    : now;
+                subscriptionExpiresAt = new Date(base.getTime() + pricePlan.duration * 86_400_000);
+                subscriptionTier = requestedTier;
+            }
+        }
         await prisma.$transaction(async (tx) => {
+            const profilePatch = {};
             if (newEmail !== undefined && newEmail !== profile.email) {
+                profilePatch.email = newEmail;
+            }
+            if (planChangeRequested && subscriptionTier !== undefined) {
+                profilePatch.subscriptionTier = subscriptionTier;
+                profilePatch.subscriptionExpiresAt = subscriptionExpiresAt ?? null;
+            }
+            if (Object.keys(profilePatch).length > 0) {
                 await tx.profile.update({
                     where: { id: userId },
-                    data: { email: newEmail },
+                    data: profilePatch,
                 });
             }
             if (roleList !== undefined && prevRolesSorted !== nextRolesSorted) {
@@ -573,6 +632,7 @@ backofficeRouter.patch('/users/:id', requireAdmin(), validateBody(backofficeUser
                 id: p?.id,
                 email: p?.email,
                 roles: p?.roles?.map((r) => r.role) ?? [],
+                plan: p ? effectivePlanFromProfile(p).plan : undefined,
             },
         });
     }

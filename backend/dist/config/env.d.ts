@@ -43,6 +43,11 @@ declare const envSchema: z.ZodObject<{
     VAPID_PRIVATE_KEY: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
     /** Ej.: mailto:soporte@tudominio.com */
     VAPID_SUBJECT: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    /**
+     * Confirmación al cambiar el plan de un usuario desde el backoffice.
+     * Por defecto `admin123` para desarrollo; en producción define un valor fuerte en `.env`.
+     */
+    ADMIN_PLAN_CHANGE_PASSWORD: z.ZodEffects<z.ZodString, string, unknown>;
 }, "strip", z.ZodTypeAny, {
     NODE_ENV: "development" | "production" | "test";
     PORT: number;
@@ -56,6 +61,7 @@ declare const envSchema: z.ZodObject<{
     RATE_LIMIT_ENABLED: boolean;
     ADAPTIVE_ROLLOUT_PERCENT: number;
     STUDY_PLAN_ROLLOUT_PERCENT: number;
+    ADMIN_PLAN_CHANGE_PASSWORD: string;
     FRONTEND_URL?: string | undefined;
     STRIPE_SECRET_KEY?: string | undefined;
     STRIPE_WEBHOOK_SECRET?: string | undefined;
@@ -101,6 +107,7 @@ declare const envSchema: z.ZodObject<{
     VAPID_PUBLIC_KEY?: unknown;
     VAPID_PRIVATE_KEY?: unknown;
     VAPID_SUBJECT?: unknown;
+    ADMIN_PLAN_CHANGE_PASSWORD?: unknown;
 }>;
 export type Env = z.infer<typeof envSchema>;
 export declare const env: {
@@ -116,6 +123,7 @@ export declare const env: {
     RATE_LIMIT_ENABLED: boolean;
     ADAPTIVE_ROLLOUT_PERCENT: number;
     STUDY_PLAN_ROLLOUT_PERCENT: number;
+    ADMIN_PLAN_CHANGE_PASSWORD: string;
     FRONTEND_URL?: string | undefined;
     STRIPE_SECRET_KEY?: string | undefined;
     STRIPE_WEBHOOK_SECRET?: string | undefined;

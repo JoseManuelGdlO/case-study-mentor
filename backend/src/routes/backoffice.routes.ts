@@ -676,6 +676,18 @@ backofficeRouter.get(
           },
         }),
       ]);
+      const profileIds = profiles.map((p) => p.id);
+      const completedByUser =
+        profileIds.length > 0
+          ? await prisma.exam.groupBy({
+              by: ['userId'],
+              where: { userId: { in: profileIds }, status: 'completed' },
+              _count: { _all: true },
+            })
+          : [];
+      const examsCompletedMap = new Map(
+        completedByUser.map((r) => [r.userId, r._count._all])
+      );
       const data = profiles.map((p) => ({
         id: p.id,
         name: `${p.firstName} ${p.lastName}`.trim(),
@@ -686,7 +698,7 @@ backofficeRouter.get(
         status: 'active' as const,
         registeredAt: p.createdAt.toISOString(),
         lastAccess: p.updatedAt.toISOString(),
-        examsCompleted: 0,
+        examsCompleted: examsCompletedMap.get(p.id) ?? 0,
       }));
       const meta = paginationMeta(total, page, limit);
       res.json({ data, total, page, totalPages: meta.totalPages, meta });
