@@ -18,10 +18,11 @@ Checklist para completar la configuración en **Google** y **Meta** después del
 
 ## Google Analytics 4 (GA4)
 
-1. Crear una propiedad GA4 en [Google Analytics](https://analytics.google.com/).
-2. Obtener el **ID de medición** (formato `G-XXXXXXXXXX`).
-3. Añadir el snippet de gtag en `index.html` junto al tag de Google Ads existente, o usar Google Tag Manager.
-4. Marcar eventos de conversión relevantes (p. ej. registro, compra) en la configuración de GA4.
+El sitio ya envía datos a **GA4** con el ID de medición `G-2006ERR20K` (snippet en `index.html`, junto a Google Ads).
+
+1. En [Google Analytics](https://analytics.google.com/), abre la propiedad asociada a ese ID y revisa **Informes** y **Tiempo real** tras un deploy.
+2. Opcional: marca **conversiones** (p. ej. registro, compra) en **Administrador → Eventos**.
+3. Si cambias de propiedad o ID, actualiza `index.html` (líneas del `gtag/js` y `gtag("config", ...)`).
 
 ## Google Ads (ya integrado)
 
