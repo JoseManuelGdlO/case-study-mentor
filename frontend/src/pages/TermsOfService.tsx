@@ -2,10 +2,16 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Seo } from '@/components/Seo';
 
 export default function TermsOfService() {
   return (
     <div className="min-h-screen bg-background py-10 px-4">
+      <Seo
+        title="Términos y condiciones de uso"
+        description="Términos y condiciones de uso de ENARMX: plataforma de preparación y simulación para el ENARM y residencia médica en México."
+        path="/terminos"
+      />
       <div className="container max-w-3xl">
         <Button variant="ghost" size="sm" className="mb-6 -ml-2" asChild>
           <Link to="/login">

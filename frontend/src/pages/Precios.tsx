@@ -10,10 +10,17 @@ import {
   paidPlanFeatureBullets,
   subscriptionPricingPlans,
 } from '@/constants/pricingPlans';
+import { Seo } from '@/components/Seo';
 
 export default function Precios() {
   return (
     <div className="min-h-screen bg-background py-10 px-4">
+      <Seo
+        title="Planes y precios — suscripción ENARM en MXN"
+        description="Planes ENARMX en pesos mexicanos: empieza gratis y sube de nivel cuando quieras. Simulacros, estadísticas y preparación para la residencia médica."
+        path="/precios"
+        socialTitle="Planes y precios ENARMX"
+      />
       <div className="container max-w-5xl">
         <Button variant="ghost" size="sm" className="mb-6 -ml-2" asChild>
           <Link to="/login">
@@ -25,11 +32,11 @@ export default function Precios() {
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 mb-3">
             <Crown className="w-8 h-8 text-warning" />
-            <h1 className="text-3xl font-bold text-foreground">Planes y precios</h1>
+            <h1 className="text-3xl font-bold text-foreground">Planes en pesos mexicanos — empieza gratis</h1>
           </div>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Todos los montos están en pesos mexicanos (MXN). Los planes de pago son suscripciones recurrentes hasta que
-            canceles desde tu perfil.
+            Montos en MXN. Suscripción recurrente hasta que canceles desde tu perfil — sin letras pequeñas, sin sorpresas
+            en el cargo.
           </p>
         </div>
 
@@ -56,7 +63,7 @@ export default function Precios() {
                 ))}
               </ul>
               <Button className="w-full" variant="outline" asChild>
-                <Link to="/login">Crear cuenta gratis</Link>
+                <Link to="/login">Entrenar gratis ahora</Link>
               </Button>
             </CardContent>
           </Card>
@@ -96,7 +103,7 @@ export default function Precios() {
                   ))}
                 </ul>
                 <Button className={`w-full font-semibold ${plan.popular ? 'gradient-primary border-0' : ''}`} asChild>
-                  <Link to="/login">Iniciar sesión para suscribirte</Link>
+                  <Link to="/login">Quiero este plan</Link>
                 </Button>
               </CardContent>
             </Card>

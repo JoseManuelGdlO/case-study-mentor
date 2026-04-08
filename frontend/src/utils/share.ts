@@ -1,3 +1,5 @@
+import { APP_NAME } from '@/lib/site';
+
 export type SharePlatform = 'whatsapp' | 'facebook' | 'instagram';
 
 type ShareTextInput = {
@@ -21,8 +23,6 @@ type ShareImageInput = {
   highlightB: string;
   footer: string;
 };
-
-const APP_NAME = 'Case Study Mentor';
 
 export function buildResultShareText(input: ShareTextInput): string {
   const lines = [

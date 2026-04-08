@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import { HelmetProvider } from "react-helmet-async";
 import App from "./App.tsx";
 import "./index.css";
 import faviconUrl from "./assets/logotiposolo.ico?url";
@@ -10,4 +11,8 @@ link.type = "image/x-icon";
 link.href = faviconUrl;
 if (!link.parentElement) document.head.appendChild(link);
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <HelmetProvider>
+    <App />
+  </HelmetProvider>
+);

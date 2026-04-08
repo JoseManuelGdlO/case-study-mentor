@@ -44,6 +44,7 @@ import NotFound from "./pages/NotFound";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Precios from "./pages/Precios";
+import { JsonLdSiteIdentity } from "@/components/Seo";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <JsonLdSiteIdentity />
             <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />

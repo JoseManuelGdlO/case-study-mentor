@@ -8,6 +8,7 @@ import { Mail, Lock, User, Eye, EyeOff, FileText, BarChart3, BookOpen, Sparkles 
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import logoConLetra from '@/assets/logotipoconletra.png';
+import { Seo } from '@/components/Seo';
 
 declare global {
   interface Window {
@@ -96,6 +97,8 @@ const Login = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
+  const seoPath = location.pathname === '/login' ? '/login' : '/';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -115,6 +118,12 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex">
+      <Seo
+        title="Deja de estudiar a ciegas para el ENARM"
+        description="Casos clínicos, simulacros y estadísticas para preparar el Examen Nacional de Residencias Médicas en México. Crea cuenta gratis en ENARMX."
+        path={seoPath}
+        socialTitle="ENARMX — Preparación y simulacros para el ENARM"
+      />
       <div className="hidden lg:flex lg:w-1/2 gradient-hero items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           {Array.from({ length: 20 }).map((_, i) => (
@@ -139,27 +148,28 @@ const Login = () => {
             />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-3">
-            Entrena para el ENARM con práctica real
+            Deja de estudiar a ciegas para el ENARM
           </h1>
           <p className="text-lg text-white/90 mb-8 max-w-md">
-            Simulacros, plan de estudio y estadísticas en un solo lugar. Gratis para empezar; solo te toma un minuto.
+            Simulacros y casos clínicos con el ritmo del examen real. Mide tu avance y ajusta tu estrategia. Gratis para
+            empezar.
           </p>
           <ul className="w-full max-w-md space-y-3 mb-8 text-left">
             <li className="flex gap-3 items-start text-white/95">
               <FileText className="h-5 w-5 shrink-0 mt-0.5 text-white" aria-hidden />
-              <span>Exámenes tipo ENARM y repaso por tema desde Mis Exámenes</span>
+              <span>Simulacros con ritmo de salón: menos teoría suelta, más decisiones bajo presión</span>
             </li>
             <li className="flex gap-3 items-start text-white/95">
               <BarChart3 className="h-5 w-5 shrink-0 mt-0.5 text-white" aria-hidden />
-              <span>Estadísticas para ver tu avance y enfocar lo que falta</span>
+              <span>Estadísticas que te dicen dónde pierdes tiempo — no solo tu calificación</span>
             </li>
             <li className="flex gap-3 items-start text-white/95">
               <BookOpen className="h-5 w-5 shrink-0 mt-0.5 text-white" aria-hidden />
-              <span>Plan de estudio con sesiones guiadas día a día</span>
+              <span>Plan de estudio con sesiones guiadas para no dispersarte</span>
             </li>
             <li className="flex gap-3 items-start text-white/95">
               <Sparkles className="h-5 w-5 shrink-0 mt-0.5 text-white" aria-hidden />
-              <span>Crea tu cuenta gratis y continúa en el dashboard</span>
+              <span>Cuenta gratis en minutos; el dashboard te espera del otro lado</span>
             </li>
           </ul>
           <Button
@@ -168,7 +178,7 @@ const Login = () => {
             onClick={focusRegister}
             className="w-full max-w-sm h-12 text-base font-semibold bg-white text-primary hover:bg-white/90 shadow-lg border-0"
           >
-            Crear cuenta gratis
+            Entrenar gratis ahora
           </Button>
           <p className="mt-6 text-sm text-white/75 max-w-sm">
             ¿Ya estudias con nosotros? Inicia sesión en el formulario de la derecha.
@@ -188,10 +198,10 @@ const Login = () => {
 
           <div className="lg:hidden mb-6 rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-3">
             <p className="text-sm font-medium text-foreground text-center leading-snug">
-              ¿Primera vez aquí? Crea tu cuenta gratis y accede a simulacros, plan de estudio y estadísticas.
+              ¿Primera vez? Entrena el ENARM con simulacros y estadísticas — sin adivinar qué te falta.
             </p>
             <Button type="button" variant="default" className="w-full h-11 font-semibold gradient-primary border-0" onClick={focusRegister}>
-              Registrarme gratis
+              Entrenar gratis ahora
             </Button>
             <p className="text-xs text-center text-muted-foreground">Solo te toma un minuto.</p>
           </div>

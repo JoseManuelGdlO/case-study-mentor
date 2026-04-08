@@ -17,6 +17,8 @@
 # Proxy mismo origen: build del frontend con VITE_API_URL vacío; CORS_ORIGIN = URL pública.
 # Orígenes separados: VITE_API_URL=https://api.tu-dominio.com y CORS_ORIGIN=https://app.tu-dominio.com
 #
+# Frontend (SEO / marca, inyectadas en build): VITE_SITE_URL (canonical, OG, JSON-LD), VITE_APP_NAME (default ENARMX).
+#
 # Imágenes subidas (persistencia): el backend escribe en /app/uploads (UPLOAD_DIR=uploads).
 # Por defecto se monta ./data/uploads (relativo al repo) para desarrollo.
 # En el VPS: sudo mkdir -p /images y en .env junto a este compose define HOST_UPLOADS_BIND=/images
@@ -64,6 +66,8 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+        VITE_SITE_URL: ${VITE_SITE_URL:-https://enarmx.com.mx}
+        VITE_APP_NAME: ${VITE_APP_NAME:-ENARMX}
     restart: unless-stopped
     depends_on:
       - backend
