@@ -5,6 +5,7 @@ import { isPaidTier, type PaidTier } from '../config/plans.js';
 import { paypalFetch } from './paypal-api.js';
 import { getActiveSubscriptionPlanForTier } from './subscription-plan.service.js';
 import { notifyAdminsNewSubscription } from './admin-push.service.js';
+import { assignCollaboratorCodeToProfileIfEmpty } from './collaborator-code.service.js';
 
 function serviceError(message: string, status: number): Error & { status: number } {
   const e = new Error(message) as Error & { status: number };
@@ -12,14 +13,24 @@ function serviceError(message: string, status: number): Error & { status: number
   return e;
 }
 
-function parseCustomId(raw: string | undefined): { userId: string; tier: PaidTier } | null {
+export function parseCustomId(
+  raw: string | undefined
+): { userId: string; tier: PaidTier; collaboratorCodeId?: string } | null {
   if (!raw) return null;
-  const idx = raw.indexOf(':');
-  if (idx <= 0) return null;
-  const userId = raw.slice(0, idx);
-  const tier = raw.slice(idx + 1);
-  if (!isPaidTier(tier)) return null;
-  return { userId, tier };
+  const first = raw.indexOf(':');
+  if (first <= 0) return null;
+  const userId = raw.slice(0, first);
+  const rest = raw.slice(first + 1);
+  const second = rest.indexOf(':');
+  if (second === -1) {
+    const tier = rest;
+    if (!isPaidTier(tier)) return null;
+    return { userId, tier };
+  }
+  const tier = rest.slice(0, second);
+  const collaboratorCodeId = rest.slice(second + 1);
+  if (!isPaidTier(tier) || !collaboratorCodeId) return null;
+  return { userId, tier, collaboratorCodeId };
 }
 
 /** Crea producto + plan en PayPal si la fila aún no tiene `paypalPlanId`, y lo activa. */
@@ -233,6 +244,10 @@ export async function syncProfileFromPayPalSubscriptionResource(sub: PayPalSubsc
     },
   });
 
+  if (parsed.collaboratorCodeId) {
+    await assignCollaboratorCodeToProfileIfEmpty(parsed.userId, parsed.collaboratorCodeId);
+  }
+
   if (beforePaidSync.subscriptionTier === 'free') {
     void notifyAdminsNewSubscription({
       userId: parsed.userId,
@@ -259,7 +274,8 @@ async function assertNoConflictingSubscription(userId: string): Promise<void> {
 
 export async function createPayPalSubscriptionCheckout(
   userId: string,
-  tier: PaidTier
+  tier: PaidTier,
+  collaboratorCodeId?: string | null
 ): Promise<{ approvalUrl: string }> {
   await assertNoConflictingSubscription(userId);
 
@@ -267,7 +283,7 @@ export async function createPayPalSubscriptionCheckout(
   const planId = await ensurePayPalBillingPlan(planRow);
 
   const base = requirePublicFrontendBaseUrlForPayments();
-  const customId = `${userId}:${tier}`;
+  const customId = collaboratorCodeId ? `${userId}:${tier}:${collaboratorCodeId}` : `${userId}:${tier}`;
 
   const body = {
     plan_id: planId,

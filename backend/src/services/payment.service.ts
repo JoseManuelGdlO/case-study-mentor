@@ -19,6 +19,7 @@ import {
 } from './paypal-billing.service.js';
 import { notifyAdminsNewSubscription } from './admin-push.service.js';
 import { paypalAccessToken, paypalApiBase, paypalFetch } from './paypal-api.js';
+import { assignCollaboratorCodeToProfileIfEmpty } from './collaborator-code.service.js';
 
 function serviceError(message: string, status: number): Error & { status: number } {
   const e = new Error(message) as Error & { status: number };
@@ -42,14 +43,24 @@ function paypalValueToCents(value: string, currency: string): number {
   return Math.round(n * 100);
 }
 
-function parsePayPalCustomId(raw: string | undefined): { userId: string; tier: PaidTier } | null {
+function parsePayPalCustomId(
+  raw: string | undefined
+): { userId: string; tier: PaidTier; collaboratorCodeId?: string } | null {
   if (!raw) return null;
-  const idx = raw.indexOf(':');
-  if (idx <= 0) return null;
-  const userId = raw.slice(0, idx);
-  const tier = raw.slice(idx + 1);
-  if (!isPaidTier(tier)) return null;
-  return { userId, tier };
+  const first = raw.indexOf(':');
+  if (first <= 0) return null;
+  const userId = raw.slice(0, first);
+  const rest = raw.slice(first + 1);
+  const second = rest.indexOf(':');
+  if (second === -1) {
+    const tier = rest;
+    if (!isPaidTier(tier)) return null;
+    return { userId, tier };
+  }
+  const tier = rest.slice(0, second);
+  const collaboratorCodeId = rest.slice(second + 1);
+  if (!isPaidTier(tier) || !collaboratorCodeId) return null;
+  return { userId, tier, collaboratorCodeId };
 }
 
 export async function applyCompletedPayment(input: {
@@ -179,7 +190,8 @@ export async function createStripeCheckoutSession(userId: string, tier: PaidTier
 export async function createStripeSubscriptionCheckoutSession(
   userId: string,
   tier: PaidTier,
-  promotion?: { stripePromotionCodeId: string; promotionCodeId: string } | null
+  promotion?: { stripePromotionCodeId: string; promotionCodeId: string } | null,
+  collaboratorCodeId?: string | null
 ): Promise<{ url: string }> {
   const stripe = getStripe();
   const plan = await getActiveSubscriptionPlanForTier(tier);
@@ -198,6 +210,7 @@ export async function createStripeSubscriptionCheckoutSession(
     userId,
     tier,
     ...(promotion ? { promotionCodeId: promotion.promotionCodeId } : {}),
+    ...(collaboratorCodeId ? { collaboratorCodeId } : {}),
   } satisfies Record<string, string>;
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
@@ -291,6 +304,11 @@ async function syncStripeSubscriptionToProfile(sub: Stripe.Subscription): Promis
       subscriptionCancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
     },
   });
+
+  const collabMeta = sub.metadata?.collaboratorCodeId;
+  if (typeof collabMeta === 'string' && collabMeta) {
+    await assignCollaboratorCodeToProfileIfEmpty(userId, collabMeta);
+  }
 
   if (before.subscriptionTier === 'free') {
     void notifyAdminsNewSubscription({
@@ -597,6 +615,9 @@ export async function capturePayPalOrder(userId: string, orderId: string): Promi
     tier: parsed.tier,
     metadata: { orderId, captureId: cap.id },
   });
+  if (parsed.collaboratorCodeId) {
+    await assignCollaboratorCodeToProfileIfEmpty(parsed.userId, parsed.collaboratorCodeId);
+  }
 }
 
 export async function verifyPayPalWebhookRequest(req: {
@@ -711,6 +732,9 @@ export async function processPayPalWebhookEvent(body: {
                 },
               });
             });
+            if (parsed.collaboratorCodeId) {
+              await assignCollaboratorCodeToProfileIfEmpty(parsed.userId, parsed.collaboratorCodeId);
+            }
           }
         }
       } catch (e) {
@@ -757,6 +781,9 @@ export async function processPayPalWebhookEvent(body: {
         tier: parsed.tier,
         metadata: { source: 'webhook' },
       });
+      if (parsed.collaboratorCodeId) {
+        await assignCollaboratorCodeToProfileIfEmpty(parsed.userId, parsed.collaboratorCodeId);
+      }
       return;
     }
     default:

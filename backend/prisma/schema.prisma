@@ -97,7 +97,10 @@ model Profile {
   createdClinicalCases              ClinicalCase[] @relation("ClinicalCaseCreatedBy")
   updatedClinicalCases              ClinicalCase[] @relation("ClinicalCaseUpdatedBy")
   mentorExamReviews                 Exam[]         @relation("MentorExamReviews")
+  collaboratorCodeId                String?        @map("collaborator_code_id")
+  collaboratorCode                  CollaboratorCode? @relation(fields: [collaboratorCodeId], references: [id], onDelete: SetNull)
 
+  @@index([collaboratorCodeId])
   @@map("profiles")
 }
 
@@ -547,5 +550,25 @@ model PromotionCode {
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
+  collaboratorCode CollaboratorCode?
+
   @@map("promotion_codes")
+}
+
+/** Código de colaborador: solo atribución o atribución + descuento (vía PromotionCode). */
+model CollaboratorCode {
+  id               String    @id @default(uuid())
+  /** Mismo formato que PromotionCode: mayúsculas para búsqueda estable. */
+  code             String    @unique
+  displayName      String    @map("display_name")
+  /** Si existe, el checkout aplica el descuento Stripe de este código promocional. */
+  promotionCodeId  String?   @unique @map("promotion_code_id")
+  isActive         Boolean   @default(true) @map("is_active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  promotionCode PromotionCode? @relation(fields: [promotionCodeId], references: [id], onDelete: SetNull)
+  profiles      Profile[]
+
+  @@map("collaborator_codes")
 }

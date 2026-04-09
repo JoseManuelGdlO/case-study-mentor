@@ -46,7 +46,12 @@ const Subscription = () => {
   const [payBusy, setPayBusy] = useState<'stripe' | 'paypal' | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [promoInput, setPromoInput] = useState('');
-  const [promoApplied, setPromoApplied] = useState<{ code: string; percentOff: number } | null>(null);
+  const [promoApplied, setPromoApplied] = useState<{
+    code: string;
+    percentOff: number;
+    kind: 'collaborator' | 'promotion';
+    displayName?: string;
+  } | null>(null);
   const [promoBusy, setPromoBusy] = useState(false);
 
   const clearPaymentQueryParams = useCallback(() => {
@@ -168,20 +173,42 @@ const Subscription = () => {
   const applyPromoCode = async () => {
     const code = promoInput.trim();
     if (!code) {
-      toast.message('Código vacío', { description: 'Escribe un código o continúa sin descuento.' });
+      toast.message('Código vacío', { description: 'Escribe un código o continúa sin él.' });
       return;
     }
     setPromoBusy(true);
     try {
       const json = await apiJson<{
-        data: { valid: true; percentOff: number } | { valid: false; message: string };
-      }>('/api/payments/stripe/validate-promotion-code', {
+        data:
+          | {
+              valid: true;
+              kind: 'collaborator';
+              displayName: string;
+              percentOff: number;
+            }
+          | { valid: true; kind: 'promotion'; percentOff: number }
+          | { valid: false; message: string };
+      }>('/api/payments/stripe/validate-checkout-code', {
         method: 'POST',
         body: JSON.stringify({ code }),
       });
       if (json.data.valid) {
-        setPromoApplied({ code, percentOff: json.data.percentOff });
-        toast.success(`Código aplicado: ${json.data.percentOff}% en tu primer pago`);
+        if (json.data.kind === 'collaborator') {
+          setPromoApplied({
+            code,
+            percentOff: json.data.percentOff,
+            kind: 'collaborator',
+            displayName: json.data.displayName,
+          });
+          if (json.data.percentOff > 0) {
+            toast.success(`Código de colaborador (${json.data.displayName}): ${json.data.percentOff}% en tu primer pago`);
+          } else {
+            toast.success(`Código de colaborador (${json.data.displayName}): sin descuento; se registrará tu inscripción.`);
+          }
+        } else {
+          setPromoApplied({ code, percentOff: json.data.percentOff, kind: 'promotion' });
+          toast.success(`Código aplicado: ${json.data.percentOff}% en tu primer pago`);
+        }
       } else {
         setPromoApplied(null);
         toast.error(json.data.message);
@@ -194,15 +221,21 @@ const Subscription = () => {
     }
   };
 
+  const checkoutCodeForRequest = (): string | undefined => {
+    const c = (promoApplied?.code ?? promoInput).trim();
+    return c || undefined;
+  };
+
   const startStripe = async () => {
     if (!selectedPlan || selectedPlan === 'free') return;
     setPayBusy('stripe');
     try {
+      const code = checkoutCodeForRequest();
       const json = await apiJson<{ data: { url: string } }>('/api/payments/stripe/subscription-checkout', {
         method: 'POST',
         body: JSON.stringify({
           tier: selectedPlan,
-          ...(promoApplied ? { promotionCode: promoApplied.code } : {}),
+          ...(code ? { code } : {}),
         }),
       });
       window.location.href = json.data.url;
@@ -216,9 +249,13 @@ const Subscription = () => {
     if (!selectedPlan || selectedPlan === 'free') return;
     setPayBusy('paypal');
     try {
+      const code = checkoutCodeForRequest();
       const json = await apiJson<{ data: { approvalUrl: string } }>('/api/payments/paypal/create-subscription', {
         method: 'POST',
-        body: JSON.stringify({ tier: selectedPlan }),
+        body: JSON.stringify({
+          tier: selectedPlan,
+          ...(code ? { code } : {}),
+        }),
       });
       window.location.href = json.data.approvalUrl;
     } catch (e) {
@@ -265,7 +302,7 @@ const Subscription = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="promo-code">Código promocional (opcional)</Label>
+                <Label htmlFor="promo-code">Código promocional o de colaborador (opcional)</Label>
                 <div className="flex gap-2">
                   <Input
                     id="promo-code"
@@ -289,13 +326,20 @@ const Subscription = () => {
                     {promoBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aplicar'}
                   </Button>
                 </div>
-                {promoApplied && (
+                {promoApplied && promoApplied.percentOff > 0 && (
                   <p className="text-sm text-success">
                     Descuento del {promoApplied.percentOff}% en la primera factura; las renovaciones al precio del plan.
                   </p>
                 )}
+                {promoApplied && promoApplied.percentOff === 0 && promoApplied.kind === 'collaborator' && (
+                  <p className="text-sm text-muted-foreground">
+                    Sin descuento en el precio; se contará tu inscripción para el colaborador
+                    {promoApplied.displayName ? ` (${promoApplied.displayName})` : ''}.
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
-                  Si tienes código, aplícalo antes de pagar. Solo aplica a nuevas suscripciones con Stripe.
+                  Puedes usar un código de promoción o de colaborador. Los descuentos con tarjeta son vía Stripe; con PayPal
+                  solo se registran códigos de colaborador (sin descuento Stripe).
                 </p>
               </div>
               <Button

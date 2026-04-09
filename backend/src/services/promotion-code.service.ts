@@ -238,6 +238,15 @@ async function createStripeCouponAndPromotionCodeForReplace(
 
 export async function createPromotionCode(input: PromotionCodeCreateInput): Promise<PromotionCodeListRow> {
   const { normalized, maxRedemptions, validFrom, validUntil } = validatePromotionInput(input);
+
+  const collabConflict = await prisma.collaboratorCode.findUnique({
+    where: { code: normalized },
+    select: { id: true },
+  });
+  if (collabConflict) {
+    throw serviceError('Ese código ya está reservado para un colaborador', 409);
+  }
+
   const { coupon, promotion } = await createStripeCouponAndPromotionCode(
     normalized,
     input.percentOff,
@@ -414,7 +423,7 @@ export async function setPromotionCodeActive(id: string, isActive: boolean): Pro
   return toListRow(updated);
 }
 
-async function assertCheckoutEligible(
+export async function assertCheckoutEligible(
   row: NonNullable<Awaited<ReturnType<typeof prisma.promotionCode.findUnique>>>,
   userId: string
 ): Promise<void> {

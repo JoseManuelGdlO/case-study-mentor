@@ -29,6 +29,7 @@ import BackofficeDashboard from "./pages/backoffice/BackofficeDashboard";
 import UserManagement from "./pages/backoffice/UserManagement";
 import PricingConfig from "./pages/backoffice/PricingConfig";
 import PromotionCodesManagement from "./pages/backoffice/PromotionCodesManagement";
+import CollaboratorCodesManagement from "./pages/backoffice/CollaboratorCodesManagement";
 import SpecialtyManagement from "./pages/backoffice/SpecialtyManagement";
 import SystemStats from "./pages/backoffice/SystemStats";
 import PhrasesManagement from "./pages/backoffice/PhrasesManagement";
@@ -167,6 +168,14 @@ const App = () => (
                   element={
                     <AdminRoute>
                       <PromotionCodesManagement />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="collaborator-codes"
+                  element={
+                    <AdminRoute>
+                      <CollaboratorCodesManagement />
                     </AdminRoute>
                   }
                 />
