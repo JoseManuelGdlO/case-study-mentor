@@ -59,7 +59,7 @@ const MentorshipRequests = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const qs = new URLSearchParams({ page: '1', limit: '100' });
+      const qs = new URLSearchParams({ page: '1', limit: '50' });
       if (filterStatus !== 'all') qs.set('status', filterStatus);
       const json = await apiJson<{ data: MentorshipRequestRow[] }>(`/api/mentorship/requests?${qs.toString()}`);
       setItems(json.data);
