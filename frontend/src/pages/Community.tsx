@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,12 +12,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Lock, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiJson } from '@/lib/api';
 import { ClinicalRichTextEditor } from '@/components/ClinicalRichTextEditor';
 import { RichOrPlainBlock } from '@/components/RichOrPlainBlock';
 import { htmlToPlainText, isRichTextEmpty } from '@/lib/richText';
+import { useUser } from '@/contexts/UserContext';
 
 type Specialty = { id: string; name: string };
 type ThreadRow = {
@@ -37,6 +39,8 @@ type PostRow = {
 type ThreadDetail = ThreadRow & { posts: PostRow[] };
 
 const Community = () => {
+  const navigate = useNavigate();
+  const { isFreeUser } = useUser();
   const PAGE_SIZE = 10;
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [threads, setThreads] = useState<ThreadRow[]>([]);
@@ -87,6 +91,10 @@ const Community = () => {
   };
 
   useEffect(() => {
+    if (isFreeUser) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -108,7 +116,7 @@ const Community = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isFreeUser]);
 
   const onCreateThread = async () => {
     if (title.trim().length < 5 || isRichTextEmpty(body) || htmlToPlainText(body).length < 10) {
@@ -168,6 +176,53 @@ const Community = () => {
   };
 
   if (loading) return <div className="max-w-6xl mx-auto p-6 text-muted-foreground">Cargando…</div>;
+
+  if (isFreeUser) {
+    return (
+      <div className="max-w-6xl mx-auto animate-fade-in">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground">Comunidad</h1>
+          <p className="text-muted-foreground">Resuelve dudas con otros aspirantes y mentores.</p>
+        </div>
+        <div className="relative">
+          <div className="filter blur-md pointer-events-none select-none opacity-50 space-y-4">
+            <Card className="border-0 shadow-md">
+              <CardHeader>
+                <CardTitle>Nuevo hilo</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="h-10 rounded bg-muted" />
+                <div className="h-32 rounded bg-muted" />
+                <div className="h-10 w-40 rounded bg-muted" />
+              </CardContent>
+            </Card>
+            <Card className="border-0 shadow-md">
+              <CardHeader>
+                <CardTitle>Comunidad</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="h-20 rounded bg-muted" />
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <Lock className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground">Comunidad Premium</h2>
+            <p className="text-muted-foreground text-center max-w-sm">
+              Suscríbete para publicar preguntas, responder y participar en discusiones clínicas.
+            </p>
+            <Button className="gradient-primary border-0 font-semibold gap-2 h-12 px-8" onClick={() => navigate('/dashboard/subscription')}>
+              <Crown className="w-5 h-5" /> Suscribirme
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">

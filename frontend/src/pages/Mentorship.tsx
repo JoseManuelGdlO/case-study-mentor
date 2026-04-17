@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,9 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Users } from 'lucide-react';
+import { Users, Lock, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiJson } from '@/lib/api';
+import { useUser } from '@/contexts/UserContext';
 
 type Specialty = { id: string; name: string };
 type MentorshipRequest = {
@@ -41,6 +43,8 @@ const statusLabel: Record<MentorshipRequest['status'], string> = {
 };
 
 const Mentorship = () => {
+  const navigate = useNavigate();
+  const { isFreeUser } = useUser();
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [requests, setRequests] = useState<MentorshipRequest[]>([]);
   const [topic, setTopic] = useState('');
@@ -56,6 +60,10 @@ const Mentorship = () => {
   };
 
   useEffect(() => {
+    if (isFreeUser) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -75,7 +83,7 @@ const Mentorship = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isFreeUser]);
 
   const createRequest = async () => {
     if (topic.trim().length < 5) {
@@ -107,6 +115,46 @@ const Mentorship = () => {
   };
 
   if (loading) return <div className="max-w-5xl mx-auto p-6 text-muted-foreground">Cargando…</div>;
+
+  if (isFreeUser) {
+    return (
+      <div className="max-w-5xl mx-auto animate-fade-in">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Users className="w-7 h-7 text-primary" />
+            Mentoría
+          </h1>
+          <p className="text-muted-foreground">Solicita sesiones 1:1 y seguimiento de tu avance.</p>
+        </div>
+        <div className="relative">
+          <div className="filter blur-md pointer-events-none select-none opacity-50 space-y-4">
+            <Card className="border-0 shadow-md">
+              <CardHeader><CardTitle>Nueva solicitud</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="h-10 rounded bg-muted" />
+                <div className="h-10 rounded bg-muted" />
+                <div className="h-24 rounded bg-muted" />
+                <div className="h-10 w-44 rounded bg-muted" />
+              </CardContent>
+            </Card>
+            <Card className="border-0 shadow-md h-56" />
+          </div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <Lock className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground">Mentoría Premium</h2>
+            <p className="text-muted-foreground text-center max-w-sm">
+              Suscríbete para solicitar sesiones con staff académico y dar seguimiento a tu plan.
+            </p>
+            <Button className="gradient-primary border-0 font-semibold gap-2 h-12 px-8" onClick={() => navigate('/dashboard/subscription')}>
+              <Crown className="w-5 h-5" /> Suscribirme
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
