@@ -125,6 +125,9 @@ function AppSidebar() {
                               {communityCount}
                             </Badge>
                           )}
+                          {(item.url === '/dashboard/community' || item.url === '/dashboard/mentorship') && isFreeUser && (
+                            <Badge className="bg-warning/20 text-warning border-warning/30 text-[10px] px-1.5 py-0">PRO</Badge>
+                          )}
                           {item.highlight && isFreeUser && (
                             <Badge className="bg-warning/20 text-warning border-warning/30 text-[10px] px-1.5 py-0">PRO</Badge>
                           )}

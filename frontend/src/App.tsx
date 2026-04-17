@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserProvider } from "@/contexts/UserContext";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute, BackofficeRoute, AdminRoute } from "@/components/ProtectedRoute";
+import { ProtectedRoute, BackofficeRoute, AdminRoute, PaidRoute } from "@/components/ProtectedRoute";
 import { ApiSlowLoadingOverlay } from "@/components/ApiSlowLoadingOverlay";
 import Login from "./pages/Login";
 import BackofficeLogin from "./pages/BackofficeLogin";
@@ -96,8 +96,22 @@ const App = () => (
                 <Route path="soporte" element={<Soporte />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="study-plan" element={<StudyPlanSession />} />
-                <Route path="community" element={<Community />} />
-                <Route path="mentorship" element={<Mentorship />} />
+                <Route
+                  path="community"
+                  element={
+                    <PaidRoute>
+                      <Community />
+                    </PaidRoute>
+                  }
+                />
+                <Route
+                  path="mentorship"
+                  element={
+                    <PaidRoute>
+                      <Mentorship />
+                    </PaidRoute>
+                  }
+                />
               </Route>
 
               <Route
