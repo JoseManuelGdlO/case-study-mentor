@@ -21,6 +21,8 @@ import Subscription from "./pages/Subscription";
 import Soporte from "./pages/Soporte";
 import Profile from "./pages/Profile";
 import StudyPlanSession from "./pages/StudyPlanSession";
+import Community from "./pages/Community";
+import Mentorship from "./pages/Mentorship";
 import CaseList from "./pages/CaseList";
 import CaseEditor from "./pages/CaseEditor";
 import StudentLayout from "./components/StudentLayout";
@@ -93,6 +95,8 @@ const App = () => (
                 <Route path="soporte" element={<Soporte />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="study-plan" element={<StudyPlanSession />} />
+                <Route path="community" element={<Community />} />
+                <Route path="mentorship" element={<Mentorship />} />
               </Route>
 
               <Route

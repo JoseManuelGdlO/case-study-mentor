@@ -66,6 +66,15 @@ enum CaseTextFormat {
   html
 }
 
+enum MentorshipStatus {
+  pending
+  accepted
+  rejected
+  scheduled
+  completed
+  cancelled
+}
+
 model Profile {
   id                    String            @id @default(uuid())
   email                 String            @unique
@@ -106,6 +115,10 @@ model Profile {
   examFeedbacks                    ExamStudentFeedback[]
   collaboratorCodeId                String?        @map("collaborator_code_id")
   collaboratorCode                  CollaboratorCode? @relation(fields: [collaboratorCodeId], references: [id], onDelete: SetNull)
+  communityThreads                 CommunityThread[]
+  communityPosts                   CommunityPost[]
+  mentorshipRequestsAsStudent      MentorshipRequest[] @relation("MentorshipStudent")
+  mentorshipRequestsAsMentor       MentorshipRequest[] @relation("MentorshipMentor")
 
   @@index([collaboratorCodeId])
   @@map("profiles")
@@ -185,6 +198,8 @@ model Specialty {
   examSpecialties ExamSpecialty[]
   predictionCalibrations PredictionCalibration[]
   flashcardLinks FlashcardSpecialty[]
+  communityThreads CommunityThread[]
+  mentorshipRequests MentorshipRequest[]
 
   @@map("specialties")
 }
@@ -524,6 +539,77 @@ model StudyPlanExecution {
   @@unique([userId, studyPlanId, studyPlanTaskId])
   @@index([userId, completedAt])
   @@map("study_plan_executions")
+}
+
+model CommunityThread {
+  id          String   @id @default(uuid())
+  authorId    String   @map("author_id")
+  specialtyId String?  @map("specialty_id")
+  title       String
+  body        String   @db.Text
+  isLocked    Boolean  @default(false) @map("is_locked")
+  isPinned    Boolean  @default(false) @map("is_pinned")
+  isHidden    Boolean  @default(false) @map("is_hidden")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  author    Profile    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  specialty Specialty? @relation(fields: [specialtyId], references: [id], onDelete: SetNull)
+  posts     CommunityPost[]
+
+  @@index([authorId, createdAt])
+  @@index([specialtyId, createdAt])
+  @@index([isPinned, createdAt])
+  @@index([isHidden, createdAt])
+  @@map("community_threads")
+}
+
+model CommunityPost {
+  id           String   @id @default(uuid())
+  threadId     String   @map("thread_id")
+  authorId     String   @map("author_id")
+  parentPostId String?  @map("parent_post_id")
+  body         String   @db.Text
+  isHidden     Boolean  @default(false) @map("is_hidden")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  thread     CommunityThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author     Profile         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentPost CommunityPost?  @relation("CommunityPostReplies", fields: [parentPostId], references: [id], onDelete: SetNull)
+  replies    CommunityPost[] @relation("CommunityPostReplies")
+
+  @@index([threadId, createdAt])
+  @@index([authorId, createdAt])
+  @@index([parentPostId])
+  @@index([isHidden, createdAt])
+  @@map("community_posts")
+}
+
+model MentorshipRequest {
+  id                 String           @id @default(uuid())
+  studentId          String           @map("student_id")
+  mentorId           String?          @map("mentor_id")
+  specialtyId        String?          @map("specialty_id")
+  topic              String
+  context            String?          @db.Text
+  availability       String?          @db.Text
+  status             MentorshipStatus @default(pending)
+  statusNote         String?          @map("status_note") @db.Text
+  externalMeetingUrl String?          @map("external_meeting_url")
+  scheduledAt        DateTime?        @map("scheduled_at")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  student   Profile    @relation("MentorshipStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  mentor    Profile?   @relation("MentorshipMentor", fields: [mentorId], references: [id], onDelete: SetNull)
+  specialty Specialty? @relation(fields: [specialtyId], references: [id], onDelete: SetNull)
+
+  @@index([studentId, createdAt])
+  @@index([mentorId, createdAt])
+  @@index([specialtyId, createdAt])
+  @@index([status, createdAt])
+  @@map("mentorship_requests")
 }
 
 model MotivationalPhrase {

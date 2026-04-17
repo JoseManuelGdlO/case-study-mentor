@@ -14,7 +14,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, FileText, BarChart3, User, LogOut, Plus, Crown, Headphones } from 'lucide-react';
+import { LayoutDashboard, FileText, BarChart3, User, LogOut, Plus, Crown, Headphones, MessageSquare, Users } from 'lucide-react';
 import logoConLetra from '@/assets/logotipoconletra.png';
 import logoSolo from '@/assets/logotiposolo.png';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,8 @@ const navItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Mis Exámenes', url: '/dashboard/exams', icon: FileText },
   { title: 'Estadísticas', url: '/dashboard/stats', icon: BarChart3 },
+  { title: 'Comunidad', url: '/dashboard/community', icon: MessageSquare },
+  { title: 'Mentoría', url: '/dashboard/mentorship', icon: Users },
   { title: 'Suscripción', url: '/dashboard/subscription', icon: Crown, highlight: true },
   { title: 'Soporte', url: '/dashboard/soporte', icon: Headphones },
   { title: 'Perfil', url: '/dashboard/profile', icon: User },

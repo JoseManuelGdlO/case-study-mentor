@@ -21,6 +21,8 @@ import { uploadRouter } from './routes/upload.routes.js';
 import { backofficeRouter } from './routes/backoffice.routes.js';
 import { contentRouter } from './routes/content.routes.js';
 import { studyPlanRouter } from './routes/study-plan.routes.js';
+import { communityRouter } from './routes/community.routes.js';
+import { mentorshipRouter } from './routes/mentorship.routes.js';
 import { paymentsRouter, paypalWebhookHandler, stripeWebhookHandler, } from './routes/payments.routes.js';
 /** Orígenes permitidos: `CORS_ORIGIN` puede ser uno o varios separados por coma (sin repetir el header completo en la respuesta). */
 function parseCorsOrigins(raw) {
@@ -100,6 +102,8 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/backoffice', backofficeRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/study-plan', studyPlanRouter);
+app.use('/api/community', communityRouter);
+app.use('/api/mentorship', mentorshipRouter);
 app.use('/api/payments', paymentsRouter);
 const swaggerSpec = swaggerJsdoc({
     definition: {
