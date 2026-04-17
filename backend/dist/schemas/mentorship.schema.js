@@ -12,6 +12,7 @@ export const listMentorshipRequestsQuerySchema = z.object({
 });
 export const updateMentorshipStatusSchema = z.object({
     status: z.enum(['accepted', 'rejected', 'scheduled', 'completed', 'cancelled']),
+    mentorId: z.string().uuid().optional().nullable(),
     statusNote: z.string().trim().max(2000).optional().nullable(),
     scheduledAt: z.string().datetime().optional().nullable(),
     externalMeetingUrl: z.string().url().max(2048).optional().nullable(),

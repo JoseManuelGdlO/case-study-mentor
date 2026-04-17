@@ -91,6 +91,7 @@ export declare function listForStaff(params: {
 }>;
 export declare function updateStatus(requestId: string, actorId: string, body: {
     status: MentorshipStatus;
+    mentorId?: string | null;
     statusNote?: string | null;
     scheduledAt?: string | null;
     externalMeetingUrl?: string | null;
@@ -119,5 +120,13 @@ export declare function updateStatus(requestId: string, actorId: string, body: {
             name: string;
         } | null;
     };
+}>;
+export declare function listMentors(): Promise<{
+    data: {
+        id: string;
+        name: string;
+        email: string;
+        roles: import("@prisma/client").$Enums.AppRole[];
+    }[];
 }>;
 //# sourceMappingURL=mentorship.service.d.ts.map

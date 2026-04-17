@@ -1,6 +1,7 @@
 export declare function listThreads(params: {
     userId: string;
     specialtyId?: string;
+    search?: string;
     sort: 'recent' | 'pinned';
     page: number;
     limit: number;

@@ -30,16 +30,19 @@ export declare const listMentorshipRequestsQuerySchema: z.ZodObject<{
 }>;
 export declare const updateMentorshipStatusSchema: z.ZodObject<{
     status: z.ZodEnum<["accepted", "rejected", "scheduled", "completed", "cancelled"]>;
+    mentorId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     statusNote: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     scheduledAt: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     externalMeetingUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
     status: "completed" | "accepted" | "rejected" | "scheduled" | "cancelled";
+    mentorId?: string | null | undefined;
     statusNote?: string | null | undefined;
     externalMeetingUrl?: string | null | undefined;
     scheduledAt?: string | null | undefined;
 }, {
     status: "completed" | "accepted" | "rejected" | "scheduled" | "cancelled";
+    mentorId?: string | null | undefined;
     statusNote?: string | null | undefined;
     externalMeetingUrl?: string | null | undefined;
     scheduledAt?: string | null | undefined;

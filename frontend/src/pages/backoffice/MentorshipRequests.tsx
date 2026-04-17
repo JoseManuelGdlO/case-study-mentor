@@ -33,6 +33,13 @@ type MentorshipRequestRow = {
   specialty: { id: string; name: string } | null;
 };
 
+type MentorOption = {
+  id: string;
+  name: string;
+  email: string;
+  roles: string[];
+};
+
 const statusLabel: Record<MentorshipStatus, string> = {
   pending: 'Pendiente',
   accepted: 'Aceptada',
@@ -49,9 +56,11 @@ const MentorshipRequests = () => {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | MentorshipStatus>('all');
+  const [mentors, setMentors] = useState<MentorOption[]>([]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newStatus, setNewStatus] = useState<MentorshipStatus>('accepted');
+  const [selectedMentorId, setSelectedMentorId] = useState<string>('auto');
   const [statusNote, setStatusNote] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
   const [externalMeetingUrl, setExternalMeetingUrl] = useState('');
@@ -61,8 +70,12 @@ const MentorshipRequests = () => {
     try {
       const qs = new URLSearchParams({ page: '1', limit: '50' });
       if (filterStatus !== 'all') qs.set('status', filterStatus);
-      const json = await apiJson<{ data: MentorshipRequestRow[] }>(`/api/mentorship/requests?${qs.toString()}`);
-      setItems(json.data);
+      const [requestsJson, mentorsJson] = await Promise.all([
+        apiJson<{ data: MentorshipRequestRow[] }>(`/api/mentorship/requests?${qs.toString()}`),
+        apiJson<{ data: MentorOption[] }>('/api/mentorship/mentors'),
+      ]);
+      setItems(requestsJson.data);
+      setMentors(mentorsJson.data);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'No se pudo cargar mentorías');
     } finally {
@@ -77,6 +90,7 @@ const MentorshipRequests = () => {
   const startEdit = (row: MentorshipRequestRow) => {
     setEditingId(row.id);
     setNewStatus(row.status === 'pending' ? 'accepted' : row.status);
+    setSelectedMentorId(row.mentor?.id ?? 'auto');
     setStatusNote(row.statusNote ?? '');
     setScheduledAt(row.scheduledAt ? row.scheduledAt.slice(0, 16) : '');
     setExternalMeetingUrl(row.externalMeetingUrl ?? '');
@@ -84,6 +98,7 @@ const MentorshipRequests = () => {
 
   const cancelEdit = () => {
     setEditingId(null);
+    setSelectedMentorId('auto');
     setStatusNote('');
     setScheduledAt('');
     setExternalMeetingUrl('');
@@ -96,6 +111,7 @@ const MentorshipRequests = () => {
         method: 'PATCH',
         body: JSON.stringify({
           status: newStatus,
+          mentorId: selectedMentorId === 'auto' ? null : selectedMentorId,
           statusNote: statusNote.trim() || null,
           scheduledAt: newStatus === 'scheduled' ? new Date(scheduledAt).toISOString() : null,
           externalMeetingUrl: newStatus === 'scheduled' ? externalMeetingUrl.trim() || null : null,
@@ -224,6 +240,22 @@ const MentorshipRequests = () => {
                           {statusLabel[status]}
                         </SelectItem>
                       ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Mentor asignado</Label>
+                <Select value={selectedMentorId} onValueChange={setSelectedMentorId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona mentor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Sin asignar</SelectItem>
+                    {mentors.map((mentor) => (
+                      <SelectItem key={mentor.id} value={mentor.id}>
+                        {mentor.name} ({mentor.email})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

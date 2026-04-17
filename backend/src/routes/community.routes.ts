@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { requireCaseEditor } from '../middleware/roles.js';
+import { requirePaidAccess } from '../middleware/subscription.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import {
   createCommunityPostSchema,
@@ -13,13 +14,14 @@ import { paramString } from '../utils/params.js';
 
 export const communityRouter = Router();
 
-communityRouter.get('/threads', authenticate, validateQuery(listCommunityThreadsQuerySchema), async (req, res, next) => {
+communityRouter.get('/threads', authenticate, requirePaidAccess, validateQuery(listCommunityThreadsQuerySchema), async (req, res, next) => {
   try {
     if (!req.user) throw new Error('No user');
     const roles = req.roles ?? ['user'];
     const result = await communityService.listThreads({
       userId: req.user.id,
       specialtyId: paramString(req.query.specialtyId as string | string[] | undefined) || undefined,
+      search: paramString(req.query.search as string | string[] | undefined) || undefined,
       sort: (req.query.sort as 'recent' | 'pinned') ?? 'recent',
       page: Number(req.query.page ?? 1),
       limit: Number(req.query.limit ?? 20),
@@ -31,7 +33,7 @@ communityRouter.get('/threads', authenticate, validateQuery(listCommunityThreads
   }
 });
 
-communityRouter.post('/threads', authenticate, validateBody(createCommunityThreadSchema), async (req, res, next) => {
+communityRouter.post('/threads', authenticate, requirePaidAccess, validateBody(createCommunityThreadSchema), async (req, res, next) => {
   try {
     if (!req.user) throw new Error('No user');
     const result = await communityService.createThread(req.user.id, req.body);
@@ -41,7 +43,7 @@ communityRouter.post('/threads', authenticate, validateBody(createCommunityThrea
   }
 });
 
-communityRouter.get('/threads/:threadId', authenticate, async (req, res, next) => {
+communityRouter.get('/threads/:threadId', authenticate, requirePaidAccess, async (req, res, next) => {
   try {
     const roles = req.roles ?? ['user'];
     const result = await communityService.getThreadById(paramString(req.params.threadId), roles);
@@ -54,6 +56,7 @@ communityRouter.get('/threads/:threadId', authenticate, async (req, res, next) =
 communityRouter.post(
   '/threads/:threadId/posts',
   authenticate,
+  requirePaidAccess,
   validateBody(createCommunityPostSchema),
   async (req, res, next) => {
     try {
@@ -69,6 +72,7 @@ communityRouter.post(
 communityRouter.patch(
   '/posts/:postId/moderation',
   authenticate,
+  requirePaidAccess,
   requireCaseEditor(),
   validateBody(moderateCommunityPostSchema),
   async (req, res, next) => {

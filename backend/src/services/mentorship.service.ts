@@ -84,6 +84,7 @@ export async function updateStatus(
   actorId: string,
   body: {
     status: MentorshipStatus;
+    mentorId?: string | null;
     statusNote?: string | null;
     scheduledAt?: string | null;
     externalMeetingUrl?: string | null;
@@ -106,12 +107,28 @@ export async function updateStatus(
     throw badRequest('Para agendar debes enviar scheduledAt y externalMeetingUrl');
   }
 
+  if (body.mentorId != null) {
+    const mentorRole = await prisma.userRole.findFirst({
+      where: {
+        userId: body.mentorId,
+        role: { in: ['admin', 'editor'] },
+      },
+      select: { userId: true },
+    });
+    if (!mentorRole) {
+      throw badRequest('El mentor seleccionado no tiene permisos de staff');
+    }
+  }
+
   const updated = await prisma.mentorshipRequest.update({
     where: { id: requestId },
     data: {
       status: body.status,
       statusNote: body.statusNote ?? current.statusNote,
-      mentorId: current.mentorId ?? actorId,
+      mentorId:
+        body.mentorId === undefined
+          ? current.mentorId ?? actorId
+          : body.mentorId,
       scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : current.scheduledAt,
       externalMeetingUrl: body.externalMeetingUrl ?? current.externalMeetingUrl,
     },
@@ -123,6 +140,34 @@ export async function updateStatus(
   });
 
   return { data: serializeRequest(updated) };
+}
+
+export async function listMentors() {
+  const rows = await prisma.profile.findMany({
+    where: {
+      roles: {
+        some: {
+          role: { in: ['admin', 'editor'] },
+        },
+      },
+    },
+    orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      roles: { select: { role: true } },
+    },
+  });
+  return {
+    data: rows.map((row) => ({
+      id: row.id,
+      name: `${row.firstName} ${row.lastName}`.trim(),
+      email: row.email,
+      roles: row.roles.map((r) => r.role),
+    })),
+  };
 }
 
 function serializeRequest(request: {

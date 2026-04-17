@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { requireCaseEditor } from '../middleware/roles.js';
+import { requirePaidAccess } from '../middleware/subscription.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import {
   createMentorshipRequestSchema,
@@ -12,7 +13,7 @@ import { paramString } from '../utils/params.js';
 
 export const mentorshipRouter = Router();
 
-mentorshipRouter.post('/requests', authenticate, validateBody(createMentorshipRequestSchema), async (req, res, next) => {
+mentorshipRouter.post('/requests', authenticate, requirePaidAccess, validateBody(createMentorshipRequestSchema), async (req, res, next) => {
   try {
     if (!req.user) throw new Error('No user');
     const result = await mentorshipService.createRequest(req.user.id, req.body);
@@ -22,7 +23,7 @@ mentorshipRouter.post('/requests', authenticate, validateBody(createMentorshipRe
   }
 });
 
-mentorshipRouter.get('/requests/mine', authenticate, async (req, res, next) => {
+mentorshipRouter.get('/requests/mine', authenticate, requirePaidAccess, async (req, res, next) => {
   try {
     if (!req.user) throw new Error('No user');
     const result = await mentorshipService.listMine(req.user.id);
@@ -33,8 +34,24 @@ mentorshipRouter.get('/requests/mine', authenticate, async (req, res, next) => {
 });
 
 mentorshipRouter.get(
+  '/mentors',
+  authenticate,
+  requirePaidAccess,
+  requireCaseEditor(),
+  async (_req, res, next) => {
+    try {
+      const result = await mentorshipService.listMentors();
+      res.json(result);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+mentorshipRouter.get(
   '/requests',
   authenticate,
+  requirePaidAccess,
   requireCaseEditor(),
   validateQuery(listMentorshipRequestsQuerySchema),
   async (req, res, next) => {
@@ -61,6 +78,7 @@ mentorshipRouter.get(
 mentorshipRouter.patch(
   '/requests/:requestId/status',
   authenticate,
+  requirePaidAccess,
   requireCaseEditor(),
   validateBody(updateMentorshipStatusSchema),
   async (req, res, next) => {

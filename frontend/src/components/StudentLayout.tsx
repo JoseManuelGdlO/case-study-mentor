@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { ImpersonationBanner } from '@/components/ImpersonationBanner';
+import { apiJson } from '@/lib/api';
 
 const navItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
@@ -41,6 +42,22 @@ function AppSidebar() {
   const navigate = useNavigate();
   const { isFreeUser, isFreeTrialExhausted } = useUser();
   const { logout } = useAuth();
+  const [communityCount, setCommunityCount] = useState<number>(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const json = await apiJson<{ total: number }>('/api/community/threads?page=1&limit=1');
+        if (!cancelled) setCommunityCount(json.total ?? 0);
+      } catch {
+        if (!cancelled) setCommunityCount(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -103,6 +120,11 @@ function AppSidebar() {
                       {!collapsed && (
                         <span className="flex items-center gap-2">
                           {item.title}
+                          {item.url === '/dashboard/community' && communityCount > 0 && (
+                            <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px] px-1.5 py-0">
+                              {communityCount}
+                            </Badge>
+                          )}
                           {item.highlight && isFreeUser && (
                             <Badge className="bg-warning/20 text-warning border-warning/30 text-[10px] px-1.5 py-0">PRO</Badge>
                           )}

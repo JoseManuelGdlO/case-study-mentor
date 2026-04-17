@@ -3,6 +3,14 @@ import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+function randomItem<T>(items: T[]): T {
+  return items[Math.floor(Math.random() * items.length)] as T;
+}
+
+function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 async function main() {
   const email = 'admin@enarm.test';
   const existing = await prisma.profile.findUnique({ where: { email } });
@@ -161,6 +169,80 @@ async function main() {
       ],
     });
     console.log('Seeded motivational_phrases (banner)');
+  }
+
+  const communityCount = await prisma.communityThread.count();
+  if (communityCount < 25) {
+    const users = await prisma.profile.findMany({
+      select: { id: true },
+    });
+    const specialties = await prisma.specialty.findMany({
+      select: { id: true },
+    });
+
+    if (users.length >= 2) {
+      const topics = [
+        'Duda sobre manejo inicial en urgencias',
+        'Consejos para resolver casos de cardiología',
+        'Cómo mejorar rendimiento en simuladores',
+        'Repaso rápido de choque séptico',
+        'Errores comunes en preguntas de pediatría',
+        'Estrategia para estudiar gineco-obstetricia',
+        '¿Cómo priorizar temas de alta frecuencia?',
+        'Discusión de caso clínico neurológico',
+        'Tips para interpretar gasometría arterial',
+        'Diferencias clave entre guías clínicas',
+      ];
+
+      const bodies = [
+        '<p>Comparto esta pregunta porque me costó decidir la conducta inicial 😵‍💫.</p><p><strong>¿Qué algoritmo usan</strong> para priorizar diagnósticos en guardia?</p>',
+        '<p>En mis últimos simuladores he fallado en este tema 😓.</p><ul><li>¿Qué repasan primero?</li><li>¿Qué trampas del ENARM han visto?</li></ul>',
+        '<p>Dejo el escenario clínico resumido para discutir razonamiento 🧠.</p><blockquote><p>Paciente con dolor torácico + diaforesis + hipotensión.</p></blockquote>',
+        '<p>¿Qué bibliografía recomiendan para reforzar este tema sin perder tiempo? 📚</p><p>Busco algo práctico y de alta frecuencia.</p>',
+        '<p>Me gustaría comparar estrategias entre quienes ya subieron su puntaje 🚀.</p><p>Gracias por compartir tips reales 🙌.</p>',
+      ];
+
+      const replyTemplates = [
+        '<p>Yo lo abordo primero por <strong>estabilidad hemodinámica</strong> y luego diferencial ✅.</p>',
+        '<p>Me funcionó repasar guías con tarjetas + preguntas dirigidas 🎯.</p>',
+        '<p>Buen caso 👏. La clave para mí es identificar signos de alarma desde el inicio.</p>',
+        '<p>Coincido, y además revisaría criterios diagnósticos para evitar confusiones frecuentes.</p>',
+        '<p>Gracias por compartir 🙏, estas discusiones ayudan muchísimo para fijar conceptos.</p>',
+      ];
+
+      const threadsToCreate = 30 - communityCount;
+      const createCount = Math.max(0, threadsToCreate);
+
+      for (let i = 0; i < createCount; i++) {
+        const author = randomItem(users);
+        const maybeSpecialty = Math.random() > 0.25 && specialties.length > 0 ? randomItem(specialties).id : null;
+
+        const thread = await prisma.communityThread.create({
+          data: {
+            authorId: author.id,
+            specialtyId: maybeSpecialty,
+            title: `${randomItem(topics)} #${i + 1}`,
+            body: randomItem(bodies),
+          },
+        });
+
+        const replies = randomInt(1, 5);
+        for (let j = 0; j < replies; j++) {
+          const replyAuthor = randomItem(users);
+          await prisma.communityPost.create({
+            data: {
+              threadId: thread.id,
+              authorId: replyAuthor.id,
+              body: randomItem(replyTemplates),
+            },
+          });
+        }
+      }
+
+      console.log(`Seeded community threads/posts. Threads now: >= ${Math.max(communityCount, 30)}`);
+    } else {
+      console.log('Skipped community seed: not enough users');
+    }
   }
 }
 

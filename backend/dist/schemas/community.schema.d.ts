@@ -1,6 +1,7 @@
 import { z } from 'zod';
 export declare const listCommunityThreadsQuerySchema: z.ZodObject<{
     specialtyId: z.ZodOptional<z.ZodString>;
+    search: z.ZodOptional<z.ZodString>;
     sort: z.ZodDefault<z.ZodEnum<["recent", "pinned"]>>;
     page: z.ZodDefault<z.ZodNumber>;
     limit: z.ZodDefault<z.ZodNumber>;
@@ -8,9 +9,11 @@ export declare const listCommunityThreadsQuerySchema: z.ZodObject<{
     sort: "recent" | "pinned";
     limit: number;
     page: number;
+    search?: string | undefined;
     specialtyId?: string | undefined;
 }, {
     sort?: "recent" | "pinned" | undefined;
+    search?: string | undefined;
     specialtyId?: string | undefined;
     limit?: number | undefined;
     page?: number | undefined;

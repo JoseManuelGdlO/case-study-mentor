@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { sanitizeHtmlFragment } from '../utils/html-sanitize.js';
 function notFound(message) {
     const err = new Error(message);
     err.status = 404;
@@ -9,6 +10,14 @@ export async function listThreads(params) {
     const staff = params.roles.includes('admin') || params.roles.includes('editor');
     const where = {
         ...(params.specialtyId ? { specialtyId: params.specialtyId } : {}),
+        ...(params.search
+            ? {
+                OR: [
+                    { title: { contains: params.search } },
+                    { body: { contains: params.search } },
+                ],
+            }
+            : {}),
         ...(staff ? {} : { isHidden: false }),
     };
     const orderBy = params.sort === 'pinned'
@@ -51,11 +60,12 @@ export async function listThreads(params) {
     };
 }
 export async function createThread(userId, body) {
+    const safeBody = sanitizeHtmlFragment(body.body);
     const thread = await prisma.communityThread.create({
         data: {
             authorId: userId,
             title: body.title,
-            body: body.body,
+            body: safeBody,
             specialtyId: body.specialtyId ?? null,
         },
         include: {
@@ -147,11 +157,12 @@ export async function createPost(userId, threadId, body) {
         if (!parentPost)
             throw notFound('Respuesta padre no encontrada');
     }
+    const safeBody = sanitizeHtmlFragment(body.body);
     const post = await prisma.communityPost.create({
         data: {
             authorId: userId,
             threadId,
-            body: body.body,
+            body: safeBody,
             parentPostId: body.parentPostId ?? null,
         },
         include: { author: { select: { id: true, firstName: true, lastName: true } } },
