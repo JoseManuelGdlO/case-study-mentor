@@ -23,6 +23,7 @@ import {
   type SharePlatform,
 } from '@/utils/share';
 import type {
+  WellbeingTodayPayload,
   DashboardExamDate,
   ExamConfig,
   ExamStatus,
@@ -52,6 +53,12 @@ const emptyStats: UserStats = {
   byCategory: [],
   weeklyProgress: [],
   prediction: null,
+  weeklyWellbeing: [],
+  preExamRiskSignal: {
+    level: 'low',
+    score: 0,
+    message: 'Sin datos suficientes.',
+  },
 };
 
 const Dashboard = () => {
@@ -65,6 +72,7 @@ const Dashboard = () => {
   const [activeExamDate, setActiveExamDate] = useState<DashboardExamDate | null>(null);
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [studyPlanImpact, setStudyPlanImpact] = useState<StudyPlanImpact | null>(null);
+  const [wellbeingToday, setWellbeingToday] = useState<WellbeingTodayPayload | null>(null);
   const [shareStatus, setShareStatus] = useState<{ active: boolean; label: string; progress: number }>({
     active: false,
     label: '',
@@ -98,10 +106,12 @@ const Dashboard = () => {
           apiJson<{ data: StudyPlan | null }>('/api/study-plan/today').catch(() => null),
           apiJson<{ data: StudyPlanImpact }>('/api/study-plan/impact').catch(() => null),
         ]);
+        const wellbeingJson = await apiJson<{ data: WellbeingTodayPayload }>('/api/study-plan/wellbeing/today').catch(() => null);
         if (!cancelled) {
           setStats(statsJson?.data ?? emptyStats);
           setStudyPlan(planJson?.data ?? null);
           setStudyPlanImpact(impactJson?.data ?? null);
+          setWellbeingToday(wellbeingJson?.data ?? null);
         }
       } catch {
         if (!cancelled) setStats(emptyStats);
@@ -250,6 +260,25 @@ const Dashboard = () => {
             </div>
             <Button className="gradient-primary border-0 font-semibold gap-2 flex-shrink-0" onClick={() => navigate('/dashboard/subscription')}>
               <Crown className="w-4 h-4" /> Suscribirme
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isFreeUser && wellbeingToday?.log && (
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Bienestar de hoy</p>
+              <p className="text-lg font-semibold text-foreground">
+                Ansiedad {wellbeingToday.log.anxietyLevel}/5 · Enfoque {wellbeingToday.log.focusLevel}/5
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Estudio: {wellbeingToday.log.completedStudyMinutes}/{wellbeingToday.log.plannedStudyMinutes} min · Intervenciones: {wellbeingToday.interventions.length}
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => navigate('/dashboard/wellbeing')}>
+              Ver panel de bienestar
             </Button>
           </CardContent>
         </Card>

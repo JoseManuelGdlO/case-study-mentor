@@ -73,6 +73,8 @@ export async function getUserStats(userId: string) {
   }));
 
   const weeklyProgress = buildWeeklyProgress(exams);
+  const weeklyWellbeing = await buildWeeklyWellbeing(userId);
+  const preExamRiskSignal = buildPreExamRiskSignal(weeklyWellbeing);
 
   const payload = {
     totalExams,
@@ -82,6 +84,8 @@ export async function getUserStats(userId: string) {
     studyStreak,
     byCategory,
     weeklyProgress,
+    weeklyWellbeing: weeklyWellbeing.days,
+    preExamRiskSignal,
     prediction: await getLatestPredictionSnapshot(userId),
   };
 
@@ -152,4 +156,67 @@ async function getLatestPredictionSnapshot(userId: string) {
     placementProbability: latest.predictedPlacementProbability,
     version: latest.predictionVersion ?? 'heuristic-v1',
   };
+}
+
+async function buildWeeklyWellbeing(userId: string) {
+  const since = new Date();
+  since.setUTCHours(0, 0, 0, 0);
+  since.setUTCDate(since.getUTCDate() - 6);
+  const rows = await prisma.dailyWellbeingLog.findMany({
+    where: { userId, date: { gte: since } },
+    orderBy: { date: 'asc' },
+    select: {
+      date: true,
+      anxietyLevel: true,
+      focusLevel: true,
+      plannedStudyMinutes: true,
+      completedStudyMinutes: true,
+      mood: true,
+    },
+  });
+  const map = new Map(rows.map((r) => [r.date.toISOString().slice(0, 10), r]));
+  const days = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(since);
+    d.setUTCDate(since.getUTCDate() + i);
+    const key = d.toISOString().slice(0, 10);
+    const row = map.get(key);
+    const adherence =
+      row && row.plannedStudyMinutes > 0
+        ? Math.min(100, Math.round((row.completedStudyMinutes / row.plannedStudyMinutes) * 100))
+        : 0;
+    return {
+      date: key,
+      anxietyLevel: row?.anxietyLevel ?? 0,
+      focusLevel: row?.focusLevel ?? 0,
+      adherencePercent: adherence,
+      mood: row?.mood ?? null,
+    };
+  });
+  return { days };
+}
+
+function buildPreExamRiskSignal(weeklyWellbeing: {
+  days: { anxietyLevel: number; focusLevel: number; adherencePercent: number }[];
+}) {
+  const nonZero = weeklyWellbeing.days.filter((d) => d.anxietyLevel > 0 || d.focusLevel > 0);
+  if (nonZero.length === 0) {
+    return {
+      level: 'low' as const,
+      score: 0,
+      message: 'Aún no hay suficientes registros de bienestar para calcular riesgo.',
+    };
+  }
+  const avgAnxiety = nonZero.reduce((s, d) => s + d.anxietyLevel, 0) / nonZero.length;
+  const avgFocus = nonZero.reduce((s, d) => s + d.focusLevel, 0) / nonZero.length;
+  const avgAdherence = nonZero.reduce((s, d) => s + d.adherencePercent, 0) / nonZero.length;
+  const raw = avgAnxiety * 22 + (5 - avgFocus) * 18 + (100 - avgAdherence) * 0.4;
+  const score = Math.max(0, Math.min(100, Math.round(raw)));
+  const level = score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low';
+  const message =
+    level === 'high'
+      ? 'Señal alta: prioriza descanso activo y una técnica breve de regulación antes de estudiar.'
+      : level === 'medium'
+        ? 'Señal media: mantén pausas estructuradas y refuerza tu rutina de concentración.'
+        : 'Señal baja: buen equilibrio reciente, mantén constancia y descansos.';
+  return { level, score, message };
 }

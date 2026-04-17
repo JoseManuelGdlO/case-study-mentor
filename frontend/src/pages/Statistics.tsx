@@ -17,6 +17,12 @@ const emptyStats: UserStats = {
   studyStreak: 0,
   byCategory: [],
   weeklyProgress: [],
+  weeklyWellbeing: [],
+  preExamRiskSignal: {
+    level: 'low',
+    score: 0,
+    message: 'Sin datos suficientes.',
+  },
 };
 
 const Statistics = () => {
@@ -138,6 +144,34 @@ const Statistics = () => {
                 <Bar dataKey="percent" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="border-0 shadow-md">
+          <CardHeader><CardTitle>Bienestar semanal</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={stats.weeklyWellbeing ?? []}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 5]} />
+                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
+                <Line type="monotone" dataKey="focusLevel" name="Enfoque" stroke="hsl(var(--primary))" strokeWidth={2} />
+                <Line type="monotone" dataKey="anxietyLevel" name="Ansiedad" stroke="hsl(var(--destructive))" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-md">
+          <CardHeader><CardTitle>Riesgo pre-examen</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Señal actual: <span className="font-semibold text-foreground">{stats.preExamRiskSignal?.level ?? 'low'}</span>
+            </p>
+            <Progress value={stats.preExamRiskSignal?.score ?? 0} className="h-2" />
+            <p className="text-sm text-muted-foreground">{stats.preExamRiskSignal?.message ?? 'Sin datos suficientes.'}</p>
           </CardContent>
         </Card>
       </div>

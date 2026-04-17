@@ -75,6 +75,22 @@ enum MentorshipStatus {
   cancelled
 }
 
+enum WellbeingMood {
+  very_low
+  low
+  neutral
+  good
+  great
+}
+
+enum WellbeingInterventionKind {
+  breathing
+  pomodoro
+  break_reset
+  grounding
+  stretch
+}
+
 model Profile {
   id                    String            @id @default(uuid())
   email                 String            @unique
@@ -98,6 +114,9 @@ model Profile {
   adminPushNotifyNewSubscription Boolean           @default(true) @map("admin_push_notify_new_subscription")
   adminEmailNotifyNewUser         Boolean           @default(false) @map("admin_email_notify_new_user")
   adminEmailNotifyNewSubscription Boolean           @default(false) @map("admin_email_notify_new_subscription")
+  wellbeingPushEnabled            Boolean           @default(false) @map("wellbeing_push_enabled")
+  wellbeingReminderTime           String?           @map("wellbeing_reminder_time") @db.VarChar(5)
+  wellbeingReminderDays           String?           @map("wellbeing_reminder_days") @db.VarChar(32)
   createdAt             DateTime          @default(now()) @map("created_at")
   updatedAt             DateTime          @updatedAt @map("updated_at")
 
@@ -119,6 +138,9 @@ model Profile {
   communityPosts                   CommunityPost[]
   mentorshipRequestsAsStudent      MentorshipRequest[] @relation("MentorshipStudent")
   mentorshipRequestsAsMentor       MentorshipRequest[] @relation("MentorshipMentor")
+  wellbeingLogs                    DailyWellbeingLog[]
+  wellbeingInterventions           WellbeingInterventionEvent[]
+  userWebPushSubscriptions         UserWebPushSubscription[]
 
   @@index([collaboratorCodeId])
   @@map("profiles")
@@ -539,6 +561,58 @@ model StudyPlanExecution {
   @@unique([userId, studyPlanId, studyPlanTaskId])
   @@index([userId, completedAt])
   @@map("study_plan_executions")
+}
+
+model DailyWellbeingLog {
+  id                   String       @id @default(uuid())
+  userId               String       @map("user_id")
+  date                 DateTime
+  mood                 WellbeingMood
+  anxietyLevel         Int          @map("anxiety_level")
+  focusLevel           Int          @map("focus_level")
+  sleepHours           Float?       @map("sleep_hours")
+  plannedStudyMinutes  Int          @default(0) @map("planned_study_minutes")
+  completedStudyMinutes Int         @default(0) @map("completed_study_minutes")
+  notes                String?      @db.Text
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, createdAt])
+  @@map("daily_wellbeing_logs")
+}
+
+model WellbeingInterventionEvent {
+  id              String                    @id @default(uuid())
+  userId          String                    @map("user_id")
+  date            DateTime
+  kind            WellbeingInterventionKind
+  durationMinutes Int                       @default(5) @map("duration_minutes")
+  completed       Boolean                   @default(true)
+  createdAt       DateTime                  @default(now()) @map("created_at")
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([userId, kind, createdAt])
+  @@map("wellbeing_intervention_events")
+}
+
+model UserWebPushSubscription {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  endpoint     String   @db.Text
+  endpointHash String   @unique @map("endpoint_hash") @db.VarChar(64)
+  p256dh       String   @map("p256dh") @db.VarChar(512)
+  auth         String   @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_web_push_subscriptions")
 }
 
 model CommunityThread {

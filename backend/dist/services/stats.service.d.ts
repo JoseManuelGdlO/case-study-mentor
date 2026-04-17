@@ -17,6 +17,18 @@ export declare function getUserStats(userId: string): Promise<{
             week: string;
             score: number;
         }[];
+        weeklyWellbeing: {
+            date: string;
+            anxietyLevel: number;
+            focusLevel: number;
+            adherencePercent: number;
+            mood: import("@prisma/client").$Enums.WellbeingMood | null;
+        }[];
+        preExamRiskSignal: {
+            level: string;
+            score: number;
+            message: string;
+        };
         prediction: {
             examId: string;
             completedAt: string | null;

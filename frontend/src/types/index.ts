@@ -171,6 +171,18 @@ export interface UserStats {
   studyStreak: number;
   byCategory: { category: string; total: number; correct: number; percent: number }[];
   weeklyProgress: { week: string; score: number }[];
+  weeklyWellbeing?: {
+    date: string;
+    anxietyLevel: number;
+    focusLevel: number;
+    adherencePercent: number;
+    mood: 'very_low' | 'low' | 'neutral' | 'good' | 'great' | null;
+  }[];
+  preExamRiskSignal?: {
+    level: 'low' | 'medium' | 'high';
+    score: number;
+    message: string;
+  };
   prediction?: {
     examId: string;
     completedAt: string | null;
@@ -179,6 +191,54 @@ export interface UserStats {
     placementProbability: number;
     version: string;
   } | null;
+}
+
+export interface DailyWellbeingLog {
+  id: string;
+  mood: 'very_low' | 'low' | 'neutral' | 'good' | 'great';
+  anxietyLevel: number;
+  focusLevel: number;
+  sleepHours: number | null;
+  plannedStudyMinutes: number;
+  completedStudyMinutes: number;
+  notes: string | null;
+  date: string;
+  updatedAt: string;
+}
+
+export interface WellbeingInterventionEvent {
+  id: string;
+  kind: 'breathing' | 'pomodoro' | 'break_reset' | 'grounding' | 'stretch';
+  durationMinutes: number;
+  completed: boolean;
+  date: string;
+  createdAt: string;
+}
+
+export interface WellbeingTodayPayload {
+  date: string;
+  log: DailyWellbeingLog | null;
+  interventions: WellbeingInterventionEvent[];
+}
+
+export interface WeeklyWellbeingPayload {
+  days: Array<{
+    date: string;
+    mood: 'very_low' | 'low' | 'neutral' | 'good' | 'great' | null;
+    anxietyLevel: number | null;
+    focusLevel: number | null;
+    plannedStudyMinutes: number;
+    completedStudyMinutes: number;
+    adherencePercent: number;
+    interventionsCount: number;
+  }>;
+  summary: {
+    avgAnxiety: number;
+    avgFocus: number;
+    avgAdherence: number;
+    completedLogs: number;
+    interventionsUsed: number;
+  };
 }
 
 export interface StudyPlanTask {

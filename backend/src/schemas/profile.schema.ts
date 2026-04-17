@@ -19,3 +19,28 @@ export const changePasswordSchema = z
     message: 'Las contraseñas nuevas no coinciden',
     path: ['newPasswordConfirm'],
   });
+
+export const wellbeingPushSubscribeSchema = z.object({
+  endpoint: z.string().url(),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+});
+
+export const wellbeingPushUnsubscribeSchema = z.object({
+  endpoint: z.string().url(),
+});
+
+export const wellbeingNotificationPreferencesSchema = z.object({
+  wellbeingPushEnabled: z.boolean().optional(),
+  wellbeingReminderTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/)
+    .optional()
+    .nullable(),
+  wellbeingReminderDays: z
+    .array(z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']))
+    .max(7)
+    .optional(),
+});

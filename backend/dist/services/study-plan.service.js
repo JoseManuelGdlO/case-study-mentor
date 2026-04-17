@@ -189,6 +189,175 @@ export async function invalidateStudyPlanCaches(userId) {
         cacheService.invalidate(CACHE_KEYS.studyPlanImpact(userId)),
     ]);
 }
+export async function getTodayWellbeing(userId) {
+    const today = toDayStartUtc();
+    const tomorrow = toDayEndUtc(today);
+    const [log, interventions] = await Promise.all([
+        prisma.dailyWellbeingLog.findFirst({
+            where: { userId, date: { gte: today, lt: tomorrow } },
+        }),
+        prisma.wellbeingInterventionEvent.findMany({
+            where: { userId, date: { gte: today, lt: tomorrow } },
+            orderBy: { createdAt: 'desc' },
+            take: 20,
+        }),
+    ]);
+    return {
+        data: {
+            date: today.toISOString(),
+            log: log
+                ? {
+                    id: log.id,
+                    mood: log.mood,
+                    anxietyLevel: log.anxietyLevel,
+                    focusLevel: log.focusLevel,
+                    sleepHours: log.sleepHours,
+                    plannedStudyMinutes: log.plannedStudyMinutes,
+                    completedStudyMinutes: log.completedStudyMinutes,
+                    notes: log.notes,
+                    createdAt: log.createdAt.toISOString(),
+                    updatedAt: log.updatedAt.toISOString(),
+                }
+                : null,
+            interventions: interventions.map((ev) => ({
+                id: ev.id,
+                kind: ev.kind,
+                durationMinutes: ev.durationMinutes,
+                completed: ev.completed,
+                date: ev.date.toISOString(),
+                createdAt: ev.createdAt.toISOString(),
+            })),
+        },
+    };
+}
+export async function upsertTodayWellbeing(userId, payload) {
+    const today = toDayStartUtc();
+    const row = await prisma.dailyWellbeingLog.upsert({
+        where: {
+            userId_date: {
+                userId,
+                date: today,
+            },
+        },
+        create: {
+            userId,
+            date: today,
+            mood: payload.mood,
+            anxietyLevel: payload.anxietyLevel,
+            focusLevel: payload.focusLevel,
+            sleepHours: payload.sleepHours ?? null,
+            plannedStudyMinutes: payload.plannedStudyMinutes,
+            completedStudyMinutes: payload.completedStudyMinutes,
+            notes: payload.notes ?? null,
+        },
+        update: {
+            mood: payload.mood,
+            anxietyLevel: payload.anxietyLevel,
+            focusLevel: payload.focusLevel,
+            sleepHours: payload.sleepHours ?? null,
+            plannedStudyMinutes: payload.plannedStudyMinutes,
+            completedStudyMinutes: payload.completedStudyMinutes,
+            notes: payload.notes ?? null,
+        },
+    });
+    await cacheService.invalidate(CACHE_KEYS.stats(userId));
+    return {
+        data: {
+            id: row.id,
+            mood: row.mood,
+            anxietyLevel: row.anxietyLevel,
+            focusLevel: row.focusLevel,
+            sleepHours: row.sleepHours,
+            plannedStudyMinutes: row.plannedStudyMinutes,
+            completedStudyMinutes: row.completedStudyMinutes,
+            notes: row.notes,
+            date: row.date.toISOString(),
+            updatedAt: row.updatedAt.toISOString(),
+        },
+    };
+}
+export async function logWellbeingIntervention(userId, payload) {
+    const row = await prisma.wellbeingInterventionEvent.create({
+        data: {
+            userId,
+            date: new Date(),
+            kind: payload.kind,
+            durationMinutes: payload.durationMinutes,
+            completed: payload.completed,
+        },
+    });
+    await cacheService.invalidate(CACHE_KEYS.stats(userId));
+    return {
+        data: {
+            id: row.id,
+            kind: row.kind,
+            durationMinutes: row.durationMinutes,
+            completed: row.completed,
+            date: row.date.toISOString(),
+            createdAt: row.createdAt.toISOString(),
+        },
+    };
+}
+export async function getWeeklyWellbeing(userId) {
+    const since = toDayStartUtc();
+    since.setUTCDate(since.getUTCDate() - 6);
+    const logs = await prisma.dailyWellbeingLog.findMany({
+        where: { userId, date: { gte: since } },
+        orderBy: { date: 'asc' },
+    });
+    const interventions = await prisma.wellbeingInterventionEvent.findMany({
+        where: { userId, date: { gte: since } },
+        orderBy: { date: 'asc' },
+    });
+    const byDate = new Map();
+    logs.forEach((l) => byDate.set(l.date.toISOString().slice(0, 10), l));
+    const interventionsByDate = new Map();
+    interventions.forEach((ev) => {
+        const key = ev.date.toISOString().slice(0, 10);
+        interventionsByDate.set(key, (interventionsByDate.get(key) ?? 0) + 1);
+    });
+    const days = Array.from({ length: 7 }).map((_, idx) => {
+        const d = new Date(since);
+        d.setUTCDate(since.getUTCDate() + idx);
+        const key = d.toISOString().slice(0, 10);
+        const log = byDate.get(key);
+        const adherence = log && log.plannedStudyMinutes > 0
+            ? Math.min(100, Math.round((log.completedStudyMinutes / log.plannedStudyMinutes) * 100))
+            : 0;
+        return {
+            date: key,
+            mood: log?.mood ?? null,
+            anxietyLevel: log?.anxietyLevel ?? null,
+            focusLevel: log?.focusLevel ?? null,
+            plannedStudyMinutes: log?.plannedStudyMinutes ?? 0,
+            completedStudyMinutes: log?.completedStudyMinutes ?? 0,
+            adherencePercent: adherence,
+            interventionsCount: interventionsByDate.get(key) ?? 0,
+        };
+    });
+    const available = days.filter((d) => d.anxietyLevel != null && d.focusLevel != null);
+    const avgAnxiety = available.length > 0
+        ? Math.round((available.reduce((s, d) => s + (d.anxietyLevel ?? 0), 0) / available.length) * 100) / 100
+        : 0;
+    const avgFocus = available.length > 0
+        ? Math.round((available.reduce((s, d) => s + (d.focusLevel ?? 0), 0) / available.length) * 100) / 100
+        : 0;
+    const avgAdherence = days.length > 0
+        ? Math.round((days.reduce((s, d) => s + d.adherencePercent, 0) / days.length) * 100) / 100
+        : 0;
+    return {
+        data: {
+            days,
+            summary: {
+                avgAnxiety,
+                avgFocus,
+                avgAdherence,
+                completedLogs: logs.length,
+                interventionsUsed: interventions.length,
+            },
+        },
+    };
+}
 async function createStudyPlanForToday(userId, premium, date) {
     const stats = await prisma.userAnswer.findMany({
         where: { userId, selectedOptionId: { not: null } },

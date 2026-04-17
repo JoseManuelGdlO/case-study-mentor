@@ -28,6 +28,6 @@ self.addEventListener('notificationclick', (event) => {
   const target =
     typeof rel === 'string' && rel.startsWith('/')
       ? new URL(rel, self.location.origin).href
-      : new URL('/backoffice', self.location.origin).href;
+      : new URL('/dashboard', self.location.origin).href;
   event.waitUntil(clients.openWindow(target));
 });
