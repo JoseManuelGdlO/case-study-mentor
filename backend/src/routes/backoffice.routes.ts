@@ -1255,6 +1255,53 @@ backofficeRouter.get(
   }
 );
 
+backofficeRouter.get('/exam-student-feedback', requireAdmin(), async (_req, res, next) => {
+  try {
+    const rows = await prisma.examStudentFeedback.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 300,
+      include: {
+        user: { select: { email: true, firstName: true, lastName: true } },
+        exam: { select: { id: true, score: true, completedAt: true } },
+      },
+    });
+
+    const total = rows.length;
+    const withComment = rows.filter((r) => (r.comment ?? '').trim().length > 0).length;
+    const avgRating = total > 0 ? rows.reduce((acc, r) => acc + r.rating, 0) / total : 0;
+    const byDifficulty = {
+      easy: rows.filter((r) => r.difficulty === 'easy').length,
+      medium: rows.filter((r) => r.difficulty === 'medium').length,
+      hard: rows.filter((r) => r.difficulty === 'hard').length,
+    };
+
+    res.json({
+      data: {
+        summary: {
+          total,
+          withComment,
+          avgRating: Math.round(avgRating * 100) / 100,
+          byDifficulty,
+        },
+        items: rows.map((r) => ({
+          id: r.id,
+          createdAt: r.createdAt.toISOString(),
+          difficulty: r.difficulty,
+          rating: r.rating,
+          comment: r.comment,
+          userEmail: r.user.email,
+          userName: `${r.user.firstName} ${r.user.lastName}`.trim(),
+          examId: r.exam.id,
+          examScore: r.exam.score,
+          examCompletedAt: r.exam.completedAt?.toISOString() ?? null,
+        })),
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
 backofficeRouter.get('/admin-push', requireAdmin(), async (req, res, next) => {
   try {
     if (!req.actor) throw new Error('No user');

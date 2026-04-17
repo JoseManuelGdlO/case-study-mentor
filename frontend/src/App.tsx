@@ -37,6 +37,7 @@ import FlashcardsManagement from "./pages/backoffice/FlashcardsManagement";
 import ExamDatesManagement from "./pages/backoffice/ExamDatesManagement";
 import BulkUploadCases from "./pages/backoffice/BulkUploadCases";
 import SubscriptionCancellationFeedback from "./pages/backoffice/SubscriptionCancellationFeedback";
+import ExamStudentFeedback from "./pages/backoffice/ExamStudentFeedback";
 import AdminNotifications from "./pages/backoffice/AdminNotifications";
 import ExamReviews from "./pages/backoffice/ExamReviews";
 import ExamReviewDetail from "./pages/backoffice/ExamReviewDetail";
@@ -192,6 +193,14 @@ const App = () => (
                 <Route path="exam-dates" element={<ExamDatesManagement />} />
                 <Route path="exam-reviews" element={<ExamReviews />} />
                 <Route path="exam-reviews/:examId" element={<ExamReviewDetail />} />
+                <Route
+                  path="exam-student-feedback"
+                  element={
+                    <AdminRoute>
+                      <ExamStudentFeedback />
+                    </AdminRoute>
+                  }
+                />
                 <Route
                   path="subscription-cancellation-feedback"
                   element={
