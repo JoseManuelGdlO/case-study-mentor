@@ -3,6 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Trophy,
   BarChart3,
@@ -51,6 +60,11 @@ const Results = () => {
     progress: 0,
   });
   const shareTimerRef = useRef<number | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackDifficulty, setFeedbackDifficulty] = useState<'easy' | 'medium' | 'hard' | null>(null);
+  const [feedbackRating, setFeedbackRating] = useState<number | null>(null);
+  const [feedbackComment, setFeedbackComment] = useState('');
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -73,6 +87,9 @@ const Results = () => {
         const studyRes = await apiJson<{ data: StudyPlan | null }>('/api/study-plan/today').catch(() => null);
         if (!c) {
           setExam(examRes.data);
+          const shouldPromptFeedback =
+            examRes.data.studentFeedbackEligible === true && examRes.data.studentFeedbackSubmitted !== true;
+          setFeedbackOpen(shouldPromptFeedback);
           if (statsRes) setStats(statsRes.data);
           setStudyPlan(studyRes?.data ?? null);
           void refreshUser();
@@ -84,7 +101,7 @@ const Results = () => {
     return () => {
       c = true;
     };
-  }, [examId]);
+  }, [examId, refreshUser]);
 
   if (err) {
     return (
@@ -136,6 +153,32 @@ const Results = () => {
         examUrl,
       })
     : '';
+
+  const submitFeedback = async () => {
+    if (!examId) return;
+    if (!feedbackDifficulty || !feedbackRating) {
+      toast.error('Selecciona dificultad y calificación');
+      return;
+    }
+    setFeedbackSubmitting(true);
+    try {
+      await apiJson(`/api/exams/${examId}/feedback`, {
+        method: 'POST',
+        body: JSON.stringify({
+          difficulty: feedbackDifficulty,
+          rating: feedbackRating,
+          comment: feedbackComment.trim().length > 0 ? feedbackComment.trim() : null,
+        }),
+      });
+      setExam((prev) => (prev ? { ...prev, studentFeedbackSubmitted: true } : prev));
+      setFeedbackOpen(false);
+      toast.success('Gracias por tu feedback');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo enviar tu feedback');
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  };
 
   const shareToPlatform = async (platform: SharePlatform, text: string) => {
     startShareProgress(platform === 'instagram' ? 'Preparando imagen para compartir...' : 'Abriendo opcion de compartir...');
@@ -217,6 +260,81 @@ const Results = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <ImpersonationBanner />
+      <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Queremos escucharte</DialogTitle>
+            <DialogDescription>
+              Tu opinión nos ayuda a mejorar las preguntas. Es totalmente opcional y te toma menos de 1 minuto.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium mb-2">¿Cómo sentiste el nivel de este examen?</p>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  type="button"
+                  variant={feedbackDifficulty === 'easy' ? 'default' : 'outline'}
+                  onClick={() => setFeedbackDifficulty('easy')}
+                >
+                  Fácil
+                </Button>
+                <Button
+                  type="button"
+                  variant={feedbackDifficulty === 'medium' ? 'default' : 'outline'}
+                  onClick={() => setFeedbackDifficulty('medium')}
+                >
+                  Medio
+                </Button>
+                <Button
+                  type="button"
+                  variant={feedbackDifficulty === 'hard' ? 'default' : 'outline'}
+                  onClick={() => setFeedbackDifficulty('hard')}
+                >
+                  Difícil
+                </Button>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium mb-2">Califica las preguntas</p>
+              <div className="flex gap-1">
+                {Array.from({ length: 5 }, (_, i) => {
+                  const value = i + 1;
+                  const selected = (feedbackRating ?? 0) >= value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-label={`Calificar con ${value} estrella${value > 1 ? 's' : ''}`}
+                      onClick={() => setFeedbackRating(value)}
+                      className="rounded p-1 hover:bg-muted"
+                    >
+                      <Star className={`w-6 h-6 ${selected ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground/40'}`} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium mb-2">Comentario (opcional)</p>
+              <Textarea
+                value={feedbackComment}
+                onChange={(e) => setFeedbackComment(e.target.value)}
+                placeholder="Cuéntanos qué mejorarías de las preguntas..."
+                maxLength={2000}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setFeedbackOpen(false)} disabled={feedbackSubmitting}>
+              Ahora no
+            </Button>
+            <Button type="button" onClick={() => void submitFeedback()} disabled={feedbackSubmitting}>
+              {feedbackSubmitting ? 'Enviando...' : 'Enviar feedback'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex-1 p-6">
       <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
         <Card className="border-0 shadow-xl overflow-hidden">

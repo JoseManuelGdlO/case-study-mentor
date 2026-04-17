@@ -3,13 +3,14 @@ import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { shuffleInPlace } from '../utils/helpers.js';
 import type { z } from 'zod';
-import type { generateExamSchema } from '../schemas/exam.schema.js';
+import type { generateExamSchema, submitExamFeedbackSchema } from '../schemas/exam.schema.js';
 import { FREE_TRIAL_MAX_EXAMS, FREE_TRIAL_MAX_QUESTIONS } from '../constants/freeTrial.js';
 import { effectivePlanFromProfile } from './profile.service.js';
 import { predictPlacement } from './prediction.service.js';
 import { invalidateStudyPlanCaches } from './study-plan.service.js';
 
 type GenerateInput = z.infer<typeof generateExamSchema>;
+type SubmitExamFeedbackInput = z.infer<typeof submitExamFeedbackSchema>;
 type QuestionPair = { caseId: string; questionId: string; difficultyLevel: number; areaId: string };
 
 export async function generateExam(userId: string, input: GenerateInput) {
@@ -265,6 +266,7 @@ export async function getExamById(userId: string, examId: string) {
       answers: true,
       selectedSpecialties: { include: { specialty: true } },
       selectedAreas: { include: { area: true } },
+      studentFeedback: true,
     },
   });
 
@@ -442,6 +444,8 @@ export async function getExamById(userId: string, examId: string) {
               reviewedAt: exam.mentorReviewedAt.toISOString(),
             }
           : null,
+      studentFeedbackEligible: exam.studentFeedbackEligible,
+      studentFeedbackSubmitted: exam.studentFeedback != null,
     },
   };
 }
@@ -594,6 +598,7 @@ export async function completeExam(userId: string, examId: string, timeSpentSeco
     : null;
 
   const mentorReviewEligible = randomInt(0, 5) === 0;
+  const studentFeedbackEligible = randomInt(0, 10) === 0;
 
   await prisma.exam.update({
     where: { id: examId },
@@ -602,6 +607,7 @@ export async function completeExam(userId: string, examId: string, timeSpentSeco
       completedAt: new Date(),
       score,
       mentorReviewEligible,
+      studentFeedbackEligible,
       ...(prediction
         ? {
             predictionSpecialty: prediction.specialtyName,
@@ -634,6 +640,41 @@ export async function getExamResults(userId: string, examId: string) {
     throw err;
   }
   return getExamById(userId, examId);
+}
+
+export async function submitExamFeedback(userId: string, examId: string, body: SubmitExamFeedbackInput) {
+  const exam = await prisma.exam.findFirst({
+    where: { id: examId, userId },
+    include: { studentFeedback: { select: { id: true } } },
+  });
+  if (!exam) {
+    const err = new Error('Examen no encontrado') as Error & { status: number };
+    err.status = 404;
+    throw err;
+  }
+  if (exam.status !== 'completed') {
+    const err = new Error('Solo puedes enviar feedback al finalizar un examen') as Error & { status: number };
+    err.status = 400;
+    throw err;
+  }
+  if (exam.studentFeedback) {
+    const err = new Error('Ya enviaste feedback para este examen') as Error & { status: number };
+    err.status = 409;
+    throw err;
+  }
+
+  const comment = body.comment?.trim();
+  await prisma.examStudentFeedback.create({
+    data: {
+      userId,
+      examId,
+      difficulty: body.difficulty,
+      rating: body.rating,
+      comment: comment && comment.length > 0 ? comment : null,
+    },
+  });
+
+  return { data: { saved: true } };
 }
 
 export async function getNextQuestion(userId: string, examId: string) {

@@ -159,6 +159,8 @@ export interface Exam {
     comment: string;
     reviewedAt: string;
   } | null;
+  studentFeedbackEligible?: boolean;
+  studentFeedbackSubmitted?: boolean;
 }
 
 export interface UserStats {

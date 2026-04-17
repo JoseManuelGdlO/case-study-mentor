@@ -212,6 +212,7 @@ export async function getExamById(userId, examId) {
             answers: true,
             selectedSpecialties: { include: { specialty: true } },
             selectedAreas: { include: { area: true } },
+            studentFeedback: true,
         },
     });
     if (!exam) {
@@ -361,6 +362,8 @@ export async function getExamById(userId, examId) {
                     reviewedAt: exam.mentorReviewedAt.toISOString(),
                 }
                 : null,
+            studentFeedbackEligible: exam.studentFeedbackEligible,
+            studentFeedbackSubmitted: exam.studentFeedback != null,
         },
     };
 }
@@ -493,6 +496,7 @@ export async function completeExam(userId, examId, timeSpentSeconds) {
         })
         : null;
     const mentorReviewEligible = randomInt(0, 5) === 0;
+    const studentFeedbackEligible = randomInt(0, 10) === 0;
     await prisma.exam.update({
         where: { id: examId },
         data: {
@@ -500,6 +504,7 @@ export async function completeExam(userId, examId, timeSpentSeconds) {
             completedAt: new Date(),
             score,
             mentorReviewEligible,
+            studentFeedbackEligible,
             ...(prediction
                 ? {
                     predictionSpecialty: prediction.specialtyName,
@@ -529,6 +534,38 @@ export async function getExamResults(userId, examId) {
         throw err;
     }
     return getExamById(userId, examId);
+}
+export async function submitExamFeedback(userId, examId, body) {
+    const exam = await prisma.exam.findFirst({
+        where: { id: examId, userId },
+        include: { studentFeedback: { select: { id: true } } },
+    });
+    if (!exam) {
+        const err = new Error('Examen no encontrado');
+        err.status = 404;
+        throw err;
+    }
+    if (exam.status !== 'completed') {
+        const err = new Error('Solo puedes enviar feedback al finalizar un examen');
+        err.status = 400;
+        throw err;
+    }
+    if (exam.studentFeedback) {
+        const err = new Error('Ya enviaste feedback para este examen');
+        err.status = 409;
+        throw err;
+    }
+    const comment = body.comment?.trim();
+    await prisma.examStudentFeedback.create({
+        data: {
+            userId,
+            examId,
+            difficulty: body.difficulty,
+            rating: body.rating,
+            comment: comment && comment.length > 0 ? comment : null,
+        },
+    });
+    return { data: { saved: true } };
 }
 export async function getNextQuestion(userId, examId) {
     const exam = await getExamById(userId, examId);

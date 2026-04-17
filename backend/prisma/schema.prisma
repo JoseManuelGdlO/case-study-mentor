@@ -55,6 +55,12 @@ enum StudyPlanTaskType {
   mini_case
 }
 
+enum ExamFeedbackDifficulty {
+  easy
+  medium
+  hard
+}
+
 enum CaseTextFormat {
   plain
   html
@@ -97,6 +103,7 @@ model Profile {
   createdClinicalCases              ClinicalCase[] @relation("ClinicalCaseCreatedBy")
   updatedClinicalCases              ClinicalCase[] @relation("ClinicalCaseUpdatedBy")
   mentorExamReviews                 Exam[]         @relation("MentorExamReviews")
+  examFeedbacks                    ExamStudentFeedback[]
   collaboratorCodeId                String?        @map("collaborator_code_id")
   collaboratorCode                  CollaboratorCode? @relation(fields: [collaboratorCodeId], references: [id], onDelete: SetNull)
 
@@ -299,6 +306,7 @@ model Exam {
   createdAt        DateTime  @default(now()) @map("created_at")
 
   mentorReviewEligible   Boolean   @default(false) @map("mentor_review_eligible")
+  studentFeedbackEligible Boolean  @default(false) @map("student_feedback_eligible")
   mentorReviewRating     Int?      @map("mentor_review_rating")
   mentorReviewComment    String?   @db.Text @map("mentor_review_comment")
   mentorReviewedAt       DateTime? @map("mentor_reviewed_at")
@@ -309,11 +317,30 @@ model Exam {
   examCases    ExamCase[]
   examQuestions ExamQuestion[]
   answers      UserAnswer[]
+  studentFeedback ExamStudentFeedback?
 
   selectedSpecialties ExamSpecialty[]
   selectedAreas       ExamArea[]
 
   @@map("exams")
+}
+
+model ExamStudentFeedback {
+  id         String                 @id @default(uuid())
+  userId     String                 @map("user_id")
+  examId     String                 @unique @map("exam_id")
+  difficulty ExamFeedbackDifficulty
+  rating     Int
+  comment    String?                @db.Text
+  createdAt  DateTime               @default(now()) @map("created_at")
+  updatedAt  DateTime               @updatedAt @map("updated_at")
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("exam_student_feedback")
 }
 
 model ExamSpecialty {

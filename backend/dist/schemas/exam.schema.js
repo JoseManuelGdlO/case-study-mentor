@@ -17,4 +17,9 @@ export const examAnswerSchema = z.object({
 export const examTimeSchema = z.object({
     timeSpentSeconds: z.number().int().min(0).optional(),
 });
+export const submitExamFeedbackSchema = z.object({
+    difficulty: z.enum(['easy', 'medium', 'hard']),
+    rating: z.number().int().min(1).max(5),
+    comment: z.string().trim().max(2000).optional().nullable(),
+});
 //# sourceMappingURL=exam.schema.js.map

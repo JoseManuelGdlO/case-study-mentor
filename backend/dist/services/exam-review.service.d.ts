@@ -102,6 +102,8 @@ export declare function getMentorReviewExamDetail(examId: string): Promise<{
                 comment: string;
                 reviewedAt: string;
             } | null;
+            studentFeedbackEligible: boolean;
+            studentFeedbackSubmitted: boolean;
         };
         student: {
             email: string;
@@ -200,6 +202,8 @@ export declare function submitMentorReview(examId: string, reviewerId: string, b
                 comment: string;
                 reviewedAt: string;
             } | null;
+            studentFeedbackEligible: boolean;
+            studentFeedbackSubmitted: boolean;
         };
         student: {
             email: string;

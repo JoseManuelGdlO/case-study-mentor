@@ -47,4 +47,17 @@ export declare const examTimeSchema: z.ZodObject<{
 }, {
     timeSpentSeconds?: number | undefined;
 }>;
+export declare const submitExamFeedbackSchema: z.ZodObject<{
+    difficulty: z.ZodEnum<["easy", "medium", "hard"]>;
+    rating: z.ZodNumber;
+    comment: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+}, "strip", z.ZodTypeAny, {
+    difficulty: "easy" | "medium" | "hard";
+    rating: number;
+    comment?: string | null | undefined;
+}, {
+    difficulty: "easy" | "medium" | "hard";
+    rating: number;
+    comment?: string | null | undefined;
+}>;
 //# sourceMappingURL=exam.schema.d.ts.map

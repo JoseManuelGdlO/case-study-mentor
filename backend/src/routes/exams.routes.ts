@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
-import { examAnswerSchema, examTimeSchema, generateExamSchema } from '../schemas/exam.schema.js';
+import { examAnswerSchema, examTimeSchema, generateExamSchema, submitExamFeedbackSchema } from '../schemas/exam.schema.js';
 import * as examService from '../services/exam.service.js';
 import { invalidateUserStats } from '../services/stats.service.js';
 import { paramString } from '../utils/params.js';
@@ -80,6 +80,21 @@ examsRouter.put(
       const result = await examService.submitAnswer(req.user.id, paramString(req.params.id), req.body);
       await invalidateUserStats(req.user.id);
       res.json(result);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+examsRouter.post(
+  '/:id/feedback',
+  authenticate,
+  validateBody(submitExamFeedbackSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) throw new Error('No user');
+      const result = await examService.submitExamFeedback(req.user.id, paramString(req.params.id), req.body);
+      res.status(201).json(result);
     } catch (e) {
       next(e);
     }

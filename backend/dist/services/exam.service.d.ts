@@ -1,6 +1,7 @@
 import type { z } from 'zod';
-import type { generateExamSchema } from '../schemas/exam.schema.js';
+import type { generateExamSchema, submitExamFeedbackSchema } from '../schemas/exam.schema.js';
 type GenerateInput = z.infer<typeof generateExamSchema>;
+type SubmitExamFeedbackInput = z.infer<typeof submitExamFeedbackSchema>;
 export declare function generateExam(userId: string, input: GenerateInput): Promise<{
     data: {
         id: string;
@@ -87,6 +88,8 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
             comment: string;
             reviewedAt: string;
         } | null;
+        studentFeedbackEligible: boolean;
+        studentFeedbackSubmitted: boolean;
     };
 }>;
 export declare function listExams(userId: string, page: number, limit: number): Promise<{
@@ -199,6 +202,8 @@ export declare function getExamById(userId: string, examId: string): Promise<{
             comment: string;
             reviewedAt: string;
         } | null;
+        studentFeedbackEligible: boolean;
+        studentFeedbackSubmitted: boolean;
     };
 }>;
 export declare function submitAnswer(userId: string, examId: string, body: {
@@ -306,6 +311,8 @@ export declare function completeExam(userId: string, examId: string, timeSpentSe
             comment: string;
             reviewedAt: string;
         } | null;
+        studentFeedbackEligible: boolean;
+        studentFeedbackSubmitted: boolean;
     };
 }>;
 export declare function getExamResults(userId: string, examId: string): Promise<{
@@ -394,6 +401,13 @@ export declare function getExamResults(userId: string, examId: string): Promise<
             comment: string;
             reviewedAt: string;
         } | null;
+        studentFeedbackEligible: boolean;
+        studentFeedbackSubmitted: boolean;
+    };
+}>;
+export declare function submitExamFeedback(userId: string, examId: string, body: SubmitExamFeedbackInput): Promise<{
+    data: {
+        saved: boolean;
     };
 }>;
 export declare function getNextQuestion(userId: string, examId: string): Promise<{
