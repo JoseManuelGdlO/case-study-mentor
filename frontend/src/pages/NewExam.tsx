@@ -80,12 +80,13 @@ const NewExam = () => {
     () => [
       {
         title: 'Idioma',
-        subtitle: '¿En qué idioma quieres tu examen?',
+        subtitle: '¿Solo español, solo inglés, o preguntas en ambos idiomas?',
         content: (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { value: 'es' as ExamLanguage, label: 'Español', flag: '🇲🇽' },
-              { value: 'en' as ExamLanguage, label: 'English', flag: '🇺🇸' },
+              { value: 'en' as ExamLanguage, label: 'Inglés', flag: '🇺🇸' },
+              { value: 'both' as ExamLanguage, label: 'Ambas', flag: '🇲🇽 🇺🇸' },
             ].map((opt) => (
               <button
                 key={opt.value}
@@ -317,7 +318,15 @@ const NewExam = () => {
           <Card className="border-0 shadow-lg gradient-card">
             <CardContent className="p-6 space-y-4">
               {[
-                { label: 'Idioma', value: language === 'es' ? '🇲🇽 Español' : '🇺🇸 English' },
+                {
+                  label: 'Idioma',
+                  value:
+                    language === 'es'
+                      ? '🇲🇽 Español'
+                      : language === 'en'
+                        ? '🇺🇸 Inglés'
+                        : '🇲🇽 🇺🇸 Ambas',
+                },
                 { label: 'Modo', value: mode === 'study' ? '📚 Estudio' : '🎯 Simulación' },
                 { label: 'Simulador', value: adaptiveMode ? 'Adaptativo activado' : 'Estándar' },
                 {
@@ -363,7 +372,10 @@ const NewExam = () => {
   const startExam = async () => {
     setStarting(true);
     try {
-      const json = await apiJson<{ data: { id: string } }>('/api/exams/generate', {
+      const json = await apiJson<{
+        data: { id: string };
+        meta?: { requestedQuestionCount: number; actualQuestionCount: number };
+      }>('/api/exams/generate', {
         method: 'POST',
         body: JSON.stringify({
           language,
@@ -376,6 +388,15 @@ const NewExam = () => {
           predictionSpecialtyId: selectedCategories[0],
         }),
       });
+      const shortfall = json.meta;
+      if (
+        shortfall &&
+        shortfall.actualQuestionCount < shortfall.requestedQuestionCount
+      ) {
+        toast.info(
+          `Con estos filtros solo había ${shortfall.actualQuestionCount} preguntas en el banco. Se generó el examen con esa cantidad (pediste ${shortfall.requestedQuestionCount}).`,
+        );
+      }
       await refreshUser();
       navigate(`/exam/${json.data.id}/${mode}`);
     } catch (e) {

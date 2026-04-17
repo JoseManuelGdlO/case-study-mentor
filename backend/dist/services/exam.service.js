@@ -10,7 +10,7 @@ export async function generateExam(userId, input) {
     const { language, mode, specialtyIds, areaIds, questionCount, questionFilter, adaptiveMode, predictionSpecialtyId, } = input;
     const caseWhere = {
         status: 'published',
-        language,
+        language: language === 'both' ? { in: ['es', 'en'] } : language,
         specialtyId: { in: specialtyIds },
         ...(areaIds.length > 0 ? { areaId: { in: areaIds } } : {}),
     };
@@ -83,8 +83,8 @@ export async function generateExam(userId, input) {
         : adaptiveMode
             ? await selectAdaptiveQuestions(userId, pairs, questionCount)
             : selectStandardQuestions(pairs, questionCount);
-    if (selected.length < questionCount) {
-        const err = new Error('No hay suficientes preguntas con los filtros seleccionados');
+    if (selected.length === 0) {
+        const err = new Error('No hay preguntas disponibles con los filtros seleccionados. Prueba ampliando especialidades, áreas o el tipo de filtro (todas / sin resolver / ya resueltas).');
         err.status = 400;
         throw err;
     }
@@ -146,7 +146,17 @@ export async function generateExam(userId, input) {
         });
         return e;
     });
-    return getExamById(userId, exam.id);
+    const payload = await getExamById(userId, exam.id);
+    if (selected.length < questionCount) {
+        return {
+            ...payload,
+            meta: {
+                requestedQuestionCount: questionCount,
+                actualQuestionCount: selected.length,
+            },
+        };
+    }
+    return payload;
 }
 function stripSimulationOptions(options) {
     return options.map(({ isCorrect: _i, explanation: _e, feedbackImageUrl: _f, ...rest }) => rest);

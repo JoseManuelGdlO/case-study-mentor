@@ -70,7 +70,12 @@ const ExamList = () => {
           </div>
           <h3 className="font-semibold text-foreground mb-1">{exam.config.categories.join(', ')}</h3>
           <p className="text-sm text-muted-foreground mb-3">
-            {exam.config.questionCount} preguntas · {exam.config.language === 'es' ? 'Español' : 'English'}
+            {exam.config.questionCount} preguntas ·{' '}
+            {exam.config.language === 'es'
+              ? 'Español'
+              : exam.config.language === 'en'
+                ? 'Inglés'
+                : 'Ambas'}
           </p>
           {isCompleted ? (
             <div className={`text-3xl font-bold ${(exam.score ?? 0) >= 70 ? 'text-success' : 'text-destructive'}`}>

@@ -295,7 +295,9 @@ const ExamStudy = () => {
                       borderClass = 'border-destructive';
                       bgClass = 'bg-destructive/10';
                     } else {
-                      borderClass = 'border-border opacity-50';
+                      // Incorrecta no elegida: visible y claramente descartada
+                      borderClass = 'border-muted-foreground/35';
+                      bgClass = 'bg-muted/30';
                     }
                   } else if (isSelected) {
                     borderClass = 'border-primary bg-accent';
@@ -322,6 +324,8 @@ const ExamStudy = () => {
                           <CheckCircle2 className="w-4 h-4" />
                         ) : revealed && isSelected && !isCorrect ? (
                           <XCircle className="w-4 h-4" />
+                        ) : revealed && !isCorrect ? (
+                          <XCircle className="w-4 h-4 opacity-60" aria-hidden />
                         ) : (
                           opt.label
                         )}
@@ -335,7 +339,7 @@ const ExamStudy = () => {
                             className="rounded-lg max-w-full max-h-48 border object-contain"
                           />
                         ) : null}
-                        {revealed && (isSelected || isCorrect) && (opt.explanation || opt.feedbackImageUrl) ? (
+                        {revealed && (opt.explanation || opt.feedbackImageUrl) ? (
                           <>
                             {opt.explanation ? (
                               <RichOrPlainBlock

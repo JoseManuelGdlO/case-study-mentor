@@ -6,7 +6,100 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
     data: {
         id: string;
         config: {
-            language: "es" | "en";
+            language: "es" | "en" | "both";
+            mode: "simulation" | "study";
+            adaptiveMode: boolean;
+            categories: string[];
+            subcategories: string[];
+            questionCount: number;
+            questionFilter: string;
+        };
+        cases: ({
+            id: string;
+            specialty: string;
+            area: string;
+            topic: string;
+            language: string;
+            text: string;
+            textFormat: "plain" | "html";
+            imageUrl?: string | null;
+            generatedByIa: boolean;
+            labResults: unknown[];
+            questions: unknown[];
+            status: string;
+            createdAt: string;
+            updatedAt: string;
+        } | undefined)[];
+        answers: {
+            questionId: string;
+            selectedOptionId: string | null;
+            isCorrect: boolean | null;
+        }[];
+        currentQuestionIndex: number;
+        status: "not_started" | "in_progress" | "completed";
+        score: number | null;
+        prediction: {
+            specialty: string;
+            estimatedPercentile: number;
+            placementProbability: number;
+            version: string;
+        } | null;
+        startedAt: string;
+        completedAt: string | null;
+        timeSpentSeconds: number;
+        flatQuestions: {
+            id: string;
+            globalOrder: number;
+            text: string;
+            imageUrl: string | undefined;
+            feedbackImageUrl: string | undefined;
+            options: Omit<{
+                id: string;
+                label: string;
+                text: string;
+                imageUrl: string | undefined;
+                feedbackImageUrl: string | undefined;
+                isCorrect: boolean;
+                explanation: string;
+            }, "isCorrect" | "feedbackImageUrl" | "explanation">[];
+            summary: string;
+            bibliography: string;
+            difficultyLevel: number;
+            cognitiveCompetence: boolean;
+            previousEnarmPresence: boolean;
+            hint: string;
+            caseText: string;
+            caseTextFormat: import("@prisma/client").$Enums.CaseTextFormat;
+            caseImageUrl: string | null;
+            specialty: string;
+            area: string;
+            topic: string;
+            caseId: string;
+            labResults: {
+                id: string;
+                name: string;
+                value: string;
+                unit: string;
+                normalRange: string;
+            }[];
+        }[];
+        mentorReview: {
+            rating: number;
+            comment: string;
+            reviewedAt: string;
+        } | null;
+        studentFeedbackEligible: boolean;
+        studentFeedbackSubmitted: boolean;
+    };
+} | {
+    meta: {
+        requestedQuestionCount: number;
+        actualQuestionCount: number;
+    };
+    data: {
+        id: string;
+        config: {
+            language: "es" | "en" | "both";
             mode: "simulation" | "study";
             adaptiveMode: boolean;
             categories: string[];
@@ -96,7 +189,7 @@ export declare function listExams(userId: string, page: number, limit: number): 
     data: {
         id: string;
         config: {
-            language: "es" | "en";
+            language: "es" | "en" | "both";
             mode: "simulation" | "study";
             adaptiveMode: boolean;
             categories: string[];
@@ -120,7 +213,7 @@ export declare function getExamById(userId: string, examId: string): Promise<{
     data: {
         id: string;
         config: {
-            language: "es" | "en";
+            language: "es" | "en" | "both";
             mode: "simulation" | "study";
             adaptiveMode: boolean;
             categories: string[];
@@ -229,7 +322,7 @@ export declare function completeExam(userId: string, examId: string, timeSpentSe
     data: {
         id: string;
         config: {
-            language: "es" | "en";
+            language: "es" | "en" | "both";
             mode: "simulation" | "study";
             adaptiveMode: boolean;
             categories: string[];
@@ -319,7 +412,7 @@ export declare function getExamResults(userId: string, examId: string): Promise<
     data: {
         id: string;
         config: {
-            language: "es" | "en";
+            language: "es" | "en" | "both";
             mode: "simulation" | "study";
             adaptiveMode: boolean;
             categories: string[];

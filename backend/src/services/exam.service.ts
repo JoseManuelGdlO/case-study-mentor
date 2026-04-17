@@ -27,7 +27,7 @@ export async function generateExam(userId: string, input: GenerateInput) {
 
   const caseWhere = {
     status: 'published',
-    language,
+    language: language === 'both' ? { in: ['es', 'en'] } : language,
     specialtyId: { in: specialtyIds },
     ...(areaIds.length > 0 ? { areaId: { in: areaIds } } : {}),
   };
@@ -117,8 +117,10 @@ export async function generateExam(userId: string, input: GenerateInput) {
     : adaptiveMode
       ? await selectAdaptiveQuestions(userId, pairs, questionCount)
       : selectStandardQuestions(pairs, questionCount);
-  if (selected.length < questionCount) {
-    const err = new Error('No hay suficientes preguntas con los filtros seleccionados') as Error & { status: number };
+  if (selected.length === 0) {
+    const err = new Error(
+      'No hay preguntas disponibles con los filtros seleccionados. Prueba ampliando especialidades, áreas o el tipo de filtro (todas / sin resolver / ya resueltas).',
+    ) as Error & { status: number };
     err.status = 400;
     throw err;
   }
@@ -190,7 +192,17 @@ export async function generateExam(userId: string, input: GenerateInput) {
     return e;
   });
 
-  return getExamById(userId, exam.id);
+  const payload = await getExamById(userId, exam.id);
+  if (selected.length < questionCount) {
+    return {
+      ...payload,
+      meta: {
+        requestedQuestionCount: questionCount,
+        actualQuestionCount: selected.length,
+      },
+    };
+  }
+  return payload;
 }
 
 function stripSimulationOptions<
@@ -221,7 +233,7 @@ export async function listExams(userId: string, page: number, limit: number) {
   const data = rows.map((e) => ({
     id: e.id,
     config: {
-      language: e.language as 'es' | 'en',
+      language: e.language as 'es' | 'en' | 'both',
       mode: e.mode as 'simulation' | 'study',
       adaptiveMode: e.adaptiveMode,
       categories: e.selectedSpecialties.map((s) => s.specialty.name),
@@ -408,7 +420,7 @@ export async function getExamById(userId: string, examId: string) {
     data: {
       id: exam.id,
       config: {
-        language: exam.language as 'es' | 'en',
+        language: exam.language as 'es' | 'en' | 'both',
         mode: exam.mode as 'simulation' | 'study',
         adaptiveMode: exam.adaptiveMode,
         categories: exam.selectedSpecialties.map((s) => s.specialty.name),

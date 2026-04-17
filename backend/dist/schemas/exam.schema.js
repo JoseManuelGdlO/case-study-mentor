@@ -1,6 +1,6 @@
 import { z } from 'zod';
 export const generateExamSchema = z.object({
-    language: z.enum(['es', 'en']),
+    language: z.enum(['es', 'en', 'both']),
     mode: z.enum(['simulation', 'study']),
     specialtyIds: z.array(z.string().uuid()).min(1),
     areaIds: z.array(z.string().uuid()).default([]),

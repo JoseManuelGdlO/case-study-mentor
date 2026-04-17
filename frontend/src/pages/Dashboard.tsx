@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { BookOpen, Target, Flame, TrendingUp, Plus, Clock, ArrowRight, Play, Lock, Crown, Share2, MessageCircle, Facebook, Instagram } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { PredictionMetricsExplainer } from '@/components/PredictionMetricsExplainer';
 import MotivationalBanner from '@/components/MotivationalBanner';
 import CountdownTimer from '@/components/CountdownTimer';
 import { apiJson } from '@/lib/api';
@@ -381,15 +382,23 @@ const Dashboard = () => {
 
       {!isFreeUser && stats.prediction && (
         <Card className="border-0 shadow-md">
-          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Prediccion de plaza ({stats.prediction.specialty})</p>
-              <p className="text-2xl font-bold text-foreground">
-                {Math.round(stats.prediction.placementProbability)}% probabilidad · P{Math.round(stats.prediction.estimatedPercentile)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Estimacion basada en tus ultimos simuladores: indica que tan competitivo vas para entrar a esa especialidad.
-              </p>
+          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="min-w-0 flex-1 space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Predicción de plaza en <strong className="text-foreground">{stats.prediction.specialty}</strong>
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  {Math.round(stats.prediction.placementProbability)}% probabilidad · P{Math.round(stats.prediction.estimatedPercentile)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Referido a una posible residencia en esa especialidad (último simulador con predicción).
+                </p>
+              </div>
+              <PredictionMetricsExplainer
+                className="max-w-2xl"
+                footer={`Versión del modelo: ${stats.prediction.version}. Ver detalle en el resultado del simulador.`}
+              />
               <div className="flex flex-wrap gap-2 mt-3">
                 <Button
                   size="sm"

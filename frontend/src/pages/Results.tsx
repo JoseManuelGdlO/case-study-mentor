@@ -33,6 +33,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ImpersonationBanner } from '@/components/ImpersonationBanner';
+import { PredictionMetricsExplainer } from '@/components/PredictionMetricsExplainer';
 import {
   buildPlatformUrl,
   buildPredictionShareText,
@@ -433,22 +434,25 @@ const Results = () => {
         {prediction && (
           <Card className="border-0 shadow-md">
             <CardHeader>
-              <CardTitle>Prediccion ENARM para {prediction.specialty}</CardTitle>
+              <CardTitle>Predicción ENARM para {prediction.specialty}</CardTitle>
+              <p className="text-sm text-muted-foreground font-normal mt-1">
+                Estimación referida a una posible plaza de residencia en <strong className="text-foreground">{prediction.specialty}</strong>.
+              </p>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="rounded-lg border p-4">
-                  <p className="text-sm text-muted-foreground">Probabilidad de plaza</p>
+                  <p className="text-sm text-muted-foreground">Probabilidad de plaza (en esta especialidad)</p>
                   <p className="text-2xl font-bold text-foreground">{Math.round(prediction.placementProbability)}%</p>
                 </div>
                 <div className="rounded-lg border p-4">
-                  <p className="text-sm text-muted-foreground">Percentil estimado</p>
+                  <p className="text-sm text-muted-foreground">Percentil estimado (marco del modelo)</p>
                   <p className="text-2xl font-bold text-foreground">P{Math.round(prediction.estimatedPercentile)}</p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Estimacion basada en tu desempeno actual y tendencia reciente. Version: {prediction.version}
-              </p>
+              <PredictionMetricsExplainer
+                footer={`Versión del modelo: ${prediction.version}. No sustituye resultados oficiales del ENARM.`}
+              />
               <div className="flex flex-wrap gap-2 pt-2">
                 <Button size="sm" variant="outline" className="gap-2" onClick={() => handleQuickShare(predictionText, 'Prediccion')}>
                   <Share2 className="w-4 h-4" /> Compartir prediccion

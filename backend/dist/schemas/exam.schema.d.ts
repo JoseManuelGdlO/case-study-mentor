@@ -1,6 +1,6 @@
 import { z } from 'zod';
 export declare const generateExamSchema: z.ZodObject<{
-    language: z.ZodEnum<["es", "en"]>;
+    language: z.ZodEnum<["es", "en", "both"]>;
     mode: z.ZodEnum<["simulation", "study"]>;
     specialtyIds: z.ZodArray<z.ZodString, "many">;
     areaIds: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
@@ -11,7 +11,7 @@ export declare const generateExamSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     mode: "simulation" | "study";
     adaptiveMode: boolean;
-    language: "es" | "en";
+    language: "es" | "en" | "both";
     questionCount: number;
     questionFilter: "all" | "unanswered" | "answered";
     specialtyIds: string[];
@@ -19,7 +19,7 @@ export declare const generateExamSchema: z.ZodObject<{
     predictionSpecialtyId?: string | undefined;
 }, {
     mode: "simulation" | "study";
-    language: "es" | "en";
+    language: "es" | "en" | "both";
     questionCount: number;
     specialtyIds: string[];
     adaptiveMode?: boolean | undefined;

@@ -20,7 +20,7 @@ export declare function getMentorReviewExamDetail(examId: string): Promise<{
         exam: {
             id: string;
             config: {
-                language: "es" | "en";
+                language: "es" | "en" | "both";
                 mode: "simulation" | "study";
                 adaptiveMode: boolean;
                 categories: string[];
@@ -120,7 +120,7 @@ export declare function submitMentorReview(examId: string, reviewerId: string, b
         exam: {
             id: string;
             config: {
-                language: "es" | "en";
+                language: "es" | "en" | "both";
                 mode: "simulation" | "study";
                 adaptiveMode: boolean;
                 categories: string[];

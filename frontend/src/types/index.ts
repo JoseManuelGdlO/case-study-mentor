@@ -1,5 +1,8 @@
 export type ExamMode = 'simulation' | 'study';
-export type ExamLanguage = 'es' | 'en';
+/** Idioma del contenido de un caso clínico (siempre uno u otro). */
+export type CaseLanguage = 'es' | 'en';
+/** Idioma elegido al crear un examen (incluye mezcla de ambos). */
+export type ExamLanguage = CaseLanguage | 'both';
 export type ExamStatus = 'in_progress' | 'completed' | 'not_started';
 /** 1 = Baja, 2 = Media, 3 = Alta */
 export type DifficultyLevel = 1 | 2 | 3;
@@ -77,7 +80,7 @@ export interface ClinicalCase {
   specialty: string;
   area: string;
   topic: string;
-  language: ExamLanguage;
+  language: CaseLanguage;
   text: string;
   /** Ausente en datos antiguos; se trata como plain */
   textFormat?: CaseTextFormat;
