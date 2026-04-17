@@ -1,4 +1,9 @@
 import { type PaidTier } from '../config/plans.js';
+export declare function parseCustomId(raw: string | undefined): {
+    userId: string;
+    tier: PaidTier;
+    collaboratorCodeId?: string;
+} | null;
 /** Crea producto + plan en PayPal si la fila aún no tiene `paypalPlanId`, y lo activa. */
 export declare function ensurePayPalBillingPlan(planRow: {
     id: string;
@@ -17,7 +22,7 @@ export type PayPalSubscriptionApi = {
 };
 export declare function getPayPalSubscription(subscriptionId: string): Promise<PayPalSubscriptionApi>;
 export declare function syncProfileFromPayPalSubscriptionResource(sub: PayPalSubscriptionApi): Promise<void>;
-export declare function createPayPalSubscriptionCheckout(userId: string, tier: PaidTier): Promise<{
+export declare function createPayPalSubscriptionCheckout(userId: string, tier: PaidTier, collaboratorCodeId?: string | null): Promise<{
     approvalUrl: string;
 }>;
 export declare function confirmPayPalSubscriptionAfterApproval(userId: string, subscriptionId: string): Promise<void>;

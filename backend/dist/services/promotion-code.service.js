@@ -178,6 +178,13 @@ async function createStripeCouponAndPromotionCodeForReplace(existing, normalized
 }
 export async function createPromotionCode(input) {
     const { normalized, maxRedemptions, validFrom, validUntil } = validatePromotionInput(input);
+    const collabConflict = await prisma.collaboratorCode.findUnique({
+        where: { code: normalized },
+        select: { id: true },
+    });
+    if (collabConflict) {
+        throw serviceError('Ese código ya está reservado para un colaborador', 409);
+    }
     const { coupon, promotion } = await createStripeCouponAndPromotionCode(normalized, input.percentOff, maxRedemptions, validUntil, true);
     try {
         const row = await prisma.promotionCode.create({
@@ -312,7 +319,7 @@ export async function setPromotionCodeActive(id, isActive) {
     });
     return toListRow(updated);
 }
-async function assertCheckoutEligible(row, userId) {
+export async function assertCheckoutEligible(row, userId) {
     const profile = await prisma.profile.findUnique({
         where: { id: userId },
         select: { stripeSubscriptionId: true },

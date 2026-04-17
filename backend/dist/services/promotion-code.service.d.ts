@@ -1,3 +1,4 @@
+import { prisma } from '../config/database.js';
 export declare function normalizePromotionCode(raw: string): string;
 export type PromotionCodeCreateInput = {
     code: string;
@@ -28,6 +29,7 @@ export declare function updatePromotionCode(id: string, input: PromotionCodeUpda
 export declare function deletePromotionCode(id: string): Promise<void>;
 export declare function listPromotionCodes(): Promise<PromotionCodeListRow[]>;
 export declare function setPromotionCodeActive(id: string, isActive: boolean): Promise<PromotionCodeListRow>;
+export declare function assertCheckoutEligible(row: NonNullable<Awaited<ReturnType<typeof prisma.promotionCode.findUnique>>>, userId: string): Promise<void>;
 /** Devuelve el id de Promotion Code de Stripe o null si no se envió código. */
 export declare function resolvePromotionCodeForCheckout(userId: string, rawCode: string | undefined): Promise<{
     stripePromotionCodeId: string;

@@ -58,13 +58,13 @@ export declare const flashcardCreateSchema: z.ZodObject<{
     answer: string;
     specialtyIds: string[];
     areaIds: string[];
-    hint?: string | undefined;
     isActive?: boolean | undefined;
+    hint?: string | undefined;
 }, {
     question: string;
     answer: string;
-    hint?: string | undefined;
     isActive?: boolean | undefined;
+    hint?: string | undefined;
     specialtyIds?: string[] | undefined;
     areaIds?: string[] | undefined;
 }>;
@@ -77,16 +77,16 @@ export declare const flashcardUpdateSchema: z.ZodObject<{
     areaIds: z.ZodOptional<z.ZodDefault<z.ZodArray<z.ZodString, "many">>>;
 }, "strip", z.ZodTypeAny, {
     question?: string | undefined;
+    isActive?: boolean | undefined;
     hint?: string | undefined;
     answer?: string | undefined;
-    isActive?: boolean | undefined;
     specialtyIds?: string[] | undefined;
     areaIds?: string[] | undefined;
 }, {
     question?: string | undefined;
+    isActive?: boolean | undefined;
     hint?: string | undefined;
     answer?: string | undefined;
-    isActive?: boolean | undefined;
     specialtyIds?: string[] | undefined;
     areaIds?: string[] | undefined;
 }>;
@@ -223,6 +223,61 @@ export declare const promotionCodePutSchema: z.ZodObject<{
     maxRedemptions?: number | null | undefined;
     validFrom?: string | null | undefined;
     validUntil?: string | null | undefined;
+}>;
+export declare const collaboratorCodeCreateSchema: z.ZodEffects<z.ZodObject<{
+    code: z.ZodString;
+    displayName: z.ZodString;
+    attributionOnly: z.ZodBoolean;
+    percentOff: z.ZodOptional<z.ZodNumber>;
+    maxRedemptions: z.ZodNullable<z.ZodOptional<z.ZodNumber>>;
+    validFrom: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    validUntil: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+}, "strip", z.ZodTypeAny, {
+    code: string;
+    displayName: string;
+    attributionOnly: boolean;
+    percentOff?: number | undefined;
+    maxRedemptions?: number | null | undefined;
+    validFrom?: string | null | undefined;
+    validUntil?: string | null | undefined;
+}, {
+    code: string;
+    displayName: string;
+    attributionOnly: boolean;
+    percentOff?: number | undefined;
+    maxRedemptions?: number | null | undefined;
+    validFrom?: string | null | undefined;
+    validUntil?: string | null | undefined;
+}>, {
+    code: string;
+    displayName: string;
+    attributionOnly: boolean;
+    percentOff?: number | undefined;
+    maxRedemptions?: number | null | undefined;
+    validFrom?: string | null | undefined;
+    validUntil?: string | null | undefined;
+}, {
+    code: string;
+    displayName: string;
+    attributionOnly: boolean;
+    percentOff?: number | undefined;
+    maxRedemptions?: number | null | undefined;
+    validFrom?: string | null | undefined;
+    validUntil?: string | null | undefined;
+}>;
+export declare const collaboratorCodePatchSchema: z.ZodObject<{
+    isActive: z.ZodBoolean;
+}, "strip", z.ZodTypeAny, {
+    isActive: boolean;
+}, {
+    isActive: boolean;
+}>;
+export declare const collaboratorCodeDisplayNameSchema: z.ZodObject<{
+    displayName: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    displayName: string;
+}, {
+    displayName: string;
 }>;
 export declare const userRoleUpdateSchema: z.ZodObject<{
     roles: z.ZodArray<z.ZodEnum<["admin", "editor", "user"]>, "many">;

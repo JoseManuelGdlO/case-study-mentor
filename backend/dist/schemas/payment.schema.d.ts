@@ -6,15 +6,19 @@ export declare const checkoutTierSchema: z.ZodObject<{
 }, {
     tier: "monthly" | "semester" | "annual";
 }>;
+/** `code` unifica colaborador + promoción; `promotionCode` se acepta por compatibilidad. */
 export declare const subscriptionCheckoutSchema: z.ZodObject<{
     tier: z.ZodEnum<["monthly", "semester", "annual"]>;
 } & {
+    code: z.ZodOptional<z.ZodString>;
     promotionCode: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     tier: "monthly" | "semester" | "annual";
+    code?: string | undefined;
     promotionCode?: string | undefined;
 }, {
     tier: "monthly" | "semester" | "annual";
+    code?: string | undefined;
     promotionCode?: string | undefined;
 }>;
 export declare const validatePromotionCodeBodySchema: z.ZodObject<{
@@ -23,6 +27,27 @@ export declare const validatePromotionCodeBodySchema: z.ZodObject<{
     code: string;
 }, {
     code: string;
+}>;
+export declare const validateCheckoutCodeBodySchema: z.ZodObject<{
+    code: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    code: string;
+}, {
+    code: string;
+}>;
+export declare const paypalSubscriptionCheckoutSchema: z.ZodObject<{
+    tier: z.ZodEnum<["monthly", "semester", "annual"]>;
+} & {
+    code: z.ZodOptional<z.ZodString>;
+    promotionCode: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    tier: "monthly" | "semester" | "annual";
+    code?: string | undefined;
+    promotionCode?: string | undefined;
+}, {
+    tier: "monthly" | "semester" | "annual";
+    code?: string | undefined;
+    promotionCode?: string | undefined;
 }>;
 export declare const paypalCaptureSchema: z.ZodObject<{
     orderId: z.ZodString;

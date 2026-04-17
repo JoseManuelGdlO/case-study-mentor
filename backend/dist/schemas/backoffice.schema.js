@@ -56,6 +56,23 @@ export const promotionCodePatchSchema = z.object({
 export const promotionCodePutSchema = promotionCodeCreateSchema.extend({
     isActive: z.boolean().optional(),
 });
+export const collaboratorCodeCreateSchema = z
+    .object({
+    code: z.string().min(1),
+    displayName: z.string().min(1),
+    attributionOnly: z.boolean(),
+    percentOff: z.number().int().min(1).max(100).optional(),
+    maxRedemptions: z.number().int().positive().optional().nullable(),
+    validFrom: z.string().datetime().optional().nullable(),
+    validUntil: z.string().datetime().optional().nullable(),
+})
+    .refine((d) => d.attributionOnly || (d.percentOff != null && d.percentOff >= 1), { message: 'Con descuento, percentOff es obligatorio (1–100)', path: ['percentOff'] });
+export const collaboratorCodePatchSchema = z.object({
+    isActive: z.boolean(),
+});
+export const collaboratorCodeDisplayNameSchema = z.object({
+    displayName: z.string().min(1),
+});
 export const userRoleUpdateSchema = z.object({
     roles: z.array(z.enum(['admin', 'editor', 'user'])).min(1),
 });

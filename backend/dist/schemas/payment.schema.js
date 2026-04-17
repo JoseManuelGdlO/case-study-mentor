@@ -2,11 +2,20 @@ import { z } from 'zod';
 export const checkoutTierSchema = z.object({
     tier: z.enum(['monthly', 'semester', 'annual']),
 });
+/** `code` unifica colaborador + promoción; `promotionCode` se acepta por compatibilidad. */
 export const subscriptionCheckoutSchema = checkoutTierSchema.extend({
+    code: z.string().min(1).max(50).optional(),
     promotionCode: z.string().min(1).max(50).optional(),
 });
 export const validatePromotionCodeBodySchema = z.object({
     code: z.string().min(1).max(50),
+});
+export const validateCheckoutCodeBodySchema = z.object({
+    code: z.string().min(1).max(50),
+});
+export const paypalSubscriptionCheckoutSchema = checkoutTierSchema.extend({
+    code: z.string().min(1).max(50).optional(),
+    promotionCode: z.string().min(1).max(50).optional(),
 });
 export const paypalCaptureSchema = z.object({
     orderId: z.string().min(1),

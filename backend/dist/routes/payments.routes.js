@@ -2,10 +2,18 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import { PaymentProvider } from '@prisma/client';
-import { checkoutTierSchema, paypalCaptureSchema, paypalSubscriptionConfirmSchema, subscriptionCancelFeedbackSchema, subscriptionCheckoutSchema, validatePromotionCodeBodySchema, } from '../schemas/payment.schema.js';
+import { checkoutTierSchema, paypalCaptureSchema, paypalSubscriptionCheckoutSchema, paypalSubscriptionConfirmSchema, subscriptionCancelFeedbackSchema, subscriptionCheckoutSchema, validateCheckoutCodeBodySchema, validatePromotionCodeBodySchema, } from '../schemas/payment.schema.js';
 import * as paypalBillingService from '../services/paypal-billing.service.js';
 import * as paymentService from '../services/payment.service.js';
-import { resolvePromotionCodeForCheckout, validatePromotionCodeForUser, } from '../services/promotion-code.service.js';
+import { validatePromotionCodeForUser } from '../services/promotion-code.service.js';
+import { assertPayPalSubscriptionCheckoutCodes, resolveSubscriptionCheckoutCodes, validateCheckoutCodeForUser, } from '../services/collaborator-code.service.js';
+function checkoutCodeFromBody(body) {
+    const c = body.code ?? body.promotionCode;
+    if (c == null)
+        return undefined;
+    const t = String(c).trim();
+    return t === '' ? undefined : t;
+}
 export async function stripeWebhookHandler(req, res, next) {
     try {
         const sig = req.headers['stripe-signature'];
@@ -88,13 +96,26 @@ paymentsRouter.post('/stripe/validate-promotion-code', authenticate, validateBod
         next(e);
     }
 });
+paymentsRouter.post('/stripe/validate-checkout-code', authenticate, validateBody(validateCheckoutCodeBodySchema), async (req, res, next) => {
+    try {
+        if (!req.user)
+            throw new Error('No user');
+        const { code } = req.body;
+        const result = await validateCheckoutCodeForUser(req.user.id, code);
+        res.json({ data: result });
+    }
+    catch (e) {
+        next(e);
+    }
+});
 paymentsRouter.post('/stripe/subscription-checkout', authenticate, validateBody(subscriptionCheckoutSchema), async (req, res, next) => {
     try {
         if (!req.user)
             throw new Error('No user');
-        const { tier, promotionCode } = req.body;
-        const promotion = await resolvePromotionCodeForCheckout(req.user.id, promotionCode);
-        const { url } = await paymentService.createStripeSubscriptionCheckoutSession(req.user.id, tier, promotion);
+        const body = req.body;
+        const code = checkoutCodeFromBody(body);
+        const resolved = await resolveSubscriptionCheckoutCodes(req.user.id, code);
+        const { url } = await paymentService.createStripeSubscriptionCheckoutSession(req.user.id, body.tier, resolved.promotion, resolved.collaboratorCodeId);
         res.json({ data: { url } });
     }
     catch (e) {
@@ -125,12 +146,15 @@ paymentsRouter.post('/paypal/create-order', authenticate, validateBody(checkoutT
         next(e);
     }
 });
-paymentsRouter.post('/paypal/create-subscription', authenticate, validateBody(checkoutTierSchema), async (req, res, next) => {
+paymentsRouter.post('/paypal/create-subscription', authenticate, validateBody(paypalSubscriptionCheckoutSchema), async (req, res, next) => {
     try {
         if (!req.user)
             throw new Error('No user');
-        const { tier } = req.body;
-        const { approvalUrl } = await paypalBillingService.createPayPalSubscriptionCheckout(req.user.id, tier);
+        const body = req.body;
+        const code = checkoutCodeFromBody(body);
+        const resolved = await resolveSubscriptionCheckoutCodes(req.user.id, code);
+        assertPayPalSubscriptionCheckoutCodes(resolved);
+        const { approvalUrl } = await paypalBillingService.createPayPalSubscriptionCheckout(req.user.id, body.tier, resolved.collaboratorCodeId);
         res.json({ data: { approvalUrl } });
     }
     catch (e) {

@@ -7,6 +7,7 @@ import { getActiveSubscriptionPlanForTier, subscriptionPlanPriceCents, } from '.
 import { getPayPalSubscription, syncProfileFromPayPalSubscriptionResource, } from './paypal-billing.service.js';
 import { notifyAdminsNewSubscription } from './admin-push.service.js';
 import { paypalAccessToken, paypalApiBase, paypalFetch } from './paypal-api.js';
+import { assignCollaboratorCodeToProfileIfEmpty } from './collaborator-code.service.js';
 function serviceError(message, status) {
     const e = new Error(message);
     e.status = status;
@@ -30,14 +31,23 @@ function paypalValueToCents(value, currency) {
 function parsePayPalCustomId(raw) {
     if (!raw)
         return null;
-    const idx = raw.indexOf(':');
-    if (idx <= 0)
+    const first = raw.indexOf(':');
+    if (first <= 0)
         return null;
-    const userId = raw.slice(0, idx);
-    const tier = raw.slice(idx + 1);
-    if (!isPaidTier(tier))
+    const userId = raw.slice(0, first);
+    const rest = raw.slice(first + 1);
+    const second = rest.indexOf(':');
+    if (second === -1) {
+        const tier = rest;
+        if (!isPaidTier(tier))
+            return null;
+        return { userId, tier };
+    }
+    const tier = rest.slice(0, second);
+    const collaboratorCodeId = rest.slice(second + 1);
+    if (!isPaidTier(tier) || !collaboratorCodeId)
         return null;
-    return { userId, tier };
+    return { userId, tier, collaboratorCodeId };
 }
 export async function applyCompletedPayment(input) {
     const plan = await getActiveSubscriptionPlanForTier(input.tier);
@@ -144,7 +154,7 @@ export async function createStripeCheckoutSession(userId, tier) {
         throw serviceError('Stripe no devolvió URL de checkout', 502);
     return { url: session.url };
 }
-export async function createStripeSubscriptionCheckoutSession(userId, tier, promotion) {
+export async function createStripeSubscriptionCheckoutSession(userId, tier, promotion, collaboratorCodeId) {
     const stripe = getStripe();
     const plan = await getActiveSubscriptionPlanForTier(tier);
     const base = requirePublicFrontendBaseUrlForPayments();
@@ -161,6 +171,7 @@ export async function createStripeSubscriptionCheckoutSession(userId, tier, prom
         userId,
         tier,
         ...(promotion ? { promotionCodeId: promotion.promotionCodeId } : {}),
+        ...(collaboratorCodeId ? { collaboratorCodeId } : {}),
     };
     const sessionParams = {
         mode: 'subscription',
@@ -246,6 +257,10 @@ async function syncStripeSubscriptionToProfile(sub) {
             subscriptionCancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
         },
     });
+    const collabMeta = sub.metadata?.collaboratorCodeId;
+    if (typeof collabMeta === 'string' && collabMeta) {
+        await assignCollaboratorCodeToProfileIfEmpty(userId, collabMeta);
+    }
     if (before.subscriptionTier === 'free') {
         void notifyAdminsNewSubscription({
             userId,
@@ -513,6 +528,9 @@ export async function capturePayPalOrder(userId, orderId) {
         tier: parsed.tier,
         metadata: { orderId, captureId: cap.id },
     });
+    if (parsed.collaboratorCodeId) {
+        await assignCollaboratorCodeToProfileIfEmpty(parsed.userId, parsed.collaboratorCodeId);
+    }
 }
 export async function verifyPayPalWebhookRequest(req) {
     if (!env.PAYPAL_WEBHOOK_ID || !env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET) {
@@ -612,6 +630,9 @@ export async function processPayPalWebhookEvent(body) {
                                 },
                             });
                         });
+                        if (parsed.collaboratorCodeId) {
+                            await assignCollaboratorCodeToProfileIfEmpty(parsed.userId, parsed.collaboratorCodeId);
+                        }
                     }
                 }
             }
@@ -653,6 +674,9 @@ export async function processPayPalWebhookEvent(body) {
                 tier: parsed.tier,
                 metadata: { source: 'webhook' },
             });
+            if (parsed.collaboratorCodeId) {
+                await assignCollaboratorCodeToProfileIfEmpty(parsed.userId, parsed.collaboratorCodeId);
+            }
             return;
         }
         default:

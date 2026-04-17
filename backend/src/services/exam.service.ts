@@ -10,6 +10,7 @@ import { predictPlacement } from './prediction.service.js';
 import { invalidateStudyPlanCaches } from './study-plan.service.js';
 
 type GenerateInput = z.infer<typeof generateExamSchema>;
+type QuestionPair = { caseId: string; questionId: string; difficultyLevel: number; areaId: string };
 
 export async function generateExam(userId: string, input: GenerateInput) {
   const {
@@ -84,7 +85,7 @@ export async function generateExam(userId: string, input: GenerateInput) {
     throw err;
   }
 
-  let pairs: { caseId: string; questionId: string; difficultyLevel: number; areaId: string }[] = [];
+  let pairs: QuestionPair[] = [];
   for (const c of cases) {
     for (const q of c.questions) {
       pairs.push({ caseId: c.id, questionId: q.id, difficultyLevel: q.difficultyLevel, areaId: c.areaId });
@@ -105,9 +106,16 @@ export async function generateExam(userId: string, input: GenerateInput) {
     }
   }
 
-  const selected = adaptiveMode
-    ? await selectAdaptiveQuestions(userId, pairs, questionCount)
-    : selectStandardQuestions(pairs, questionCount);
+  const shouldUseTrialDistribution =
+    !hasPaidPlan &&
+    profile.freeTrialExamsUsed < FREE_TRIAL_MAX_EXAMS &&
+    questionCount === FREE_TRIAL_MAX_QUESTIONS;
+
+  const selected = shouldUseTrialDistribution
+    ? selectTrialQuestions(pairs, questionCount)
+    : adaptiveMode
+      ? await selectAdaptiveQuestions(userId, pairs, questionCount)
+      : selectStandardQuestions(pairs, questionCount);
   if (selected.length < questionCount) {
     const err = new Error('No hay suficientes preguntas con los filtros seleccionados') as Error & { status: number };
     err.status = 400;
@@ -642,17 +650,69 @@ export async function getNextQuestion(userId: string, examId: string) {
   };
 }
 
-function selectStandardQuestions(
-  pairs: { caseId: string; questionId: string; difficultyLevel: number; areaId: string }[],
-  questionCount: number
-) {
+function selectStandardQuestions(pairs: QuestionPair[], questionCount: number) {
   shuffleInPlace(pairs);
   return pairs.slice(0, questionCount);
 }
 
+function selectTrialQuestions(pairs: QuestionPair[], questionCount: number) {
+  if (pairs.length <= questionCount) return pairs.slice(0, questionCount);
+
+  const easyPool = pairs.filter((p) => p.difficultyLevel <= 1);
+  const hardPool = pairs.filter((p) => p.difficultyLevel >= 3);
+  const mediumPool = pairs.filter((p) => p.difficultyLevel === 2);
+
+  shuffleInPlace(easyPool);
+  shuffleInPlace(hardPool);
+  shuffleInPlace(mediumPool);
+
+  const selected: QuestionPair[] = [];
+  const selectedSet = new Set<string>();
+
+  const pushUnique = (candidate: QuestionPair | undefined) => {
+    if (!candidate || selectedSet.has(candidate.questionId)) return;
+    selected.push(candidate);
+    selectedSet.add(candidate.questionId);
+  };
+
+  const targetHard = Math.min(1, questionCount);
+  const targetEasy = Math.max(0, questionCount - targetHard);
+
+  for (const p of hardPool) {
+    if (selected.length >= targetHard) break;
+    pushUnique(p);
+  }
+  for (const p of easyPool) {
+    if (selected.length >= targetHard + targetEasy) break;
+    pushUnique(p);
+  }
+
+  // Fallback: if the catalog is unbalanced, keep filling with available easy first, then medium/hard.
+  const fallbackPools = [easyPool, mediumPool, hardPool];
+  for (const pool of fallbackPools) {
+    for (const p of pool) {
+      if (selected.length >= questionCount) break;
+      pushUnique(p);
+    }
+    if (selected.length >= questionCount) break;
+  }
+
+  if (selected.length < questionCount) {
+    const remaining = pairs.filter((p) => !selectedSet.has(p.questionId));
+    shuffleInPlace(remaining);
+    for (const p of remaining) {
+      if (selected.length >= questionCount) break;
+      pushUnique(p);
+    }
+  }
+
+  shuffleInPlace(selected);
+  return selected.slice(0, questionCount);
+}
+
 async function selectAdaptiveQuestions(
   userId: string,
-  pairs: { caseId: string; questionId: string; difficultyLevel: number; areaId: string }[],
+  pairs: QuestionPair[],
   questionCount: number
 ) {
   if (pairs.length <= questionCount) return pairs.slice(0, questionCount);

@@ -16,7 +16,7 @@ export declare function createStripeCheckoutSession(userId: string, tier: PaidTi
 export declare function createStripeSubscriptionCheckoutSession(userId: string, tier: PaidTier, promotion?: {
     stripePromotionCodeId: string;
     promotionCodeId: string;
-} | null): Promise<{
+} | null, collaboratorCodeId?: string | null): Promise<{
     url: string;
 }>;
 export declare function recordSubscriptionCancellationFeedback(userId: string, provider: PaymentProvider, feedback: {

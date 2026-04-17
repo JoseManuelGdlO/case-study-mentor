@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { requireAdmin, requireCaseEditor } from '../middleware/roles.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
-import { areaCreateSchema, backofficeUserCreateSchema, backofficeUsersQuerySchema, examDateCreateSchema, examDateUpdateSchema, flashcardCreateSchema, flashcardUpdateSchema, phraseCreateSchema, phraseUpdateSchema, planCreateSchema, planUpdateSchema, promotionCodeCreateSchema, promotionCodePatchSchema, promotionCodePutSchema, specialtyCreateSchema, specialtyUpdateSchema, userRoleUpdateSchema, backofficeUserUpdateSchema, examReviewsQuerySchema, examReviewSubmitSchema, adminPushSubscribeSchema, adminPushUnsubscribeSchema, adminPushPreferencesSchema, backofficeImpersonateSchema, } from '../schemas/backoffice.schema.js';
+import { areaCreateSchema, backofficeUserCreateSchema, backofficeUsersQuerySchema, examDateCreateSchema, examDateUpdateSchema, flashcardCreateSchema, flashcardUpdateSchema, phraseCreateSchema, phraseUpdateSchema, planCreateSchema, planUpdateSchema, promotionCodeCreateSchema, promotionCodePatchSchema, promotionCodePutSchema, collaboratorCodeCreateSchema, collaboratorCodePatchSchema, collaboratorCodeDisplayNameSchema, specialtyCreateSchema, specialtyUpdateSchema, userRoleUpdateSchema, backofficeUserUpdateSchema, examReviewsQuerySchema, examReviewSubmitSchema, adminPushSubscribeSchema, adminPushUnsubscribeSchema, adminPushPreferencesSchema, backofficeImpersonateSchema, } from '../schemas/backoffice.schema.js';
 import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { PAID_TIERS, TIER_CHECKOUT } from '../config/plans.js';
@@ -18,6 +18,7 @@ import { getMentorReviewExamDetail, listPendingMentorReviews, submitMentorReview
 import { getVapidPublicKey, isAdminPushConfigured, subscribeAdminPush, unsubscribeAdminPush, updateAdminPushPreferences, getAdminPushPreferences, } from '../services/admin-push.service.js';
 import { isSmtpConfigured } from '../services/email.service.js';
 import { createPromotionCode, deletePromotionCode, listPromotionCodes, setPromotionCodeActive, updatePromotionCode, } from '../services/promotion-code.service.js';
+import { createCollaboratorCode, deleteCollaboratorCode, listCollaboratorCodes, setCollaboratorCodeActive, updateCollaboratorCodeDisplayName, } from '../services/collaborator-code.service.js';
 export const backofficeRouter = Router();
 backofficeRouter.use(authenticate);
 /* --- Specialties (editores: listar y crear especialidades/áreas; solo admin: editar/eliminar) --- */
@@ -427,6 +428,63 @@ backofficeRouter.put('/promotion-codes/:id', requireAdmin(), validateBody(promot
 backofficeRouter.delete('/promotion-codes/:id', requireAdmin(), async (req, res, next) => {
     try {
         await deletePromotionCode(paramString(req.params.id));
+        res.json({ data: { ok: true } });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+/* --- Códigos de colaborador --- */
+backofficeRouter.get('/collaborator-codes', requireAdmin(), async (_req, res, next) => {
+    try {
+        const data = await listCollaboratorCodes();
+        res.json({ data });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.post('/collaborator-codes', requireAdmin(), validateBody(collaboratorCodeCreateSchema), async (req, res, next) => {
+    try {
+        const body = req.body;
+        const row = await createCollaboratorCode({
+            code: body.code,
+            displayName: body.displayName,
+            attributionOnly: body.attributionOnly,
+            percentOff: body.percentOff,
+            maxRedemptions: body.maxRedemptions ?? null,
+            validFrom: body.validFrom ? new Date(body.validFrom) : null,
+            validUntil: body.validUntil ? new Date(body.validUntil) : null,
+        });
+        res.status(201).json({ data: row });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.patch('/collaborator-codes/:id', requireAdmin(), validateBody(collaboratorCodePatchSchema), async (req, res, next) => {
+    try {
+        const { isActive } = req.body;
+        const row = await setCollaboratorCodeActive(paramString(req.params.id), isActive);
+        res.json({ data: row });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.put('/collaborator-codes/:id', requireAdmin(), validateBody(collaboratorCodeDisplayNameSchema), async (req, res, next) => {
+    try {
+        const { displayName } = req.body;
+        const row = await updateCollaboratorCodeDisplayName(paramString(req.params.id), displayName);
+        res.json({ data: row });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+backofficeRouter.delete('/collaborator-codes/:id', requireAdmin(), async (req, res, next) => {
+    try {
+        await deleteCollaboratorCode(paramString(req.params.id));
         res.json({ data: { ok: true } });
     }
     catch (e) {

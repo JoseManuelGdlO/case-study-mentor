@@ -4,22 +4,32 @@ import { isPaidTier } from '../config/plans.js';
 import { paypalFetch } from './paypal-api.js';
 import { getActiveSubscriptionPlanForTier } from './subscription-plan.service.js';
 import { notifyAdminsNewSubscription } from './admin-push.service.js';
+import { assignCollaboratorCodeToProfileIfEmpty } from './collaborator-code.service.js';
 function serviceError(message, status) {
     const e = new Error(message);
     e.status = status;
     return e;
 }
-function parseCustomId(raw) {
+export function parseCustomId(raw) {
     if (!raw)
         return null;
-    const idx = raw.indexOf(':');
-    if (idx <= 0)
+    const first = raw.indexOf(':');
+    if (first <= 0)
         return null;
-    const userId = raw.slice(0, idx);
-    const tier = raw.slice(idx + 1);
-    if (!isPaidTier(tier))
+    const userId = raw.slice(0, first);
+    const rest = raw.slice(first + 1);
+    const second = rest.indexOf(':');
+    if (second === -1) {
+        const tier = rest;
+        if (!isPaidTier(tier))
+            return null;
+        return { userId, tier };
+    }
+    const tier = rest.slice(0, second);
+    const collaboratorCodeId = rest.slice(second + 1);
+    if (!isPaidTier(tier) || !collaboratorCodeId)
         return null;
-    return { userId, tier };
+    return { userId, tier, collaboratorCodeId };
 }
 /** Crea producto + plan en PayPal si la fila aún no tiene `paypalPlanId`, y lo activa. */
 export async function ensurePayPalBillingPlan(planRow) {
@@ -208,6 +218,9 @@ export async function syncProfileFromPayPalSubscriptionResource(sub) {
             subscriptionCancelAtPeriodEnd: false,
         },
     });
+    if (parsed.collaboratorCodeId) {
+        await assignCollaboratorCodeToProfileIfEmpty(parsed.userId, parsed.collaboratorCodeId);
+    }
     if (beforePaidSync.subscriptionTier === 'free') {
         void notifyAdminsNewSubscription({
             userId: parsed.userId,
@@ -231,12 +244,12 @@ async function assertNoConflictingSubscription(userId) {
         throw serviceError('Ya tienes una suscripción activa con PayPal.', 409);
     }
 }
-export async function createPayPalSubscriptionCheckout(userId, tier) {
+export async function createPayPalSubscriptionCheckout(userId, tier, collaboratorCodeId) {
     await assertNoConflictingSubscription(userId);
     const planRow = await getActiveSubscriptionPlanForTier(tier);
     const planId = await ensurePayPalBillingPlan(planRow);
     const base = requirePublicFrontendBaseUrlForPayments();
-    const customId = `${userId}:${tier}`;
+    const customId = collaboratorCodeId ? `${userId}:${tier}:${collaboratorCodeId}` : `${userId}:${tier}`;
     const body = {
         plan_id: planId,
         custom_id: customId,
