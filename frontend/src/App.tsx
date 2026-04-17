@@ -43,6 +43,7 @@ import ExamStudentFeedback from "./pages/backoffice/ExamStudentFeedback";
 import AdminNotifications from "./pages/backoffice/AdminNotifications";
 import ExamReviews from "./pages/backoffice/ExamReviews";
 import ExamReviewDetail from "./pages/backoffice/ExamReviewDetail";
+import MentorshipRequests from "./pages/backoffice/MentorshipRequests";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import TermsOfService from "./pages/TermsOfService";
@@ -197,6 +198,7 @@ const App = () => (
                 <Route path="exam-dates" element={<ExamDatesManagement />} />
                 <Route path="exam-reviews" element={<ExamReviews />} />
                 <Route path="exam-reviews/:examId" element={<ExamReviewDetail />} />
+                <Route path="mentorship" element={<MentorshipRequests />} />
                 <Route
                   path="exam-student-feedback"
                   element={

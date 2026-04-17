@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, FileText, FolderTree, Users, CreditCard, BarChart3, Sparkles, CalendarClock, LogOut, Plus, MessageSquareText, BookOpen, ClipboardCheck, Bell, TicketPercent, UserPlus, MessageSquareHeart } from 'lucide-react';
+import { LayoutDashboard, FileText, FolderTree, Users, CreditCard, BarChart3, Sparkles, CalendarClock, LogOut, Plus, MessageSquareText, BookOpen, ClipboardCheck, Bell, TicketPercent, UserPlus, MessageSquareHeart, Handshake } from 'lucide-react';
 import logoConLetra from '@/assets/logotipoconletra.png';
 import logoSolo from '@/assets/logotiposolo.png';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,7 @@ const navItems: {
   { title: 'Flashcards', url: '/backoffice/flashcards', icon: BookOpen },
   { title: 'Fechas ENARM', url: '/backoffice/exam-dates', icon: CalendarClock },
   { title: 'Revisiones examenes', url: '/backoffice/exam-reviews', icon: ClipboardCheck },
+  { title: 'Mentorías', url: '/backoffice/mentorship', icon: Handshake },
   { title: 'Estadísticas', url: '/backoffice/stats', icon: BarChart3, adminOnly: true },
 ];
 
