@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
+import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { HeartPulse, Bell, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -40,6 +41,12 @@ const dayOptions = [
   { id: 'sat', label: 'Sáb' },
   { id: 'sun', label: 'Dom' },
 ];
+
+/** Ansiedad y enfoque van de 1 a 5 (coincide con el backend). */
+function clampWellbeingScale(n: number): number {
+  const x = Number.isFinite(n) ? Math.round(n) : 3;
+  return Math.min(5, Math.max(1, x));
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -84,8 +91,8 @@ export default function Wellbeing() {
       if (todayJson.data.log) {
         const log = todayJson.data.log;
         setMood(log.mood);
-        setAnxietyLevel(log.anxietyLevel);
-        setFocusLevel(log.focusLevel);
+        setAnxietyLevel(clampWellbeingScale(log.anxietyLevel));
+        setFocusLevel(clampWellbeingScale(log.focusLevel));
         setSleepHours(log.sleepHours != null ? String(log.sleepHours) : '7');
         setPlannedStudyMinutes(String(log.plannedStudyMinutes));
         setCompletedStudyMinutes(String(log.completedStudyMinutes));
@@ -111,12 +118,16 @@ export default function Wellbeing() {
   const saveToday = async () => {
     setSavingToday(true);
     try {
+      const a = clampWellbeingScale(anxietyLevel);
+      const f = clampWellbeingScale(focusLevel);
+      setAnxietyLevel(a);
+      setFocusLevel(f);
       await apiJson('/api/study-plan/wellbeing/today', {
         method: 'POST',
         body: JSON.stringify({
           mood,
-          anxietyLevel,
-          focusLevel,
+          anxietyLevel: a,
+          focusLevel: f,
           sleepHours: sleepHours ? Number(sleepHours) : null,
           plannedStudyMinutes: Number(plannedStudyMinutes) || 0,
           completedStudyMinutes: Number(completedStudyMinutes) || 0,
@@ -272,13 +283,35 @@ export default function Wellbeing() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Ansiedad (1-5)</Label>
-              <Input type="number" min={1} max={5} value={anxietyLevel} onChange={(e) => setAnxietyLevel(Number(e.target.value) || 1)} />
+            <div className="space-y-2 md:col-span-1">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Ansiedad (1–5)</Label>
+                <span className="text-sm font-medium tabular-nums text-foreground">{anxietyLevel}</span>
+              </div>
+              <Slider
+                min={1}
+                max={5}
+                step={1}
+                value={[anxietyLevel]}
+                onValueChange={([v]) => setAnxietyLevel(clampWellbeingScale(v))}
+                className="py-2"
+              />
+              <p className="text-xs text-muted-foreground">1 = baja · 5 = alta</p>
             </div>
-            <div className="space-y-2">
-              <Label>Enfoque (1-5)</Label>
-              <Input type="number" min={1} max={5} value={focusLevel} onChange={(e) => setFocusLevel(Number(e.target.value) || 1)} />
+            <div className="space-y-2 md:col-span-1">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Enfoque (1–5)</Label>
+                <span className="text-sm font-medium tabular-nums text-foreground">{focusLevel}</span>
+              </div>
+              <Slider
+                min={1}
+                max={5}
+                step={1}
+                value={[focusLevel]}
+                onValueChange={([v]) => setFocusLevel(clampWellbeingScale(v))}
+                className="py-2"
+              />
+              <p className="text-xs text-muted-foreground">1 = bajo · 5 = alto</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
