@@ -86,6 +86,7 @@ function AppSidebar() {
                 <span className="block w-full">
                   <Button
                     className="w-full gradient-primary border-0 font-semibold gap-2"
+                    data-ga-click="sidebar_nuevo_examen"
                     onClick={() =>
                       isFreeTrialExhausted ? navigate('/dashboard/subscription') : navigate('/dashboard/new-exam')
                     }
@@ -115,6 +116,7 @@ function AppSidebar() {
                       end={item.url === '/dashboard'}
                       className={`hover:bg-sidebar-accent/50 text-sidebar-foreground ${item.highlight && isFreeUser ? 'text-warning' : ''}`}
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      data-ga-click={`sidebar_${item.url.replace(/^\//, '').replace(/\//g, '_') || 'home'}`}
                       data-tour={item.url === '/dashboard' ? 'dashboard' : item.url === '/dashboard/exams' ? 'exams' : item.url === '/dashboard/stats' ? 'stats' : item.url === '/dashboard/subscription' ? 'subscription' : undefined}
                     >
                       <item.icon className="mr-2 h-4 w-4" />
@@ -147,6 +149,7 @@ function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 className="hover:bg-sidebar-accent/50 text-sidebar-foreground/60 cursor-pointer"
+                data-ga-click="sidebar_logout"
                 onClick={async () => {
                   await logout();
                   navigate('/');

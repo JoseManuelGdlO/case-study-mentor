@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_SITE_URL?: string;
   /** Brand name for shares and UI (default ENARMX) */
   readonly VITE_APP_NAME?: string;
+  /** Microsoft Clarity project ID — heatmaps / session replay; https://clarity.microsoft.com/ */
+  readonly VITE_CLARITY_PROJECT_ID?: string;
 }
 
 interface ImportMeta {

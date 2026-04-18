@@ -56,6 +56,7 @@ import GuiaCasosClinicosEnarm from "./pages/recursos/GuiaCasosClinicosEnarm";
 import GuiaPreparacionEnarm from "./pages/recursos/GuiaPreparacionEnarm";
 import GuiaEstadisticasEnarm from "./pages/recursos/GuiaEstadisticasEnarm";
 import { JsonLdSiteIdentity } from "@/components/Seo";
+import { AnalyticsListeners } from "@/components/AnalyticsListeners";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <AnalyticsListeners />
             <JsonLdSiteIdentity />
             <Routes>
               <Route path="/" element={<Login />} />

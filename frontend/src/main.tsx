@@ -1,7 +1,10 @@
 import { createRoot } from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
 import App from "./App.tsx";
+import { initClarity } from "@/lib/initClarity";
 import "./index.css";
+
+initClarity();
 import faviconUrl from "./assets/logotiposolo.ico?url";
 
 const link =
