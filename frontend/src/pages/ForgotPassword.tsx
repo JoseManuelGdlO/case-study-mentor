@@ -37,7 +37,7 @@ const ForgotPassword = () => {
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/login">
+          <Link to="/">
             <img
               src={logoConLetra}
               alt="ENARMX"
@@ -83,7 +83,7 @@ const ForgotPassword = () => {
             )}
 
             <p className="text-center text-sm text-muted-foreground mt-6">
-              <Link to="/login" className="text-primary font-semibold hover:underline">
+              <Link to="/" className="text-primary font-semibold hover:underline">
                 Volver al inicio de sesión
               </Link>
             </p>

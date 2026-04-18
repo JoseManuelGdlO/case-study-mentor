@@ -149,7 +149,7 @@ function AppSidebar() {
                 className="hover:bg-sidebar-accent/50 text-sidebar-foreground/60 cursor-pointer"
                 onClick={async () => {
                   await logout();
-                  navigate('/login');
+                  navigate('/');
                 }}
               >
                 <LogOut className="mr-2 h-4 w-4" />

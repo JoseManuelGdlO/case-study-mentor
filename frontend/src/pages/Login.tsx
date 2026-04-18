@@ -34,7 +34,7 @@ const Login = () => {
   const getDestinationAfterAuth = useCallback(() => {
     const state = locationRef.current.state as { from?: { pathname?: string } } | null;
     const fromPath = state?.from?.pathname;
-    if (fromPath && fromPath.startsWith('/') && fromPath !== '/login') {
+    if (fromPath && fromPath.startsWith('/') && fromPath !== '/' && fromPath !== '/login') {
       return fromPath;
     }
     return '/dashboard';
@@ -97,8 +97,6 @@ const Login = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const seoPath = location.pathname === '/login' ? '/login' : '/';
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -121,7 +119,7 @@ const Login = () => {
       <Seo
         title="Deja de estudiar a ciegas para el ENARM"
         description="Casos clínicos, simulacros y estadísticas para preparar el Examen Nacional de Residencias Médicas en México. Crea cuenta gratis en ENARMX."
-        path={seoPath}
+        path="/"
         socialTitle="ENARMX — Preparación y simulacros para el ENARM"
       />
       <div className="hidden lg:flex lg:w-1/2 gradient-hero items-center justify-center p-12 relative overflow-hidden">
@@ -327,6 +325,10 @@ const Login = () => {
               </p>
 
               <p className="text-center text-xs text-muted-foreground mt-4">
+                <Link to="/recursos" className="underline underline-offset-2 hover:text-primary">
+                  Guías ENARM
+                </Link>
+                <span className="mx-2">·</span>
                 <Link to="/precios" className="underline underline-offset-2 hover:text-primary">
                   Planes y precios
                 </Link>

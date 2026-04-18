@@ -12,7 +12,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
   if (!user) {
-    return <Navigate to="/login" state={{ from: loc }} replace />;
+    return <Navigate to="/" state={{ from: loc }} replace />;
   }
   return <>{children}</>;
 }
@@ -48,7 +48,7 @@ export function PaidRoute({ children }: { children: React.ReactNode }) {
     );
   }
   if (!user) {
-    return <Navigate to="/login" state={{ from: loc }} replace />;
+    return <Navigate to="/" state={{ from: loc }} replace />;
   }
   if ((user.plan ?? 'free') === 'free') {
     return <Navigate to="/dashboard/subscription" replace />;

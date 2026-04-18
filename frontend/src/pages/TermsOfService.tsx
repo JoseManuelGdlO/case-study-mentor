@@ -14,7 +14,7 @@ export default function TermsOfService() {
       />
       <div className="container max-w-3xl">
         <Button variant="ghost" size="sm" className="mb-6 -ml-2" asChild>
-          <Link to="/login">
+          <Link to="/">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver al inicio de sesión
           </Link>

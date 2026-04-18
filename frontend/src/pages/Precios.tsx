@@ -10,11 +10,14 @@ import {
   paidPlanFeatureBullets,
   subscriptionPricingPlans,
 } from '@/constants/pricingPlans';
-import { Seo } from '@/components/Seo';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { JsonLdFaqPage, Seo } from '@/components/Seo';
+import { PRECIO_FAQ_ITEMS } from '@/constants/preciosFaq';
 
 export default function Precios() {
   return (
     <div className="min-h-screen bg-background py-10 px-4">
+      <JsonLdFaqPage items={PRECIO_FAQ_ITEMS} />
       <Seo
         title="Planes y precios — suscripción ENARM en MXN"
         description="Planes ENARMX en pesos mexicanos: empieza gratis y sube de nivel cuando quieras. Simulacros, estadísticas y preparación para la residencia médica."
@@ -23,7 +26,7 @@ export default function Precios() {
       />
       <div className="container max-w-5xl">
         <Button variant="ghost" size="sm" className="mb-6 -ml-2" asChild>
-          <Link to="/login">
+          <Link to="/">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver al inicio de sesión
           </Link>
@@ -63,7 +66,7 @@ export default function Precios() {
                 ))}
               </ul>
               <Button className="w-full" variant="outline" asChild>
-                <Link to="/login">Entrenar gratis ahora</Link>
+                <Link to="/">Entrenar gratis ahora</Link>
               </Button>
             </CardContent>
           </Card>
@@ -103,7 +106,7 @@ export default function Precios() {
                   ))}
                 </ul>
                 <Button className={`w-full font-semibold ${plan.popular ? 'gradient-primary border-0' : ''}`} asChild>
-                  <Link to="/login">Quiero este plan</Link>
+                  <Link to="/">Quiero este plan</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -112,11 +115,26 @@ export default function Precios() {
 
         <p className="text-center text-sm text-muted-foreground">
           ¿Ya tienes cuenta?{' '}
-          <Link to="/login" className="text-primary font-medium hover:underline underline-offset-2">
+          <Link to="/" className="text-primary font-medium hover:underline underline-offset-2">
             Inicia sesión
           </Link>{' '}
           y elige tu plan en Suscripción.
         </p>
+
+        <div className="mt-14 max-w-2xl mx-auto">
+          <h2 className="text-xl font-semibold text-foreground text-center mb-2">Preguntas frecuentes</h2>
+          <p className="text-sm text-muted-foreground text-center mb-6">
+            Respuestas sobre moneda, plan gratuito y suscripción. Si necesitas algo específico, escríbenos desde la app.
+          </p>
+          <Accordion type="single" collapsible className="w-full">
+            {PRECIO_FAQ_ITEMS.map((item, i) => (
+              <AccordionItem key={item.question} value={`faq-${i}`}>
+                <AccordionTrigger className="text-left text-foreground">{item.question}</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">{item.answer}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
       </div>
     </div>
   );
