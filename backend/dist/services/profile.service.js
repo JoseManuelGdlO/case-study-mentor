@@ -84,12 +84,20 @@ export async function updateProfile(userId, body) {
     });
     return getProfile(userId);
 }
-export async function completeOnboarding(userId) {
+export async function completeOnboarding(userId, body) {
     await prisma.profile.update({
         where: { id: userId },
         data: { onboardingDone: true },
     });
-    return getProfile(userId);
+    const { createOnboardingWelcomeExam } = await import('./exam.service.js');
+    const welcomeExamId = await createOnboardingWelcomeExam(userId, body?.desiredSpecialtyId ?? null);
+    const prof = await getProfile(userId);
+    return {
+        data: {
+            ...prof.data,
+            welcomeExamId,
+        },
+    };
 }
 export async function changePassword(userId, body) {
     const user = await prisma.profile.findUnique({ where: { id: userId } });

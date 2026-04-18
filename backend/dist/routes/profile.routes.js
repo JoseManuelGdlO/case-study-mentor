@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
-import { changePasswordSchema, profileUpdateSchema, wellbeingNotificationPreferencesSchema, wellbeingPushSubscribeSchema, wellbeingPushUnsubscribeSchema, } from '../schemas/profile.schema.js';
+import { changePasswordSchema, completeOnboardingSchema, profileUpdateSchema, wellbeingNotificationPreferencesSchema, wellbeingPushSubscribeSchema, wellbeingPushUnsubscribeSchema, } from '../schemas/profile.schema.js';
 import * as profileService from '../services/profile.service.js';
 import { getUserVapidPublicKey, isUserPushConfigured, getUserWellbeingNotificationPreferences, subscribeUserPush, unsubscribeUserPush, updateUserWellbeingNotificationPreferences, } from '../services/user-push.service.js';
 export const profileRouter = Router();
@@ -60,7 +60,7 @@ profileRouter.post('/password', authenticate, validateBody(changePasswordSchema)
         next(e);
     }
 });
-profileRouter.put('/onboarding', authenticate, async (req, res, next) => {
+profileRouter.put('/onboarding', authenticate, validateBody(completeOnboardingSchema), async (req, res, next) => {
     try {
         if (!req.user || !req.actor)
             throw new Error('No user');
@@ -68,7 +68,7 @@ profileRouter.put('/onboarding', authenticate, async (req, res, next) => {
             res.status(403).json({ error: 'No puedes completar el onboarding en modo vista' });
             return;
         }
-        const result = await profileService.completeOnboarding(req.user.id);
+        const result = await profileService.completeOnboarding(req.user.id, req.body);
         res.json(result);
     }
     catch (e) {

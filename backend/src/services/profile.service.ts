@@ -108,12 +108,23 @@ export async function updateProfile(
   return getProfile(userId);
 }
 
-export async function completeOnboarding(userId: string) {
+export async function completeOnboarding(
+  userId: string,
+  body?: { desiredSpecialtyId?: string | null }
+) {
   await prisma.profile.update({
     where: { id: userId },
     data: { onboardingDone: true },
   });
-  return getProfile(userId);
+  const { createOnboardingWelcomeExam } = await import('./exam.service.js');
+  const welcomeExamId = await createOnboardingWelcomeExam(userId, body?.desiredSpecialtyId ?? null);
+  const prof = await getProfile(userId);
+  return {
+    data: {
+      ...prof.data,
+      welcomeExamId,
+    },
+  };
 }
 
 export async function changePassword(

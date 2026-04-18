@@ -62,6 +62,8 @@ export interface Question {
   cognitiveCompetence: boolean;
   previousEnarmPresence: boolean;
   hint: string;
+  /** Texto breve previo al enunciado (p. ej. examen de bienvenida tras onboarding). */
+  leadIn?: string;
 }
 
 export interface LabResult {

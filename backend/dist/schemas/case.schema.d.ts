@@ -98,7 +98,7 @@ export declare const createCaseSchema: z.ZodObject<{
         normalRange: string;
     }>, "many">>>;
 }, "strip", z.ZodTypeAny, {
-    status: "draft" | "published" | "archived";
+    status: "published" | "draft" | "archived";
     language: "es" | "en";
     specialtyId: string;
     areaId: string;
@@ -158,7 +158,7 @@ export declare const createCaseSchema: z.ZodObject<{
         hint?: string | undefined;
         orderIndex?: number | undefined;
     }[];
-    status?: "draft" | "published" | "archived" | undefined;
+    status?: "published" | "draft" | "archived" | undefined;
     language?: "es" | "en" | undefined;
     textFormat?: "plain" | "html" | undefined;
     imageUrl?: string | null | undefined;
@@ -270,7 +270,7 @@ export declare const updateCaseSchema: z.ZodObject<{
         normalRange: string;
     }>, "many">>;
 }, "strip", z.ZodTypeAny, {
-    status?: "draft" | "published" | "archived" | undefined;
+    status?: "published" | "draft" | "archived" | undefined;
     language?: "es" | "en" | undefined;
     specialtyId?: string | undefined;
     areaId?: string | undefined;
@@ -306,7 +306,7 @@ export declare const updateCaseSchema: z.ZodObject<{
         normalRange: string;
     }[] | undefined;
 }, {
-    status?: "draft" | "published" | "archived" | undefined;
+    status?: "published" | "draft" | "archived" | undefined;
     language?: "es" | "en" | undefined;
     specialtyId?: string | undefined;
     areaId?: string | undefined;
@@ -349,13 +349,13 @@ export declare const listCasesQuerySchema: z.ZodObject<{
     page: z.ZodOptional<z.ZodNumber>;
     limit: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    status?: "draft" | "published" | "archived" | undefined;
+    status?: "published" | "draft" | "archived" | undefined;
     specialty?: string | undefined;
     area?: string | undefined;
     limit?: number | undefined;
     page?: number | undefined;
 }, {
-    status?: "draft" | "published" | "archived" | undefined;
+    status?: "published" | "draft" | "archived" | undefined;
     specialty?: string | undefined;
     area?: string | undefined;
     limit?: number | undefined;

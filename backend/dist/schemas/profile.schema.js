@@ -1,4 +1,7 @@
 import { z } from 'zod';
+export const completeOnboardingSchema = z.object({
+    desiredSpecialtyId: z.string().uuid().optional().nullable(),
+});
 export const profileUpdateSchema = z.object({
     firstName: z.string().min(1).optional(),
     lastName: z.string().min(1).optional(),

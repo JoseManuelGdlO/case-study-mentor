@@ -103,6 +103,8 @@ model Profile {
   examDate              DateTime?         @map("exam_date")
   avatarUrl             String?           @map("avatar_url")
   onboardingDone        Boolean           @default(false) @map("onboarding_done")
+  /** Si existe, ya se generó el examen de bienvenida post-onboarding (idempotencia). */
+  onboardingWelcomeExamCreatedAt DateTime? @map("onboarding_welcome_exam_created_at")
   subscriptionTier               SubscriptionTier  @default(free) @map("subscription_tier")
   subscriptionExpiresAt          DateTime?         @map("subscription_expires_at")
   stripeCustomerId               String?           @map("stripe_customer_id")
@@ -341,6 +343,9 @@ model Exam {
   completedAt      DateTime? @map("completed_at")
   timeSpentSeconds Int       @default(0) @map("time_spent_seconds")
   createdAt        DateTime  @default(now()) @map("created_at")
+  isOnboardingWelcome     Boolean  @default(false) @map("is_onboarding_welcome")
+  welcomeLeadInFirstName  String?  @map("welcome_lead_in_first_name") @db.VarChar(255)
+  welcomeLeadInUniversity String?  @map("welcome_lead_in_university") @db.VarChar(512)
 
   mentorReviewEligible   Boolean   @default(false) @map("mentor_review_eligible")
   studentFeedbackEligible Boolean  @default(false) @map("student_feedback_eligible")

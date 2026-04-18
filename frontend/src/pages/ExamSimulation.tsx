@@ -200,6 +200,11 @@ const ExamSimulation = () => {
           <Card className="border-0 shadow-md">
             <CardContent className="p-6">
               <div className="mb-4">
+                {question.leadIn ? (
+                  <p className="mb-4 text-sm text-muted-foreground rounded-lg border border-border bg-muted/20 p-4 leading-relaxed">
+                    {question.leadIn}
+                  </p>
+                ) : null}
                 <RichOrPlainBlock
                   format={caseFmt}
                   text={question.text}
