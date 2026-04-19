@@ -14,7 +14,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, FileText, BarChart3, User, LogOut, Plus, Crown, Headphones, MessageSquare, Users, HeartPulse } from 'lucide-react';
+import { LayoutDashboard, FileText, BarChart3, User, LogOut, Plus, Crown, Headphones, MessageSquare, Users, HeartPulse, Inbox } from 'lucide-react';
 import logoConLetra from '@/assets/logotipoconletra.png';
 import logoSolo from '@/assets/logotiposolo.png';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,7 @@ const navItems = [
   { title: 'Bienestar', url: '/dashboard/wellbeing', icon: HeartPulse },
   { title: 'Suscripción', url: '/dashboard/subscription', icon: Crown, highlight: true },
   { title: 'Soporte', url: '/dashboard/soporte', icon: Headphones },
+  { title: 'Buzón de sugerencias', url: '/dashboard/suggestions', icon: Inbox },
   { title: 'Perfil', url: '/dashboard/profile', icon: User },
 ];
 
@@ -188,7 +189,7 @@ const StudentLayout = () => {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <ImpersonationBanner />
-          <header className="h-14 flex items-center border-b border-border px-4 bg-background">
+          <header className="min-h-14 flex items-center border-b border-border px-4 bg-background pt-[env(safe-area-inset-top,0px)]">
             <SidebarTrigger className="mr-4" />
             <div className="ml-auto flex items-center gap-3">
               <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-xs font-bold text-primary-foreground">
@@ -196,7 +197,7 @@ const StudentLayout = () => {
               </div>
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-4 md:p-6 pb-[max(1rem,env(safe-area-inset-bottom,0px))] min-w-0">
             <Outlet />
           </main>
         </div>

@@ -114,6 +114,7 @@ export async function publicUser(userId: string) {
       paypalSubscriptionId: true,
       subscriptionCancelAtPeriodEnd: true,
       freeTrialExamsUsed: true,
+      platformSuggestionPromptHandledAt: true,
       roles: { select: { role: true } },
     },
   });
@@ -138,6 +139,7 @@ function buildPublicUser(profile: {
   paypalSubscriptionId: string | null;
   subscriptionCancelAtPeriodEnd: boolean;
   freeTrialExamsUsed: number;
+  platformSuggestionPromptHandledAt: Date | null;
   roles: { role: string }[];
 }) {
   const { plan, subscriptionExpiresAt } = effectivePlanFromProfile(profile);
@@ -162,6 +164,7 @@ function buildPublicUser(profile: {
     subscriptionCancelAtPeriodEnd: profile.subscriptionCancelAtPeriodEnd,
     freeTrialExamsUsed: profile.freeTrialExamsUsed,
     freeTrialExamsRemaining,
+    platformSuggestionPromptPending: profile.platformSuggestionPromptHandledAt == null,
   };
 }
 

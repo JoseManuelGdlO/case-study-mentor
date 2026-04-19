@@ -15,6 +15,7 @@ import { authRouter } from './routes/auth.routes.js';
 import { casesRouter } from './routes/cases.routes.js';
 import { examsRouter } from './routes/exams.routes.js';
 import { profileRouter } from './routes/profile.routes.js';
+import { platformSuggestionsRouter } from './routes/platform-suggestions.routes.js';
 import { statsRouter } from './routes/stats.routes.js';
 import { specialtiesRouter } from './routes/specialties.routes.js';
 import { uploadRouter } from './routes/upload.routes.js';
@@ -115,6 +116,7 @@ if (env.RATE_LIMIT_ENABLED) {
 app.use('/api/cases', casesRouter);
 app.use('/api/exams', examsRouter);
 app.use('/api/profile', profileRouter);
+app.use('/api/platform-suggestions', platformSuggestionsRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/specialties', specialtiesRouter);
 app.use('/api/upload', uploadRouter);

@@ -24,6 +24,7 @@ import StudyPlanSession from "./pages/StudyPlanSession";
 import Community from "./pages/Community";
 import Mentorship from "./pages/Mentorship";
 import Wellbeing from "./pages/Wellbeing";
+import PlatformSuggestions from "./pages/PlatformSuggestions";
 import CaseList from "./pages/CaseList";
 import CaseEditor from "./pages/CaseEditor";
 import StudentLayout from "./components/StudentLayout";
@@ -41,6 +42,7 @@ import ExamDatesManagement from "./pages/backoffice/ExamDatesManagement";
 import BulkUploadCases from "./pages/backoffice/BulkUploadCases";
 import SubscriptionCancellationFeedback from "./pages/backoffice/SubscriptionCancellationFeedback";
 import ExamStudentFeedback from "./pages/backoffice/ExamStudentFeedback";
+import PlatformSuggestionsAdmin from "./pages/backoffice/PlatformSuggestionsAdmin";
 import AdminNotifications from "./pages/backoffice/AdminNotifications";
 import ExamReviews from "./pages/backoffice/ExamReviews";
 import ExamReviewDetail from "./pages/backoffice/ExamReviewDetail";
@@ -112,6 +114,7 @@ const App = () => (
                 <Route path="community" element={<Community />} />
                 <Route path="mentorship" element={<Mentorship />} />
                 <Route path="wellbeing" element={<Wellbeing />} />
+                <Route path="suggestions" element={<PlatformSuggestions />} />
               </Route>
 
               <Route
@@ -218,6 +221,14 @@ const App = () => (
                   element={
                     <AdminRoute>
                       <ExamStudentFeedback />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="platform-suggestions"
+                  element={
+                    <AdminRoute>
+                      <PlatformSuggestionsAdmin />
                     </AdminRoute>
                   }
                 />

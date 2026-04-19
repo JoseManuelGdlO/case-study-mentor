@@ -45,6 +45,7 @@ export async function getProfile(userId: string) {
       paypalSubscriptionId: true,
       subscriptionCancelAtPeriodEnd: true,
       freeTrialExamsUsed: true,
+      platformSuggestionPromptHandledAt: true,
       roles: { select: { role: true } },
     },
   });
@@ -77,6 +78,7 @@ export async function getProfile(userId: string) {
       subscriptionCancelAtPeriodEnd: p.subscriptionCancelAtPeriodEnd,
       freeTrialExamsUsed,
       freeTrialExamsRemaining,
+      platformSuggestionPromptPending: p.platformSuggestionPromptHandledAt == null,
     },
   };
 }

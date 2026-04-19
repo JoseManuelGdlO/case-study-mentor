@@ -132,53 +132,68 @@ const ExamSimulation = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <ImpersonationBanner />
-      <div className="border-b border-border bg-card px-6 py-3 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="rounded-full">
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
-          <Badge variant="outline" className="text-base font-mono gap-2">
-            <Clock className="w-4 h-4" /> {formatTime(seconds)}
-          </Badge>
-          <span className="text-sm text-muted-foreground">
-            Pregunta <strong className="text-foreground">{currentIndex + 1}</strong> de <strong className="text-foreground">{total}</strong>
-          </span>
-          {exam.config.adaptiveMode ? (
-            <Badge variant="default" className="text-xs">
-              Simulador adaptativo activo
-            </Badge>
-          ) : null}
-          <Badge variant="secondary" className="text-xs">
-            Caso: pregunta {(question.caseQuestionIndex ?? 0) + 1} de {question.caseQuestionTotal ?? 1}
-          </Badge>
-        </div>
-        <div className="flex items-center gap-3">
-          <Progress value={progress} className="w-32 h-2" />
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" className="gap-2">
-                <Flag className="w-4 h-4" /> Terminar examen
+      <div className="border-b border-border bg-card px-3 sm:px-6 py-3 sticky top-0 z-10">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4 min-w-0 flex-1">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
+              <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="rounded-full shrink-0">
+                <ChevronLeft className="w-5 h-5" />
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-warning" /> ¿Terminar examen?
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  Has contestado {Object.keys(answers).length} de {total} preguntas. Puedes finalizar y ver resultados.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Seguir contestando</AlertDialogCancel>
-                <AlertDialogAction onClick={finish}>Terminar y ver resultados</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+              <Badge variant="outline" className="text-sm sm:text-base font-mono gap-1.5 sm:gap-2 shrink-0">
+                <Clock className="w-4 h-4 shrink-0" /> {formatTime(seconds)}
+              </Badge>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                Pregunta <strong className="text-foreground">{currentIndex + 1}</strong> de <strong className="text-foreground">{total}</strong>
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {exam.config.adaptiveMode ? (
+                <>
+                  <Badge variant="default" className="text-xs hidden sm:inline-flex">
+                    Simulador adaptativo activo
+                  </Badge>
+                  <Badge variant="default" className="text-xs sm:hidden">
+                    Adaptativo
+                  </Badge>
+                </>
+              ) : null}
+              <Badge variant="secondary" className="text-xs max-w-full">
+                <span className="hidden sm:inline">Caso: pregunta </span>
+                <span className="sm:hidden">Caso </span>
+                {(question.caseQuestionIndex ?? 0) + 1} de {question.caseQuestionTotal ?? 1}
+              </Badge>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end w-full md:w-auto shrink-0">
+            <Progress value={progress} className="h-2 w-full md:w-32" />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="gap-2 w-full sm:w-auto shrink-0">
+                  <Flag className="w-4 h-4" />
+                  <span className="hidden sm:inline">Terminar examen</span>
+                  <span className="sm:hidden">Terminar</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-warning" /> ¿Terminar examen?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Has contestado {Object.keys(answers).length} de {total} preguntas. Puedes finalizar y ver resultados.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Seguir contestando</AlertDialogCancel>
+                  <AlertDialogAction onClick={finish}>Terminar y ver resultados</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 p-4 sm:p-6 max-w-7xl mx-auto w-full min-w-0">
         <div className="space-y-4">
           <Card className="border-0 shadow-md h-fit">
             <CardContent className="p-6">
