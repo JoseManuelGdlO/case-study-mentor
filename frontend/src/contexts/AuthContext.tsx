@@ -26,6 +26,8 @@ export type AuthUser = {
   freeTrialExamsRemaining?: number | null;
   /** Presente cuando un admin está viendo el portal como este usuario. */
   impersonation?: { actorEmail: string };
+  /** false si ya vio el modal de sugerencias o envió feedback; undefined en respuestas antiguas. */
+  platformSuggestionPromptPending?: boolean;
 };
 
 type AuthContextType = {

@@ -250,7 +250,7 @@ const BackofficeLogin = () => {
 
               <p className="text-center text-sm text-muted-foreground mt-6">
                 ¿Eres estudiante?{' '}
-                <Link to="/login" className="text-primary font-semibold hover:underline">
+                <Link to="/" className="text-primary font-semibold hover:underline">
                   Acceso estudiantes
                 </Link>
               </p>

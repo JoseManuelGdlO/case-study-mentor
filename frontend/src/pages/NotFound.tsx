@@ -20,7 +20,7 @@ const NotFound = () => {
       <div className="text-center px-4">
         <h1 className="mb-4 text-4xl font-bold">404</h1>
         <p className="mb-4 text-xl text-muted-foreground">No encontramos esta página</p>
-        <Link to="/login" className="text-primary font-medium underline hover:text-primary/90 underline-offset-2">
+        <Link to="/" className="text-primary font-medium underline hover:text-primary/90 underline-offset-2">
           Volver al inicio de sesión
         </Link>
       </div>

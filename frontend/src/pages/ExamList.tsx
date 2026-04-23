@@ -98,18 +98,18 @@ const ExamList = () => {
   };
 
   if (loading) {
-    return <div className="max-w-7xl mx-auto p-6 text-muted-foreground">Cargando…</div>;
+    return <div className="max-w-7xl mx-auto p-4 sm:p-6 text-muted-foreground">Cargando…</div>;
   }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Mis Exámenes</h1>
           <p className="text-muted-foreground">Todos tus exámenes en un solo lugar</p>
         </div>
         <Button
-          className="gradient-primary border-0 font-semibold gap-2"
+          className="gradient-primary border-0 font-semibold gap-2 w-full sm:w-auto shrink-0"
           onClick={() =>
             isFreeTrialExhausted ? navigate('/dashboard/subscription') : navigate('/dashboard/new-exam')
           }
@@ -119,11 +119,19 @@ const ExamList = () => {
       </div>
 
       <Tabs defaultValue="all">
-        <TabsList>
-          <TabsTrigger value="all">Todos ({exams.length})</TabsTrigger>
-          <TabsTrigger value="progress">En curso ({inProgress.length})</TabsTrigger>
-          <TabsTrigger value="completed">Terminados ({completed.length})</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto pb-1 -mx-0.5 px-0.5">
+          <TabsList className="inline-flex h-auto min-h-10 w-max min-w-full flex-wrap justify-center gap-1 sm:flex-nowrap sm:justify-center">
+            <TabsTrigger value="all" className="text-xs sm:text-sm shrink-0">
+              Todos ({exams.length})
+            </TabsTrigger>
+            <TabsTrigger value="progress" className="text-xs sm:text-sm shrink-0">
+              En curso ({inProgress.length})
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="text-xs sm:text-sm shrink-0">
+              Terminados ({completed.length})
+            </TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="all" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{exams.map(renderExamCard)}</div>
         </TabsContent>

@@ -51,7 +51,33 @@ export function Seo({ title, description, path, noIndex, socialTitle }: SeoProps
   );
 }
 
-/** JSON-LD Organization + WebSite for public discovery */
+const SOFTWARE_DESCRIPTION =
+  'Plataforma web de preparación para el ENARM en México: casos clínicos, simulacros con ritmo de examen, estadísticas de desempeño y plan de estudio.';
+
+export type FaqItem = { question: string; answer: string };
+
+/** FAQPage JSON-LD — el texto debe coincidir con el contenido visible en la página */
+export function JsonLdFaqPage({ items }: { items: FaqItem[] }) {
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
+  };
+  return (
+    <Helmet>
+      <script type="application/ld+json">{JSON.stringify(data)}</script>
+    </Helmet>
+  );
+}
+
+/** JSON-LD Organization + WebSite + SoftwareApplication for public discovery */
 export function JsonLdSiteIdentity() {
   const site = getSiteUrl();
   const graph = {
@@ -71,6 +97,16 @@ export function JsonLdSiteIdentity() {
         url: `${site}/`,
         publisher: { '@id': `${site}/#organization` },
         inLanguage: 'es-MX',
+      },
+      {
+        '@type': 'SoftwareApplication',
+        '@id': `${site}/#software`,
+        name: APP_NAME,
+        applicationCategory: 'EducationalApplication',
+        operatingSystem: 'Web',
+        url: `${site}/`,
+        description: SOFTWARE_DESCRIPTION,
+        publisher: { '@id': `${site}/#organization` },
       },
     ],
   };

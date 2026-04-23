@@ -91,6 +91,11 @@ enum WellbeingInterventionKind {
   stretch
 }
 
+enum PlatformSuggestionSource {
+  modal
+  mailbox
+}
+
 model Profile {
   id                    String            @id @default(uuid())
   email                 String            @unique
@@ -103,6 +108,8 @@ model Profile {
   examDate              DateTime?         @map("exam_date")
   avatarUrl             String?           @map("avatar_url")
   onboardingDone        Boolean           @default(false) @map("onboarding_done")
+  /** Si existe, ya se generó el examen de bienvenida post-onboarding (idempotencia). */
+  onboardingWelcomeExamCreatedAt DateTime? @map("onboarding_welcome_exam_created_at")
   subscriptionTier               SubscriptionTier  @default(free) @map("subscription_tier")
   subscriptionExpiresAt          DateTime?         @map("subscription_expires_at")
   stripeCustomerId               String?           @map("stripe_customer_id")
@@ -117,6 +124,8 @@ model Profile {
   wellbeingPushEnabled            Boolean           @default(false) @map("wellbeing_push_enabled")
   wellbeingReminderTime           String?           @map("wellbeing_reminder_time") @db.VarChar(5)
   wellbeingReminderDays           String?           @map("wellbeing_reminder_days") @db.VarChar(32)
+  /** Si existe, ya no se muestra el modal ocasional de sugerencias en el Dashboard. */
+  platformSuggestionPromptHandledAt DateTime?       @map("platform_suggestion_prompt_handled_at")
   createdAt             DateTime          @default(now()) @map("created_at")
   updatedAt             DateTime          @updatedAt @map("updated_at")
 
@@ -141,9 +150,24 @@ model Profile {
   wellbeingLogs                    DailyWellbeingLog[]
   wellbeingInterventions           WellbeingInterventionEvent[]
   userWebPushSubscriptions         UserWebPushSubscription[]
+  platformSuggestions              PlatformSuggestion[]
 
   @@index([collaboratorCodeId])
   @@map("profiles")
+}
+
+model PlatformSuggestion {
+  id        String                   @id @default(uuid())
+  userId    String                   @map("user_id")
+  message   String                   @db.Text
+  source    PlatformSuggestionSource @default(mailbox)
+  createdAt DateTime                 @default(now()) @map("created_at")
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("platform_suggestions")
 }
 
 model SubscriptionCancellationFeedback {
@@ -341,6 +365,9 @@ model Exam {
   completedAt      DateTime? @map("completed_at")
   timeSpentSeconds Int       @default(0) @map("time_spent_seconds")
   createdAt        DateTime  @default(now()) @map("created_at")
+  isOnboardingWelcome     Boolean  @default(false) @map("is_onboarding_welcome")
+  welcomeLeadInFirstName  String?  @map("welcome_lead_in_first_name") @db.VarChar(255)
+  welcomeLeadInUniversity String?  @map("welcome_lead_in_university") @db.VarChar(512)
 
   mentorReviewEligible   Boolean   @default(false) @map("mentor_review_eligible")
   studentFeedbackEligible Boolean  @default(false) @map("student_feedback_eligible")

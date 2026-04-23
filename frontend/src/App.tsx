@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,6 +24,7 @@ import StudyPlanSession from "./pages/StudyPlanSession";
 import Community from "./pages/Community";
 import Mentorship from "./pages/Mentorship";
 import Wellbeing from "./pages/Wellbeing";
+import PlatformSuggestions from "./pages/PlatformSuggestions";
 import CaseList from "./pages/CaseList";
 import CaseEditor from "./pages/CaseEditor";
 import StudentLayout from "./components/StudentLayout";
@@ -41,6 +42,7 @@ import ExamDatesManagement from "./pages/backoffice/ExamDatesManagement";
 import BulkUploadCases from "./pages/backoffice/BulkUploadCases";
 import SubscriptionCancellationFeedback from "./pages/backoffice/SubscriptionCancellationFeedback";
 import ExamStudentFeedback from "./pages/backoffice/ExamStudentFeedback";
+import PlatformSuggestionsAdmin from "./pages/backoffice/PlatformSuggestionsAdmin";
 import AdminNotifications from "./pages/backoffice/AdminNotifications";
 import ExamReviews from "./pages/backoffice/ExamReviews";
 import ExamReviewDetail from "./pages/backoffice/ExamReviewDetail";
@@ -50,7 +52,13 @@ import NotFound from "./pages/NotFound";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Precios from "./pages/Precios";
+import RecursosIndex from "./pages/recursos/RecursosIndex";
+import GuiaSimulacroEnarm from "./pages/recursos/GuiaSimulacroEnarm";
+import GuiaCasosClinicosEnarm from "./pages/recursos/GuiaCasosClinicosEnarm";
+import GuiaPreparacionEnarm from "./pages/recursos/GuiaPreparacionEnarm";
+import GuiaEstadisticasEnarm from "./pages/recursos/GuiaEstadisticasEnarm";
 import { JsonLdSiteIdentity } from "@/components/Seo";
+import { AnalyticsListeners } from "@/components/AnalyticsListeners";
 
 const queryClient = new QueryClient();
 
@@ -63,11 +71,17 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <AnalyticsListeners />
             <JsonLdSiteIdentity />
             <Routes>
               <Route path="/" element={<Login />} />
-              <Route path="/login" element={<Login />} />
+              <Route path="/login" element={<Navigate to="/" replace />} />
               <Route path="/recuperar-contrasena" element={<ForgotPassword />} />
+              <Route path="/recursos" element={<RecursosIndex />} />
+              <Route path="/recursos/simulacro-enarm" element={<GuiaSimulacroEnarm />} />
+              <Route path="/recursos/casos-clinicos-enarm" element={<GuiaCasosClinicosEnarm />} />
+              <Route path="/recursos/preparacion-enarm-mexico" element={<GuiaPreparacionEnarm />} />
+              <Route path="/recursos/estadisticas-y-metricas" element={<GuiaEstadisticasEnarm />} />
               <Route path="/backoffice/login" element={<BackofficeLogin />} />
               <Route path="/terminos" element={<TermsOfService />} />
               <Route path="/privacidad" element={<PrivacyPolicy />} />
@@ -100,6 +114,7 @@ const App = () => (
                 <Route path="community" element={<Community />} />
                 <Route path="mentorship" element={<Mentorship />} />
                 <Route path="wellbeing" element={<Wellbeing />} />
+                <Route path="suggestions" element={<PlatformSuggestions />} />
               </Route>
 
               <Route
@@ -206,6 +221,14 @@ const App = () => (
                   element={
                     <AdminRoute>
                       <ExamStudentFeedback />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="platform-suggestions"
+                  element={
+                    <AdminRoute>
+                      <PlatformSuggestionsAdmin />
                     </AdminRoute>
                   }
                 />

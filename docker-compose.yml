@@ -17,7 +17,8 @@
 # Proxy mismo origen: build del frontend con VITE_API_URL vacío; CORS_ORIGIN = URL pública.
 # Orígenes separados: VITE_API_URL=https://api.tu-dominio.com y CORS_ORIGIN=https://app.tu-dominio.com
 #
-# Frontend (SEO / marca, inyectadas en build): VITE_SITE_URL (canonical, OG, JSON-LD), VITE_APP_NAME (default ENARMX).
+# Frontend (SEO / marca, inyectadas en build): VITE_SITE_URL (canonical, OG, JSON-LD), VITE_APP_NAME (default ENARMX),
+#   VITE_CLARITY_PROJECT_ID (opcional, Microsoft Clarity / mapas de calor).
 #
 # Imágenes subidas (persistencia): el backend escribe en /app/uploads (UPLOAD_DIR=uploads).
 # Por defecto se monta ./data/uploads (relativo al repo) para desarrollo.
@@ -68,6 +69,7 @@ services:
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
         VITE_SITE_URL: ${VITE_SITE_URL:-https://enarmx.com.mx}
         VITE_APP_NAME: ${VITE_APP_NAME:-ENARMX}
+        VITE_CLARITY_PROJECT_ID: ${VITE_CLARITY_PROJECT_ID:-}
     restart: unless-stopped
     depends_on:
       - backend

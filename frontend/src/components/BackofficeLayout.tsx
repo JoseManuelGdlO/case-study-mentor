@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, FileText, FolderTree, Users, CreditCard, BarChart3, Sparkles, CalendarClock, LogOut, Plus, MessageSquareText, BookOpen, ClipboardCheck, Bell, TicketPercent, UserPlus, MessageSquareHeart, Handshake } from 'lucide-react';
+import { LayoutDashboard, FileText, FolderTree, Users, CreditCard, BarChart3, Sparkles, CalendarClock, LogOut, Plus, MessageSquareText, BookOpen, ClipboardCheck, Bell, TicketPercent, UserPlus, MessageSquareHeart, Handshake, Inbox } from 'lucide-react';
 import logoConLetra from '@/assets/logotipoconletra.png';
 import logoSolo from '@/assets/logotiposolo.png';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ const navItems: {
   { title: 'Especialidades', url: '/backoffice/specialties', icon: FolderTree },
   { title: 'Usuarios', url: '/backoffice/users', icon: Users, adminOnly: true },
   { title: 'Feedback examenes', url: '/backoffice/exam-student-feedback', icon: MessageSquareHeart, adminOnly: true },
+  { title: 'Sugerencias plataforma', url: '/backoffice/platform-suggestions', icon: Inbox, adminOnly: true },
   { title: 'Cancelaciones', url: '/backoffice/subscription-cancellation-feedback', icon: MessageSquareText, adminOnly: true },
   { title: 'Avisos (push / correo)', url: '/backoffice/admin-notifications', icon: Bell, adminOnly: true },
   { title: 'Precios', url: '/backoffice/pricing', icon: CreditCard, adminOnly: true },
@@ -100,7 +101,7 @@ function BackofficeSidebar() {
                 className="hover:bg-sidebar-accent/50 text-sidebar-foreground/60 cursor-pointer"
                 onClick={async () => {
                   await logout();
-                  navigate('/login');
+                  navigate('/');
                 }}
               >
                 <LogOut className="mr-2 h-4 w-4" />

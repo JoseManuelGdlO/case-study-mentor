@@ -10,18 +10,22 @@ import type { Category } from '@/types';
 import { toast } from 'sonner';
 import { apiJson } from '@/lib/api';
 import { ImpersonationBanner } from '@/components/ImpersonationBanner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 15 }, (_, i) => String(currentYear - 10 + i));
 
 const Onboarding = () => {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [university, setUniversity] = useState('');
   const [graduationYear, setGraduationYear] = useState('');
   const [desiredSpecialty, setDesiredSpecialty] = useState('');
+  /** UUID de especialidad cuando eligen una tarjeta; si solo escriben texto, puede quedar sin id (fallback en backend). */
+  const [desiredSpecialtyId, setDesiredSpecialtyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -107,7 +111,10 @@ const Onboarding = () => {
               <button
                 key={cat.id}
                 type="button"
-                onClick={() => setDesiredSpecialty(cat.name)}
+                onClick={() => {
+                  setDesiredSpecialty(cat.name);
+                  setDesiredSpecialtyId(cat.id);
+                }}
                 className={`p-4 rounded-xl border-2 text-left transition-all ${
                   desiredSpecialty === cat.name
                     ? 'border-primary bg-accent shadow-md'
@@ -123,7 +130,10 @@ const Onboarding = () => {
             <Input
               placeholder="Ej: Dermatología"
               value={desiredSpecialty}
-              onChange={(e) => setDesiredSpecialty(e.target.value)}
+              onChange={(e) => {
+                setDesiredSpecialty(e.target.value);
+                setDesiredSpecialtyId(null);
+              }}
               className="h-12"
             />
           </div>
@@ -155,11 +165,31 @@ const Onboarding = () => {
           graduationYear: graduationYear ? parseInt(graduationYear, 10) : null,
         }),
       });
-      await apiJson('/api/profile/onboarding', { method: 'PUT' });
+      let specialtyIdForWelcome = desiredSpecialtyId;
+      if (!specialtyIdForWelcome && desiredSpecialty.trim()) {
+        const match = categories.find(
+          (c) => c.name.toLowerCase() === desiredSpecialty.trim().toLowerCase()
+        );
+        if (match) specialtyIdForWelcome = match.id;
+      }
+      const onboardJson = await apiJson<{
+        data: { welcomeExamId?: string | null };
+      }>('/api/profile/onboarding', {
+        method: 'PUT',
+        body: JSON.stringify({
+          desiredSpecialtyId: specialtyIdForWelcome,
+        }),
+      });
+      await refreshUser();
       toast.success('¡Bienvenido a ENARMX!', {
         description: `Mucho éxito en tu camino hacia ${desiredSpecialty}, ${firstName}`,
       });
-      navigate('/dashboard');
+      const wid = onboardJson.data.welcomeExamId;
+      if (wid) {
+        navigate(`/exam/${wid}/study`, { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Error al guardar');
     } finally {

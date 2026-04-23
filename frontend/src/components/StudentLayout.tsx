@@ -14,7 +14,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, FileText, BarChart3, User, LogOut, Plus, Crown, Headphones, MessageSquare, Users, HeartPulse } from 'lucide-react';
+import { LayoutDashboard, FileText, BarChart3, User, LogOut, Plus, Crown, Headphones, MessageSquare, Users, HeartPulse, Inbox } from 'lucide-react';
 import logoConLetra from '@/assets/logotipoconletra.png';
 import logoSolo from '@/assets/logotiposolo.png';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ const navItems = [
   { title: 'Bienestar', url: '/dashboard/wellbeing', icon: HeartPulse },
   { title: 'Suscripción', url: '/dashboard/subscription', icon: Crown, highlight: true },
   { title: 'Soporte', url: '/dashboard/soporte', icon: Headphones },
+  { title: 'Buzón de sugerencias', url: '/dashboard/suggestions', icon: Inbox },
   { title: 'Perfil', url: '/dashboard/profile', icon: User },
 ];
 
@@ -87,6 +88,7 @@ function AppSidebar() {
                 <span className="block w-full">
                   <Button
                     className="w-full gradient-primary border-0 font-semibold gap-2"
+                    data-ga-click="sidebar_nuevo_examen"
                     onClick={() =>
                       isFreeTrialExhausted ? navigate('/dashboard/subscription') : navigate('/dashboard/new-exam')
                     }
@@ -116,6 +118,7 @@ function AppSidebar() {
                       end={item.url === '/dashboard'}
                       className={`hover:bg-sidebar-accent/50 text-sidebar-foreground ${item.highlight && isFreeUser ? 'text-warning' : ''}`}
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      data-ga-click={`sidebar_${item.url.replace(/^\//, '').replace(/\//g, '_') || 'home'}`}
                       data-tour={item.url === '/dashboard' ? 'dashboard' : item.url === '/dashboard/exams' ? 'exams' : item.url === '/dashboard/stats' ? 'stats' : item.url === '/dashboard/subscription' ? 'subscription' : undefined}
                     >
                       <item.icon className="mr-2 h-4 w-4" />
@@ -148,9 +151,10 @@ function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 className="hover:bg-sidebar-accent/50 text-sidebar-foreground/60 cursor-pointer"
+                data-ga-click="sidebar_logout"
                 onClick={async () => {
                   await logout();
-                  navigate('/login');
+                  navigate('/');
                 }}
               >
                 <LogOut className="mr-2 h-4 w-4" />
@@ -186,7 +190,7 @@ const StudentLayout = () => {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <ImpersonationBanner />
-          <header className="h-14 flex items-center border-b border-border px-4 bg-background">
+          <header className="min-h-14 flex items-center border-b border-border px-4 bg-background pt-[env(safe-area-inset-top,0px)]">
             <SidebarTrigger className="mr-4" />
             <div className="ml-auto flex items-center gap-3">
               <ThemeToggle />
@@ -195,7 +199,7 @@ const StudentLayout = () => {
               </div>
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-4 md:p-6 pb-[max(1rem,env(safe-area-inset-bottom,0px))] min-w-0">
             <Outlet />
           </main>
         </div>

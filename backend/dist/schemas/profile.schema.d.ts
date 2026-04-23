@@ -1,4 +1,11 @@
 import { z } from 'zod';
+export declare const completeOnboardingSchema: z.ZodObject<{
+    desiredSpecialtyId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+}, "strip", z.ZodTypeAny, {
+    desiredSpecialtyId?: string | null | undefined;
+}, {
+    desiredSpecialtyId?: string | null | undefined;
+}>;
 export declare const profileUpdateSchema: z.ZodObject<{
     firstName: z.ZodOptional<z.ZodString>;
     lastName: z.ZodOptional<z.ZodString>;

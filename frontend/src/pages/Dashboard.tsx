@@ -12,6 +12,8 @@ import MotivationalBanner from '@/components/MotivationalBanner';
 import CountdownTimer from '@/components/CountdownTimer';
 import { apiJson } from '@/lib/api';
 import { toast } from 'sonner';
+import { PlatformSuggestionDialog } from '@/components/PlatformSuggestionDialog';
+import { DASHBOARD_PLATFORM_SUGGESTION_ROLL } from '@/constants/platform-suggestion';
 import {
   buildPlatformUrl,
   buildPredictionShareText,
@@ -80,6 +82,13 @@ const Dashboard = () => {
     progress: 0,
   });
   const shareTimerRef = useRef<number | null>(null);
+  const [suggestionModalOpen, setSuggestionModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!user?.platformSuggestionPromptPending || user?.impersonation) return;
+    if (Math.random() >= DASHBOARD_PLATFORM_SUGGESTION_ROLL) return;
+    setSuggestionModalOpen(true);
+  }, [user?.platformSuggestionPromptPending, user?.impersonation, user?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -285,13 +294,13 @@ const Dashboard = () => {
         </Card>
       )}
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">{greeting} 👋</h1>
           <p className="text-muted-foreground mt-1">Continúa tu preparación para el ENARM</p>
         </div>
         <Button
-          className="gradient-primary border-0 font-semibold gap-2 h-12 px-6"
+          className="gradient-primary border-0 font-semibold gap-2 h-12 px-6 w-full sm:w-auto shrink-0"
           onClick={() =>
             isFreeTrialExhausted ? navigate('/dashboard/subscription') : navigate('/dashboard/new-exam')
           }
@@ -694,6 +703,8 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      <PlatformSuggestionDialog open={suggestionModalOpen} onOpenChange={setSuggestionModalOpen} />
     </div>
   );
 };

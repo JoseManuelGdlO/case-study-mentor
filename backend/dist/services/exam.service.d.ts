@@ -2,7 +2,14 @@ import type { z } from 'zod';
 import type { generateExamSchema, submitExamFeedbackSchema } from '../schemas/exam.schema.js';
 type GenerateInput = z.infer<typeof generateExamSchema>;
 type SubmitExamFeedbackInput = z.infer<typeof submitExamFeedbackSchema>;
-export declare function generateExam(userId: string, input: GenerateInput): Promise<{
+/** Solo uso interno (p. ej. examen de bienvenida tras onboarding). No expuesto en la API pública. */
+export type GenerateExamInternalOptions = {
+    onboardingWelcomeSnapshots?: {
+        firstName: string;
+        university: string;
+    };
+};
+export declare function generateExam(userId: string, input: GenerateInput, internal?: GenerateExamInternalOptions): Promise<{
     data: {
         id: string;
         config: {
@@ -48,6 +55,7 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
         completedAt: string | null;
         timeSpentSeconds: number;
         flatQuestions: {
+            leadIn?: string | undefined;
             id: string;
             globalOrder: number;
             text: string;
@@ -141,6 +149,7 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
         completedAt: string | null;
         timeSpentSeconds: number;
         flatQuestions: {
+            leadIn?: string | undefined;
             id: string;
             globalOrder: number;
             text: string;
@@ -185,6 +194,12 @@ export declare function generateExam(userId: string, input: GenerateInput): Prom
         studentFeedbackSubmitted: boolean;
     };
 }>;
+/**
+ * Crea el primer examen de prueba tras onboarding (modo estudio, 10 preguntas, consume cupo free trial).
+ * Idempotente: no hace nada si ya existe `onboardingWelcomeExamCreatedAt`.
+ * Devuelve el id del examen o null si no aplica o falla (el onboarding no debe bloquearse).
+ */
+export declare function createOnboardingWelcomeExam(userId: string, desiredSpecialtyId?: string | null): Promise<string | null>;
 export declare function listExams(userId: string, page: number, limit: number): Promise<{
     data: {
         id: string;
@@ -255,6 +270,7 @@ export declare function getExamById(userId: string, examId: string): Promise<{
         completedAt: string | null;
         timeSpentSeconds: number;
         flatQuestions: {
+            leadIn?: string | undefined;
             id: string;
             globalOrder: number;
             text: string;
@@ -364,6 +380,7 @@ export declare function completeExam(userId: string, examId: string, timeSpentSe
         completedAt: string | null;
         timeSpentSeconds: number;
         flatQuestions: {
+            leadIn?: string | undefined;
             id: string;
             globalOrder: number;
             text: string;
@@ -454,6 +471,7 @@ export declare function getExamResults(userId: string, examId: string): Promise<
         completedAt: string | null;
         timeSpentSeconds: number;
         flatQuestions: {
+            leadIn?: string | undefined;
             id: string;
             globalOrder: number;
             text: string;
@@ -508,6 +526,7 @@ export declare function getNextQuestion(userId: string, examId: string): Promise
         examId: string;
         currentQuestionIndex: number;
         question: {
+            leadIn?: string | undefined;
             id: string;
             globalOrder: number;
             text: string;

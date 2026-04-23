@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import {
   changePasswordSchema,
+  completeOnboardingSchema,
   profileUpdateSchema,
   wellbeingNotificationPreferencesSchema,
   wellbeingPushSubscribeSchema,
@@ -82,19 +83,24 @@ profileRouter.post(
   }
 );
 
-profileRouter.put('/onboarding', authenticate, async (req, res, next) => {
-  try {
-    if (!req.user || !req.actor) throw new Error('No user');
-    if (req.actor.id !== req.user.id) {
-      res.status(403).json({ error: 'No puedes completar el onboarding en modo vista' });
-      return;
+profileRouter.put(
+  '/onboarding',
+  authenticate,
+  validateBody(completeOnboardingSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user || !req.actor) throw new Error('No user');
+      if (req.actor.id !== req.user.id) {
+        res.status(403).json({ error: 'No puedes completar el onboarding en modo vista' });
+        return;
+      }
+      const result = await profileService.completeOnboarding(req.user.id, req.body);
+      res.json(result);
+    } catch (e) {
+      next(e);
     }
-    const result = await profileService.completeOnboarding(req.user.id);
-    res.json(result);
-  } catch (e) {
-    next(e);
   }
-});
+);
 
 profileRouter.get('/wellbeing-notifications', authenticate, async (req, res, next) => {
   try {

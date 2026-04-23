@@ -62,6 +62,7 @@ export declare function getMentorReviewExamDetail(examId: string): Promise<{
             completedAt: string | null;
             timeSpentSeconds: number;
             flatQuestions: {
+                leadIn?: string | undefined;
                 id: string;
                 globalOrder: number;
                 text: string;
@@ -162,6 +163,7 @@ export declare function submitMentorReview(examId: string, reviewerId: string, b
             completedAt: string | null;
             timeSpentSeconds: number;
             flatQuestions: {
+                leadIn?: string | undefined;
                 id: string;
                 globalOrder: number;
                 text: string;

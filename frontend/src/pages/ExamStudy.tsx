@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +49,7 @@ const ExamStudy = () => {
   const [answeredQuestions, setAnsweredQuestions] = useState<Record<string, LocalAnswer>>({});
   const [hintOpen, setHintOpen] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  const selectedOptionButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const reload = useCallback(async (options?: { preservePosition?: boolean }) => {
     if (!examId) return;
@@ -90,11 +91,25 @@ const ExamStudy = () => {
   useEffect(() => {
     setHintOpen(false);
   }, [question?.id]);
+
   const progress = total ? Math.round(((currentIndex + 1) / total) * 100) : 0;
 
   const currentState = question ? answeredQuestions[question.id] : undefined;
   const selectedAnswer = currentState?.selectedAnswer ?? null;
   const revealed = currentState?.revealed ?? false;
+
+  /** Tras revelar feedback, el contenido crece (más opciones, resumen a la izquierda) y la opción elegida puede quedar fuera de vista; la centramos en el viewport. */
+  useEffect(() => {
+    if (!revealed || !selectedAnswer || !question) return;
+    const t = window.setTimeout(() => {
+      selectedOptionButtonRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest',
+      });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [revealed, selectedAnswer, question?.id]);
 
   const questionImageDisplayUrl = question
     ? revealed
@@ -179,26 +194,34 @@ const ExamStudy = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <ImpersonationBanner />
-      <div className="border-b border-border bg-card px-6 py-3 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="rounded-full">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <Badge className="gradient-primary text-primary-foreground border-0 gap-1">
-            <BookOpen className="w-3 h-3" /> {reviewBadgeLabel}
-          </Badge>
-          <span className="text-sm text-muted-foreground">
-            Pregunta <strong className="text-foreground">{currentIndex + 1}</strong> de{' '}
-            <strong className="text-foreground">{total}</strong>
-          </span>
-          <Badge variant="secondary" className="text-xs">
-            Caso: pregunta {(question.caseQuestionIndex ?? 0) + 1} de {question.caseQuestionTotal ?? 1}
-          </Badge>
+      <div className="border-b border-border bg-card px-3 sm:px-6 py-3 sticky top-0 z-10">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4 min-w-0 flex-1">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
+              <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="rounded-full shrink-0">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <Badge className="gradient-primary text-primary-foreground border-0 gap-1 max-w-[min(100%,10rem)] sm:max-w-none truncate text-xs sm:text-sm">
+                <BookOpen className="w-3 h-3 shrink-0" /> {reviewBadgeLabel}
+              </Badge>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                Pregunta <strong className="text-foreground">{currentIndex + 1}</strong> de{' '}
+                <strong className="text-foreground">{total}</strong>
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="text-xs max-w-full">
+                <span className="hidden sm:inline">Caso: pregunta </span>
+                <span className="sm:hidden">Caso </span>
+                {(question.caseQuestionIndex ?? 0) + 1} de {question.caseQuestionTotal ?? 1}
+              </Badge>
+            </div>
+          </div>
+          <Progress value={progress} className="h-2 w-full md:w-32 shrink-0" />
         </div>
-        <Progress value={progress} className="w-32 h-2" />
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 p-4 sm:p-6 max-w-7xl mx-auto w-full min-w-0">
         <div className="space-y-4">
           <Card className="border-0 shadow-md h-fit">
             <CardContent className="p-6">
@@ -253,6 +276,11 @@ const ExamStudy = () => {
           <Card className="border-0 shadow-md">
             <CardContent className="p-6">
               <div className="mb-4">
+                {question.leadIn ? (
+                  <p className="mb-4 text-sm text-muted-foreground rounded-lg border border-border bg-muted/20 p-4 leading-relaxed">
+                    {question.leadIn}
+                  </p>
+                ) : null}
                 <RichOrPlainBlock
                   format={caseFmt}
                   text={question.text}
@@ -306,10 +334,11 @@ const ExamStudy = () => {
                   return (
                     <button
                       key={opt.id}
+                      ref={opt.id === selectedAnswer ? selectedOptionButtonRef : undefined}
                       type="button"
                       onClick={() => handleSelect(opt.id)}
                       disabled={revealed || readOnly}
-                      className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-start gap-3 ${borderClass} ${bgClass}`}
+                      className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-start gap-3 scroll-mt-24 ${borderClass} ${bgClass}`}
                     >
                       <span
                         className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 ${

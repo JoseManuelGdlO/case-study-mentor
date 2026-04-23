@@ -2,7 +2,10 @@ import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "next-themes";
 import { HelmetProvider } from "react-helmet-async";
 import App from "./App.tsx";
+import { initClarity } from "@/lib/initClarity";
 import "./index.css";
+
+initClarity();
 import faviconUrl from "./assets/logotiposolo.ico?url";
 import { THEME_STORAGE_KEY } from "./lib/theme";
 

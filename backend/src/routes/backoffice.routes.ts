@@ -1255,6 +1255,33 @@ backofficeRouter.get(
   }
 );
 
+backofficeRouter.get('/platform-suggestions', requireAdmin(), async (_req, res, next) => {
+  try {
+    const rows = await prisma.platformSuggestion.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+      include: {
+        user: { select: { email: true, firstName: true, lastName: true } },
+      },
+    });
+
+    res.json({
+      data: {
+        items: rows.map((r) => ({
+          id: r.id,
+          createdAt: r.createdAt.toISOString(),
+          source: r.source,
+          message: r.message,
+          userEmail: r.user.email,
+          userName: `${r.user.firstName} ${r.user.lastName}`.trim(),
+        })),
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
 backofficeRouter.get('/exam-student-feedback', requireAdmin(), async (_req, res, next) => {
   try {
     const rows = await prisma.examStudentFeedback.findMany({

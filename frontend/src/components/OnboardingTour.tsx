@@ -46,22 +46,29 @@ const OnboardingTour = ({ onComplete }: { onComplete: () => void }) => {
 
   const current = tourSteps[step];
   const pad = 8;
+  const tooltipMaxW = 340;
+  const horizontalMargin = 16;
 
-  // Tooltip position
+  // Tooltip position (width matches max-w-[min(340px,calc(100vw-2rem))])
   const getTooltipStyle = (): React.CSSProperties => {
     if (!rect) return { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' };
-    const tooltipW = 340;
+    const tooltipW = Math.min(tooltipMaxW, window.innerWidth - horizontalMargin * 2);
     const spaceRight = window.innerWidth - (rect.left + rect.width + pad);
     const spaceBelow = window.innerHeight - (rect.top + rect.height + pad);
 
     if (spaceBelow > 220) {
-      return { top: rect.top + rect.height + pad + 12, left: Math.max(16, Math.min(rect.left, window.innerWidth - tooltipW - 16)) };
+      return {
+        top: rect.top + rect.height + pad + 12,
+        left: Math.max(horizontalMargin, Math.min(rect.left, window.innerWidth - tooltipW - horizontalMargin)),
+      };
     }
     if (spaceRight > tooltipW + 20) {
       return { top: Math.max(16, rect.top), left: rect.left + rect.width + pad + 12 };
     }
-    // fallback: above
-    return { top: Math.max(16, rect.top - 200), left: Math.max(16, Math.min(rect.left, window.innerWidth - tooltipW - 16)) };
+    return {
+      top: Math.max(16, rect.top - 200),
+      left: Math.max(horizontalMargin, Math.min(rect.left, window.innerWidth - tooltipW - horizontalMargin)),
+    };
   };
 
   return (
@@ -97,7 +104,7 @@ const OnboardingTour = ({ onComplete }: { onComplete: () => void }) => {
       {/* Tooltip */}
       <div
         ref={tooltipRef}
-        className="absolute z-10 w-[340px] bg-card border border-border rounded-2xl shadow-2xl p-5 transition-all duration-300 animate-fade-in"
+        className="absolute z-10 w-full max-w-[min(340px,calc(100vw-2rem))] box-border bg-card border border-border rounded-2xl shadow-2xl p-4 sm:p-5 transition-all duration-300 animate-fade-in"
         style={getTooltipStyle()}
       >
         <div className="flex items-center justify-between mb-3">

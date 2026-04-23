@@ -6,7 +6,10 @@ import { FREE_TRIAL_MAX_EXAMS, FREE_TRIAL_MAX_QUESTIONS } from '../constants/fre
 import { effectivePlanFromProfile } from './profile.service.js';
 import { predictPlacement } from './prediction.service.js';
 import { invalidateStudyPlanCaches } from './study-plan.service.js';
-export async function generateExam(userId, input) {
+function buildWelcomeQuestionLeadIn(firstName, university) {
+    return `Hola, ${firstName}. Sabemos que te formaste en ${university}; este es tu primer examen de práctica en ENARMX. ¡Mucho éxito con la primera pregunta!`;
+}
+export async function generateExam(userId, input, internal) {
     const { language, mode, specialtyIds, areaIds, questionCount, questionFilter, adaptiveMode, predictionSpecialtyId, } = input;
     const caseWhere = {
         status: 'published',
@@ -104,6 +107,7 @@ export async function generateExam(userId, input) {
             select: { areaId: true },
             distinct: ['areaId'],
         })).map((r) => r.areaId);
+    const welcomeSnaps = internal?.onboardingWelcomeSnapshots;
     const exam = await prisma.$transaction(async (tx) => {
         if (!hasPaidPlan) {
             const reserved = await tx.profile.updateMany({
@@ -127,6 +131,13 @@ export async function generateExam(userId, input) {
                 ...(predictionSpecialtyId ? { predictionSpecialty: predictionSpecialtyId } : {}),
                 status: 'not_started',
                 currentIndex: 0,
+                ...(welcomeSnaps
+                    ? {
+                        isOnboardingWelcome: true,
+                        welcomeLeadInFirstName: welcomeSnaps.firstName,
+                        welcomeLeadInUniversity: welcomeSnaps.university,
+                    }
+                    : {}),
                 selectedSpecialties: {
                     create: specialtyIds.map((specialtyId) => ({ specialtyId })),
                 },
@@ -144,6 +155,12 @@ export async function generateExam(userId, input) {
                 },
             },
         });
+        if (welcomeSnaps) {
+            await tx.profile.update({
+                where: { id: userId },
+                data: { onboardingWelcomeExamCreatedAt: new Date() },
+            });
+        }
         return e;
     });
     const payload = await getExamById(userId, exam.id);
@@ -157,6 +174,72 @@ export async function generateExam(userId, input) {
         };
     }
     return payload;
+}
+/**
+ * Crea el primer examen de prueba tras onboarding (modo estudio, 10 preguntas, consume cupo free trial).
+ * Idempotente: no hace nada si ya existe `onboardingWelcomeExamCreatedAt`.
+ * Devuelve el id del examen o null si no aplica o falla (el onboarding no debe bloquearse).
+ */
+export async function createOnboardingWelcomeExam(userId, desiredSpecialtyId) {
+    const profile = await prisma.profile.findUnique({
+        where: { id: userId },
+        select: {
+            onboardingWelcomeExamCreatedAt: true,
+            firstName: true,
+            lastName: true,
+            university: true,
+        },
+    });
+    if (!profile || profile.onboardingWelcomeExamCreatedAt) {
+        return null;
+    }
+    const university = profile.university?.trim();
+    const firstName = profile.firstName?.trim();
+    if (!university || university.length < 2 || !firstName) {
+        return null;
+    }
+    let specialtyIds = [];
+    if (desiredSpecialtyId) {
+        const sp = await prisma.specialty.findUnique({
+            where: { id: desiredSpecialtyId },
+            select: { id: true },
+        });
+        if (sp)
+            specialtyIds = [sp.id];
+    }
+    if (specialtyIds.length === 0) {
+        const dist = await prisma.clinicalCase.findMany({
+            where: { status: 'published' },
+            select: { specialtyId: true },
+            distinct: ['specialtyId'],
+        });
+        if (dist.length === 0) {
+            console.warn('[onboarding-welcome] no hay casos publicados');
+            return null;
+        }
+        specialtyIds = [dist[0].specialtyId];
+    }
+    try {
+        const result = await generateExam(userId, {
+            language: 'es',
+            mode: 'study',
+            specialtyIds,
+            areaIds: [],
+            questionCount: FREE_TRIAL_MAX_QUESTIONS,
+            questionFilter: 'all',
+            adaptiveMode: false,
+        }, {
+            onboardingWelcomeSnapshots: {
+                firstName,
+                university,
+            },
+        });
+        return result.data.id;
+    }
+    catch (e) {
+        console.warn('[onboarding-welcome] no se pudo generar el examen', e);
+        return null;
+    }
 }
 function stripSimulationOptions(options) {
     return options.map(({ isCorrect: _i, explanation: _e, feedbackImageUrl: _f, ...rest }) => rest);
@@ -269,6 +352,12 @@ export async function getExamById(userId, examId) {
             isCorrect: o.isCorrect,
             explanation: o.explanation,
         }));
+        const leadIn = exam.isOnboardingWelcome &&
+            eq.orderIndex === 0 &&
+            exam.welcomeLeadInFirstName &&
+            exam.welcomeLeadInUniversity
+            ? buildWelcomeQuestionLeadIn(exam.welcomeLeadInFirstName, exam.welcomeLeadInUniversity)
+            : undefined;
         entry.questions.push({
             id: q.id,
             text: q.text,
@@ -283,6 +372,7 @@ export async function getExamById(userId, examId) {
             hint: q.hint,
             orderIndex: q.orderIndex,
             globalOrder: eq.orderIndex,
+            ...(leadIn ? { leadIn } : {}),
         });
     }
     const cases = exam.examCases.map((ec) => caseMap.get(ec.caseId)).filter(Boolean);
@@ -300,6 +390,12 @@ export async function getExamById(userId, examId) {
             isCorrect: o.isCorrect,
             explanation: o.explanation,
         }));
+        const leadIn = exam.isOnboardingWelcome &&
+            eq.orderIndex === 0 &&
+            exam.welcomeLeadInFirstName &&
+            exam.welcomeLeadInUniversity
+            ? buildWelcomeQuestionLeadIn(exam.welcomeLeadInFirstName, exam.welcomeLeadInUniversity)
+            : undefined;
         return {
             id: q.id,
             globalOrder: eq.orderIndex,
@@ -327,6 +423,7 @@ export async function getExamById(userId, examId) {
                 unit: l.unit,
                 normalRange: l.normalRange,
             })),
+            ...(leadIn ? { leadIn } : {}),
         };
     });
     const answers = exam.answers.map((a) => ({

@@ -58,8 +58,11 @@ export declare function updateProfile(userId: string, body: {
         freeTrialExamsRemaining: number | null;
     };
 }>;
-export declare function completeOnboarding(userId: string): Promise<{
+export declare function completeOnboarding(userId: string, body?: {
+    desiredSpecialtyId?: string | null;
+}): Promise<{
     data: {
+        welcomeExamId: string | null;
         id: string;
         email: string;
         authProvider: import("@prisma/client").$Enums.AuthProvider;
