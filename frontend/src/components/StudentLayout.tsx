@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { ImpersonationBanner } from '@/components/ImpersonationBanner';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { apiJson } from '@/lib/api';
 
 const navItems = [
@@ -188,6 +189,7 @@ const StudentLayout = () => {
           <header className="h-14 flex items-center border-b border-border px-4 bg-background">
             <SidebarTrigger className="mr-4" />
             <div className="ml-auto flex items-center gap-3">
+              <ThemeToggle />
               <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-xs font-bold text-primary-foreground">
                 {(user?.firstName?.[0] ?? 'U') + (user?.lastName?.[0] ?? '')}
               </div>

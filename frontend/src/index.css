@@ -99,6 +99,10 @@
     --sidebar-accent-foreground: 262 10% 90%;
     --sidebar-border: 240 15% 15%;
     --sidebar-ring: 262 83% 65%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(262, 83%, 58%), hsl(190, 75%, 42%));
+    --gradient-hero: linear-gradient(135deg, hsl(262, 75%, 42%), hsl(280, 55%, 38%), hsl(190, 70%, 38%));
+    --gradient-card: linear-gradient(135deg, hsl(262, 35%, 14%), hsl(190, 30%, 12%));
   }
 }
 

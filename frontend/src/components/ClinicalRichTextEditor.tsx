@@ -26,7 +26,7 @@ export function ClinicalRichTextEditor({
     editorProps: {
       attributes: {
         class: cn(
-          'prose prose-sm max-w-none focus:outline-none px-3 py-2 text-foreground',
+          'prose prose-sm dark:prose-invert max-w-none focus:outline-none px-3 py-2 text-foreground',
           minHeightClass,
           className
         ),

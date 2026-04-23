@@ -1,6 +1,19 @@
 <!doctype html>
 <html lang="es-MX">
   <head>
+    <script>
+      (function () {
+        try {
+          var key = "enarmx-theme";
+          var t = localStorage.getItem(key);
+          var dark = false;
+          if (t === "dark") dark = true;
+          else if (t === "light") dark = false;
+          else dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.classList.toggle("dark", dark);
+        } catch (e) {}
+      })();
+    </script>
     <!-- Google tag (gtag.js) — GA4 G-2006ERR20K + Google Ads AW-793415829 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-2006ERR20K"></script>
     <script>

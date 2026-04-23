@@ -1,8 +1,10 @@
 import { createRoot } from "react-dom/client";
+import { ThemeProvider } from "next-themes";
 import { HelmetProvider } from "react-helmet-async";
 import App from "./App.tsx";
 import "./index.css";
 import faviconUrl from "./assets/logotiposolo.ico?url";
+import { THEME_STORAGE_KEY } from "./lib/theme";
 
 const link =
   document.querySelector<HTMLLinkElement>("link[rel='icon']") ?? document.createElement("link");
@@ -13,6 +15,8 @@ if (!link.parentElement) document.head.appendChild(link);
 
 createRoot(document.getElementById("root")!).render(
   <HelmetProvider>
-    <App />
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey={THEME_STORAGE_KEY}>
+      <App />
+    </ThemeProvider>
   </HelmetProvider>
 );

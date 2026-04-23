@@ -15,10 +15,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Mail, GraduationCap, Save, Shield, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, GraduationCap, Save, Shield, Lock, Eye, EyeOff, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiJson } from '@/lib/api';
 import SubscriptionManagementSection from '@/components/SubscriptionManagementSection';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const Profile = () => {
   const { isFreeUser, plan } = useUser();
@@ -169,6 +170,22 @@ const Profile = () => {
                 </p>
               )}
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-0 shadow-md">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Palette className="w-5 h-5 text-primary" /> Apariencia
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Elige tema claro, oscuro o el mismo que tu sistema. Se guarda en este dispositivo.
+          </p>
+          <div className="flex shrink-0 justify-end">
+            <ThemeToggle />
           </div>
         </CardContent>
       </Card>
